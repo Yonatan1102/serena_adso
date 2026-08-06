@@ -1,8 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MicroServiceCRUD.MOdels;
-using System.ComponentModel.DataAnnotation
 
 
-public class DatabaseService : Dbcontext
-{ 
+public class DatabaseService : DbContext
+{
+    public DatabaseService(DbContextOptions options) 
+    : base(options)
+    {
+    }
+
+    public Dbset<serena>
 }

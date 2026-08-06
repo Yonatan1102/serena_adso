@@ -15,7 +15,7 @@ public class menu_rol
 
 
     [ForeignKey(nameof(id_rol))]
-    public virtual rol rol { get; set }
+    public virtual rol rol {get; set;}
 
     [ForeignKeyAttribute(nameof(id_menu))]
     public virtual menu menu { get; set; }
