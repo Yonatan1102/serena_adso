@@ -1,14 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37516.0 d17.14
+VisualStudioVersion = 17.14.37516.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication1", "WebApplication1.csproj", "{73AA6D68-1103-4229-B134-3D19B70DD89A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "models", "models", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
 		cita.cs = cita.cs
-		diarios.cs = diarios.cs
+		diario.cs = diario.cs
 		emergencia.cs = emergencia.cs
 		estado_de_animo.cs = estado_de_animo.cs
 		formulario.cs = formulario.cs
@@ -22,6 +22,38 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "models", "models", "{02EA68
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elementos de la solución", "Elementos de la solución", "{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "interfaces", "interfaces", "{AAB4CF46-13E9-43AD-85FC-99C811ABF03D}"
+	ProjectSection(SolutionItems) = preProject
+		Icita.cs = Icita.cs
+		Idiario.cs = Idiario.cs
+		Iemergencia.cs = Iemergencia.cs
+		Iestado_de_animo.cs = Iestado_de_animo.cs
+		Iformulario.cs = Iformulario.cs
+		Ihistorial_cita.cs = Ihistorial_cita.cs
+		Ihistorial_clinico.cs = Ihistorial_clinico.cs
+		Imenu.cs = Imenu.cs
+		Imenu_rol.cs = Imenu_rol.cs
+		Ipublicaciones.cs = Ipublicaciones.cs
+		Irol.cs = Irol.cs
+		Iusuario.cs = Iusuario.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "repositories", "repositories", "{EBCACFE9-5934-4190-AB0B-B151B0F4C4BB}"
+	ProjectSection(SolutionItems) = preProject
+		cita_repositories.cs = cita_repositories.cs
+		diario_repositories.cs = diario_repositories.cs
+		emergencia_repositories.cs = emergencia_repositories.cs
+		estado_de_animo_repositories.cs = estado_de_animo_repositories.cs
+		formulario_repositories.cs = formulario_repositories.cs
+		historial_cita_repositories.cs = historial_cita_repositories.cs
+		historial_clinico_repositories.cs = historial_clinico_repositories.cs
+		menu_repositories.cs = menu_repositories.cs
+		menu_rol__repositories.cs = menu_rol__repositories.cs
+		publicaciones_repositories.cs = publicaciones_repositories.cs
+		rol_repositories.cs = rol_repositories.cs
+		usuario_repositories.cs = usuario_repositories.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
