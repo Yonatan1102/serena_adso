@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Mvc.Routing;
 using WebApplication1.historial_cita_repositories;
 using WebApplication1.models;
-using WebApplication1.repositories.interfaces;
 
 namespace WebApplication1.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
+    using WebApplication1.interfaces;
     using WebApplication1.publicaionesrepositories;
 
     [Route("api/[controller]")]

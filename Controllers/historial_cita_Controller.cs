@@ -10,6 +10,7 @@ namespace WebApplication1.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
     using WebApplication1.estado_de_animorepositories;
+    using WebApplication1.interfaces;
 
     [Route("api/[controller]")]
     [ApiController]

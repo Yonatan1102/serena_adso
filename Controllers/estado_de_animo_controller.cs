@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using WebApplication1.estado_de_animorepositories;
 using WebApplication1.models;
-using WebApplication1.repositories.interfaces;
 
 namespace WebApplication1.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
-    using WebApplication1.estado_de_animorepositories;
+    using WebApplication1.interfaces;
+    using WebApplication1.repositories;
 
     [Route("api/[controller]")]
     [ApiController]

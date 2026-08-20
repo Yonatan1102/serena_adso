@@ -1,8 +1,8 @@
 ﻿using WebApplication1.models;
-using WebApplication1.repositories.interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-namespace WebApplication1.historial_clinico_repositories
+using WebApplication1.interfaces;
+namespace WebApplication1.repositories
 {
 
     public class historial_clinico_repositories : Ihistorial_clinico
