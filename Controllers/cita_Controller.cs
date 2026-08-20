@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using WebApplication1.cita_repositories;
+using WebApplication1.interfaces;
 using WebApplication1.models;
 using WebApplication1.publicaionesrepositories;
-using WebApplication1.repositories.interfaces;
 
 namespace WebApplication1.Controllers
 {

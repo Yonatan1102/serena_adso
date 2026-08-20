@@ -1,9 +1,9 @@
 ﻿using WebApplication1.models;
-using WebApplication1.repositories.interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using WebApplication1.interfaces;
 
-namespace WebApplication1.cita_repositories
+namespace WebApplication1.repositories
 {
 
     public class cita_repositories : Icita

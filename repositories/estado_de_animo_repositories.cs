@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using WebApplication1.interfaces;
 using WebApplication1.models;
-using WebApplication1.repositories.interfaces;
 
 
-namespace WebApplication1.estado_de_animorepositories
+namespace WebApplication1.repositories
 {
 
     public class estado_de_animorepositories : Iestado_de_animo
