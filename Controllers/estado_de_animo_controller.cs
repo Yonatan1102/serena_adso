@@ -15,9 +15,9 @@ namespace WebApplication1.Controllers
     {
         private readonly Iestado_de_animo  estado_de_animo_repositories;
 
-        public estado_de_animo_controller(Iestado_de_animo estado_de_animo_repositories)
+        public estado_de_animo_controller(Iestado_de_animo estado_de_animorepositories)
         {
-            this.estado_de_animo_repositories = estado_de_animo_repositories;
+            this.estado_de_animo_repositories = estado_de_animorepositories;
         }
         
         [HttpGet]
@@ -65,7 +65,7 @@ namespace WebApplication1.Controllers
                     return BadRequest(new { mensaje = "El usuario del historial clínico es obligatorio." });
                 }
 
-                var response = await estado_de_animorepositories.Postestado_de_animo(estado_de_animo);
+                var response = await estado_de_animo_repositories.Postestado_de_animo(estado_de_animo);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -75,11 +75,11 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> ActualizarCita([FromBody] cita cita)
+        public async Task<IActionResult> ActualizarCita([FromBody] estado_de_animo estado_de_animo, estado_de_animorepositories estado_de_animorepositories)
         {
             try
             {
-                var response = await estado_de_animorepositories.Putestado_de_animo(estado_de_animo);
+                var response = await estado_de_animo_repositories.Putestado_de_animo(estado_de_animo);
                 return Ok(response);
             }
             catch (Exception ex)

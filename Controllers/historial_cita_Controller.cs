@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using WebApplication1.models;
+using WebApplication1.repositories.interfaces;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using WebApplication1.historial_cita_repositories;
-using WebApplication1.models;
-using WebApplication1.repositories.interfaces;
+
+
 
 namespace WebApplication1.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
-    using WebApplication1.historial_clinico_repositories;
+    using WebApplication1.estado_de_animorepositories;
 
     [Route("api/[controller]")]
     [ApiController]
@@ -84,7 +86,7 @@ namespace WebApplication1.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el historial de cita.", detalle = ex.Message });
-            }               
+            }
         }
     }
 }
