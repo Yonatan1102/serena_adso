@@ -8,11 +8,11 @@ using WebApplication1.models;
 namespace WebApplication1.repositories
 {
 
-    public class estado_de_animorepositories : Iestado_de_animo
+    public class estado_de_animo_repositories : Iestado_de_animo
     {
         private readonly serena context;
 
-        public estado_de_animorepositories(serena context)
+        public estado_de_animo_repositories(serena context)
 
         {
             this.context = context;
