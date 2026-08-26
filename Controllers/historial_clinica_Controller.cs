@@ -1,13 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using WebApplication1.historial_cita_repositories;
 using WebApplication1.models;
 
 namespace WebApplication1.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
     using WebApplication1.interfaces;
-    using WebApplication1.publicaionesrepositories;
 
     [Route("api/[controller]")]
     [ApiController]
@@ -48,7 +46,7 @@ namespace WebApplication1.Controllers
             }
 
         }
-        [HttpPost]
+        [HttpPost("crear")]
         public async Task<IActionResult> crear_historial_clinico([FromBody] historial_clinico historial_clinico)
         {
             try
@@ -74,7 +72,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpPost]
+        [HttpPost("registrar")]
         public async Task<IActionResult> CrearHistorialClinico([FromBody] historial_clinico historialClinico)
         {
             try

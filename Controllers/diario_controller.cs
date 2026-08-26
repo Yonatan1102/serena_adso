@@ -1,12 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using WebApplication1.models;
-using WebApplication1.publicaionesrepositories;
 
 namespace WebApplication1.Controllers
 {
     using Microsoft.AspNetCore.Mvc;
-    using WebApplication1.historial_clinico_repositories;
     using WebApplication1.interfaces;
 
     [Route("api/[controller]")]
@@ -18,7 +16,7 @@ namespace WebApplication1.Controllers
 
         public diario_controller(Idiario diarioRepository)
         {
-            diarioRepository = diarioRepository;
+            this.diarioRepository = diarioRepository;
         }
         [HttpGet]
         public async Task<IActionResult> ListarDiarios()
@@ -49,7 +47,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("crear")]
         public async Task<IActionResult> crear_diario([FromBody] diario diario)
         {
             try
@@ -74,7 +72,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("registrar")]
         public async Task<IActionResult> CrearDiario([FromBody] diario diario)
         {
             try

@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using WebApplication1.cita_repositories;
 using WebApplication1.interfaces;
 using WebApplication1.models;
-using WebApplication1.publicaionesrepositories;
 
 namespace WebApplication1.Controllers
 {
@@ -11,7 +9,6 @@ namespace WebApplication1.Controllers
     [ApiController]
     public class cita_Controller : ControllerBase
     {
-        private readonly Icita cita_repositoryRepositories;
         private readonly Icita cita_repositories;
 
         public cita_Controller(Icita cita_repositories)
@@ -47,7 +44,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("agendar")]
         public async Task<IActionResult> agendar_cita([FromBody] cita cita)
         {
             try
@@ -72,7 +69,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("registrar")]
         public async Task<IActionResult> registrar_cita([FromBody] cita cita)
         { 
             try 

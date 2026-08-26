@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.historial_clinico_repositories;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 
@@ -60,7 +59,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("crear")]
         public async Task<IActionResult> crear_publicaicon([FromBody] publicaciones publicaciones)
         {
             try
@@ -84,7 +83,7 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, new { mensaje = "Error interno al crear la publicación.", detalle = ex.Message });
             }
         }
-        [HttpPost]
+        [HttpPost("registrar")]
         public async Task<IActionResult> crear_publicacion([FromBody] publicaciones publicaciones)
         {
             try

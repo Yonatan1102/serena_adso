@@ -74,7 +74,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> ActualizarCita([FromBody] estado_de_animo estado_de_animo, estado_de_animorepositories estado_de_animorepositories)
+        public async Task<IActionResult> ActualizarCita([FromBody] estado_de_animo estado_de_animo)
         {
             try
             {

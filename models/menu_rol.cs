@@ -18,9 +18,9 @@ namespace WebApplication1.models
 
 
         [ForeignKey(nameof(id_rol))]
-        public virtual rol rol { get; set; }
+        public virtual rol rol { get; set; } = null!;
 
         [ForeignKeyAttribute(nameof(id_menu))]
-        public virtual Menu menu { get; set; }
+        public virtual menu menu { get; set; } = null!;
     }
 }
