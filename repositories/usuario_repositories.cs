@@ -12,18 +12,31 @@ namespace WebApplication1.repositories
     {
         private readonly serena context;
 
-        public usuario_repositories(serena context)
-        {
-            this.context = context;
-        }
+                public usuario_repositories(serena context)
+                {
+                     this.context = context;
+                }
+
 
         public async Task<List<usuario>> Getusuario()
         {
             var data = await context.usuario.ToListAsync();
             return data;
-
+        }
+        public Task<usuario> GetusuarioById(int id)
+        {
+            throw new NotImplementedException();
+        }
+        public Task<usuario> Postusuario()
+        {
+            throw new NotImplementedException();
+        }
+        public Task<usuario> Putusuario(usuario usuario)
+        {
+            throw new NotImplementedException();
         }
     }
+    
 }
 
 

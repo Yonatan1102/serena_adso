@@ -37,6 +37,11 @@ namespace WebApplication1.repositories
         {
             throw new NotImplementedException();
         }
+
+        internal static async Task Gethistorial_cita(historial_cita historial_Cita)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 
