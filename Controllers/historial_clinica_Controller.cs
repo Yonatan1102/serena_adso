@@ -7,7 +7,7 @@ namespace WebApplication1.Controllers
     using Microsoft.AspNetCore.Mvc;
     using WebApplication1.interfaces;
 
-    [Route("api/[controller]")]
+    [Route("api/historial-clinico")]
     [ApiController]
     public class historial_clinico_controller : ControllerBase
     {

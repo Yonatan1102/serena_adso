@@ -12,7 +12,7 @@ namespace WebApplication1.models
 
         [Column("titulo")]
         [StringLength(100)]
-        public string titulo { get; set; }
+        public string titulo { get; set; } = string.Empty;
 
         [Column("contenido")]
         public string? contenido { get; set; }

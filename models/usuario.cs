@@ -20,10 +20,15 @@ namespace WebApplication1.models
         [Column("email")]
         public required string email { get; set; }
 
+        [Required]
+        [StringLength(255)]
+        [Column("contrasena")]
+        public required string contrasena { get; set; }
+
         [Column("id_rol")]
         public int id_rol { get; set; }
 
-        public virtual required historial_clinico historial_Clinico { get; set; }
+        public virtual historial_clinico? historial_Clinico { get; set; }
 
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
         public virtual ICollection<estado_de_animo> estado_de_animo { get; set; } = new List<estado_de_animo>();

@@ -4,7 +4,7 @@ using WebApplication1.models;
 
 namespace WebApplication1.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/publicaciones")]
     [ApiController]
     public class publicaciones_controller : ControllerBase
     {
@@ -76,7 +76,7 @@ namespace WebApplication1.Controllers
                 }
 
                 var response = await _publicacionesrepositories.Postpublicaciones(publicaciones);
-                return Ok(response);
+                return CreatedAtAction(nameof(Publicaciones), new { id = response.id_publicaciones }, response);
             }
             catch (Exception ex)
             {
@@ -135,6 +135,12 @@ namespace WebApplication1.Controllers
                     detalle = ex.Message
                 });
             }
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            return await _publicacionesrepositories.Deletepublicaciones(id) ? NoContent() : NotFound();
         }
     }
 }

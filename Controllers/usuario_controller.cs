@@ -1,106 +1,58 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
-using WebApplication1.repositories;
+using WebApplication1.interfaces;
 using WebApplication1.models;
 
-namespace WebApplication1.Controllers
+namespace WebApplication1.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UsuarioController : ControllerBase
 {
-    using Microsoft.AspNetCore.Mvc;
-    using WebApplication1.interfaces;
-    using WebApplication1.repositories;
+    private readonly Iusuario usuarioRepository;
 
-    [ApiController]
-    [Route("api/[controller]")]
-    public class UsuarioController : ControllerBase
+    public UsuarioController(Iusuario usuarioRepository) => this.usuarioRepository = usuarioRepository;
+
+    [HttpGet]
+    public async Task<IActionResult> Listarusuario()
     {
-        private readonly Iusuario usuario;
+        var usuarios = await usuarioRepository.Getusuario();
+        usuarios.ForEach(usuario => Sanitizar(usuario));
+        return Ok(usuarios);
+    }
 
-        public usuario_controller(Iusuario usuario_repositories)
-        {
-        
-        }
-        [HttpGet]
-        public async Task<IActionResult> Listarusuario()
-        {
-            try
-            {
-                var response = await usuario_repositories.Getusuario();
-                return Ok(response);
-            }
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Obtenerusuario(int id)
+    {
+        var usuario = await usuarioRepository.GetusuarioById(id);
+        return usuario == null ? NotFound() : Ok(Sanitizar(usuario));
+    }
 
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener los historiales clínicos.", detalle = ex.Message });
-            }
-        }
+    [HttpPost]
+    public async Task<IActionResult> Crearusuario([FromBody] usuario usuario)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (await usuarioRepository.BuscarPorCorreo(usuario.email) != null)
+            return Conflict(new { mensaje = "El correo ya está registrado." });
+        var creado = await usuarioRepository.Postusuario(usuario);
+        return CreatedAtAction(nameof(Obtenerusuario), new { id = creado.id_usuario }, Sanitizar(creado));
+    }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> Obtenerusuario(int id)
-        {
-            try
-            {
-                var response = await usuario_repositories.GetusuarioById(id);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el historial clínico.", detalle = ex.Message });
-            }
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Actualizarusuario(int id, [FromBody] usuario usuario)
+    {
+        if (id != usuario.id_usuario) return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        var actualizado = await usuarioRepository.Putusuario(usuario);
+        return actualizado == null ? NotFound() : Ok(Sanitizar(actualizado));
+    }
 
-        }
-        [HttpPost]
-        public async Task<IActionResult> crear_usuario([FromBody] usuario usuario)
-        {
-            try
-            {
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Eliminarusuario(int id) =>
+        await usuarioRepository.Deleteusuario(id) ? NoContent() : NotFound();
 
-                if (usuario == null)
-                {
-                    return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
-                }
-
-                if (usuario.id_usuario == 0)
-                {
-                    return BadRequest(new { mensaje = "El usuario del historial clínico es obligatorio." });
-                }
-
-                var response = await historial_clinico_repositories.Postusuario(usuario);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error interno al crear el historial clínico.", detalle = ex.Message });
-            }
-        }
-
-
-        [HttpPost]
-        public async Task<IActionResult> Crearusuario([FromBody] usuario usuario)
-        {
-            try
-            {
-                var response = await usuario_repositories.usuario(usuario);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al crear el historial clínico.", detalle = ex.Message });
-            }
-        }
-
-        [HttpPut]
-        public async Task<IActionResult> Actualizarusuario([FromBody] usuario usuario)
-        {
-            try
-
-            {
-                var response = await usuario_repositories.Putusuario(usuario);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el historial clínico.", detalle = ex.Message });
-            }
-        }
+    private static usuario Sanitizar(usuario usuario)
+    {
+        usuario.contrasena = "[protegida]";
+        return usuario;
     }
 }

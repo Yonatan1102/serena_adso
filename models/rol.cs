@@ -14,7 +14,7 @@ namespace WebApplication1.models
         [Required]
         [StringLength(50)]
         [Column("nombre_rol")]
-        public string nombre_rol { get; set; }
+        public string nombre_rol { get; set; } = string.Empty;
 
         public virtual ICollection<usuario> usuario { get; set; } = new List<usuario>();
         public virtual ICollection<menu_rol> menu_rol { get; set; } = new List<menu_rol>();

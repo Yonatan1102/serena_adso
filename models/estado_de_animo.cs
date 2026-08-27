@@ -15,7 +15,7 @@ namespace WebApplication1.models
         [Required]
         [StringLength(100)]
         [Column("nombre_estado")]
-        public string nombre_estado { get; set; }
+        public string nombre_estado { get; set; } = string.Empty;
 
         [Column("fecha_estado")]
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}")]
@@ -25,6 +25,6 @@ namespace WebApplication1.models
         public int id_usuario { get; set; }
 
         [ForeignKey(nameof(id_usuario))]
-        public virtual usuario usuario { get; set; }
+        public virtual usuario? usuario { get; set; }
     }
 }

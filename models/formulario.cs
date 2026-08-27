@@ -11,7 +11,7 @@ namespace WebApplication1.models
 
 		[Required]
 		[StringLength(150)]
-		public string nombre_formulario { get; set; }
+		public string nombre_formulario { get; set; } = string.Empty;
 
 		[ForeignKey("id_usuario")]
 		public int id_usuario { get; set; }

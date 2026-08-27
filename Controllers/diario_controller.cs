@@ -7,7 +7,7 @@ namespace WebApplication1.Controllers
     using Microsoft.AspNetCore.Mvc;
     using WebApplication1.interfaces;
 
-    [Route("api/[controller]")]
+    [Route("api/diario")]
     [ApiController]
     public class diario_controller : ControllerBase
    
@@ -39,7 +39,7 @@ namespace WebApplication1.Controllers
                 try
         {
             var response = await diarioRepository.GetdiarioById(id);
-            return Ok(response);
+            return response == null ? NotFound() : Ok(response);
         }
                 catch (Exception ex)
             {
@@ -64,7 +64,7 @@ namespace WebApplication1.Controllers
                 }
 
                 var response = await diarioRepository.Postdiario(diario);
-                return Ok(response);
+                return CreatedAtAction(nameof(ObtenerDiario), new { id = response.id_diario }, response);
             }
             catch (Exception ex)
             {

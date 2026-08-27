@@ -7,7 +7,7 @@ namespace WebApplication1.interfaces
     {
         Task<List<diario>> Getdiario();
         Task<diario> Postdiario(diario diario);
-        Task<diario> GetdiarioById(int id);
-        Task<diario> Putdiario(diario diario);
+        Task<diario?> GetdiarioById(int id);
+        Task<diario?> Putdiario(diario diario);
     }
 }

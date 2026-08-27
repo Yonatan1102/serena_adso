@@ -22,10 +22,10 @@ namespace WebApplication1.models
 		public Boolean compartir_sp { get; set; }
 
 		[Column("contenido")]
-		public string contenido { get; set; }
+		public string contenido { get; set; } = string.Empty;
 
 		[ForeignKey(nameof(id_usuario))]
-		public virtual usuario usuario { get; set; }
+		public virtual usuario? usuario { get; set; }
 
 	}
 }

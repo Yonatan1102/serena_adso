@@ -8,7 +8,7 @@ namespace WebApplication1.Controllers
     using WebApplication1.interfaces;
     using WebApplication1.repositories;
 
-    [Route("api/[controller]")]
+    [Route("api/estado-animo")]
     [ApiController]
     public class estado_de_animo_controller : ControllerBase
     {

@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("historial_citas")]
+    [Table("historial_cita")]
     public class historial_cita
     {
         [Key]
@@ -23,7 +23,7 @@ namespace WebApplication1.models
         public DateTime fecha_cambio { get; set; }
 
         [ForeignKey(nameof(id_cita))]
-        public virtual cita cita { get; set; }
+        public virtual cita? cita { get; set; }
 
     }
 }

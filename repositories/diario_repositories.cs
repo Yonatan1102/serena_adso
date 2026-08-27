@@ -1,44 +1,13 @@
-﻿using WebApplication1.models;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.interfaces;
-
-
-
-namespace WebApplication1.repositories
+using WebApplication1.models;
+namespace WebApplication1.repositories;
+public class diario_repositories : Idiario
 {
-
-    public class diario_repositories : Idiario
-    {
-        private readonly serena context;
-
-        public diario_repositories(serena context)
-
-        {
-            this.context = context;
-        }
-            public async Task<List<diario>> Getdiario()
-        {
-            var data = await context.diario.ToListAsync();
-            return data;
-
-        }
-        public async Task<List<diario>> GetDiario()
-        {
-            return await context.diario.ToListAsync();
-        }
-        public Task<diario> GetdiarioById(int id)
-        {
-            throw new NotImplementedException();
-        }
-        public Task<diario> Postdiario(diario diario)
-        {
-            throw new NotImplementedException();
-        }
-        public Task<diario> Putdiario(diario diario)
-        {
-            throw new NotImplementedException();
-        }
-    }
+    private readonly serena context;
+    public diario_repositories(serena context) => this.context=context;
+    public Task<List<diario>> Getdiario()=>context.diario.AsNoTracking().ToListAsync();
+    public Task<diario?> GetdiarioById(int id)=>context.diario.FirstOrDefaultAsync(x=>x.id_diario==id);
+    public async Task<diario> Postdiario(diario value){context.diario.Add(value);await context.SaveChangesAsync();return value;}
+    public async Task<diario?> Putdiario(diario value){var item=await context.diario.FindAsync(value.id_diario);if(item==null)return null;item.contenido=value.contenido;item.compartir_sp=value.compartir_sp;await context.SaveChangesAsync();return item;}
 }
-

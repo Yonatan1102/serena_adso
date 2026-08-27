@@ -7,7 +7,8 @@ namespace WebApplication1.interfaces
     {
         Task<List<publicaciones>> Getpublicaciones();
         Task<publicaciones> Postpublicaciones(publicaciones publicaiones);
-        Task<publicaciones> GetpublicacionesById(int id);
-        Task<publicaciones> Putpublicaciones(publicaciones publicaiones);
+        Task<publicaciones?> GetpublicacionesById(int id);
+        Task<publicaciones?> Putpublicaciones(publicaciones publicaiones);
+        Task<bool> Deletepublicaciones(int id);
     }
 }

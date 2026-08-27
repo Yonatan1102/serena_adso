@@ -27,6 +27,6 @@ namespace WebApplication1.models
         public string? antecedentes { get; set; }
 
         [ForeignKey(nameof(id_usuario))]
-        public virtual usuario usuario { get; set; }
+        public virtual usuario? usuario { get; set; }
     }
 }

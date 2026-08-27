@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace WebApplication1.models
 {
 
-	[Table("citas")]
+	[Table("cita")]
 	public class cita
 	{
 

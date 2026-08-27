@@ -7,7 +7,8 @@ namespace WebApplication1.interfaces
     {
         Task<List<cita>> Getcita();
         Task<cita> Postcita(cita cita);
-        Task<cita> GetcitaById(int id);
-        Task<cita> Putcita(cita cita);
+        Task<cita?> GetcitaById(int id);
+        Task<cita?> Putcita(cita cita);
+        Task<bool> Deletecita(int id);
     }
 }

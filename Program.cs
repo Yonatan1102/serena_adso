@@ -5,9 +5,14 @@ using WebApplication1.repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("SERENA_CONNECTION_STRING");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection o SERENA_CONNECTION_STRING antes de iniciar la API.");
+
 // 1. Configuración de la Base de Datos (DbContext)
 builder.Services.AddDbContext<serena>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // 2. Registro de Inyección de Dependencias
 builder.Services.AddScoped<Icita, cita_repositories>();
@@ -22,10 +27,15 @@ builder.Services.AddScoped<Imenu_rol, menu_rol_repositories>();
 builder.Services.AddScoped<Ipublicaciones, publicaciones_repositories>();
 builder.Services.AddScoped<Irol, rol_repositories>();
 builder.Services.AddScoped<Iusuario, usuario_repositories>();
+builder.Services.AddScoped<Iloginservice, usuario_repositories>();
 
 // 3. Controladores y Swagger con Parches para Evitar Colapsos
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(options => options.AddPolicy("DevelopmentFrontend", policy =>
+    policy.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
+          .AllowAnyHeader()
+          .AllowAnyMethod()));
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -43,6 +53,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("DevelopmentFrontend");
 }
 
 app.UseHttpsRedirection();

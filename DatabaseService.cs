@@ -36,6 +36,7 @@ namespace WebApplication1
             modelBuilder.Entity<usuario>().HasKey(u => u.id_usuario);
             modelBuilder.Entity<usuario>().Property(u => u.nombre_usuario).HasColumnName("nombre_usuario").ValueGeneratedOnAdd();
             modelBuilder.Entity<usuario>().Property(u => u.email).HasColumnName("email");
+            modelBuilder.Entity<usuario>().Property(u => u.contrasena).HasColumnName("contrasena");
             modelBuilder.Entity<usuario>().Property(u => u.id_rol).HasColumnName("id_rol");
 
 

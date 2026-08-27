@@ -5,7 +5,7 @@ using WebApplication1.models;
 
 namespace WebApplication1.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/cita")]
     [ApiController]
     public class cita_Controller : ControllerBase
     {
@@ -36,7 +36,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var response = await cita_repositories.GetcitaById(id);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {
@@ -61,7 +61,7 @@ namespace WebApplication1.Controllers
                 }
 
                 var response = await cita_repositories.Postcita(cita);
-                return Ok(response);
+                return CreatedAtAction(nameof(obtener_cita), new { id = response.id_cita }, response);
             }
             catch (Exception ex)
             {
@@ -99,11 +99,17 @@ namespace WebApplication1.Controllers
             }       
         }
 
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> cancelar_cita(int id)
+        {
+            return await cita_repositories.Deletecita(id) ? NoContent() : NotFound();
+        }
+
      
 
 
     }
-       [Route("api/[controller]")]
+    [Route("api/historial-cita")]
        [ApiController]        
     public class historial_cita_controller : ControllerBase
     {
