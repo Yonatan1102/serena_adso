@@ -25,9 +25,14 @@ namespace WebApplication1.models
         [Column("contrasena")]
         public required string contrasena { get; set; }
 
-        [Column("id_rol")]
-        public int id_rol { get; set; }
+        
 
+        [Column("id_rol")]
+            public int id_rol { get; set; }
+
+
+        [ForeignKey("id_rol")]
+        public virtual rol? rol { get; set; }
         public virtual historial_clinico? historial_Clinico { get; set; }
 
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
