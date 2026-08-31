@@ -38,6 +38,11 @@ namespace WebApplication1
             modelBuilder.Entity<usuario>().Property(u => u.email).HasColumnName("email");
             modelBuilder.Entity<usuario>().Property(u => u.contrasena).HasColumnName("contrasena");
             modelBuilder.Entity<usuario>().Property(u => u.id_rol).HasColumnName("id_rol");
+            modelBuilder.Entity<usuario>()
+                .HasOne(u => u.rol)
+                .WithMany(r => r.usuario)
+                .HasForeignKey(u => u.id_rol)
+                .OnDelete(DeleteBehavior.Restrict);
 
 
             modelBuilder.Entity<rol>().ToTable("rol");
