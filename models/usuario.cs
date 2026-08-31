@@ -25,13 +25,18 @@ namespace WebApplication1.models
         [Column("contrasena")]
         public required string contrasena { get; set; }
 
+        // 1. Clave foránea explícita
         [Column("id_rol")]
+        [ForeignKey("rol")] 
         public int id_rol { get; set; }
+
+        // 2. Propiedad de navegación que EF necesita para conectar con la clase 'rol'
+        [ForeignKey("id_rol")]
+        public virtual rol? rol { get; set; }
 
         public virtual historial_clinico? historial_Clinico { get; set; }
 
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
         public virtual ICollection<estado_de_animo> estado_de_animo { get; set; } = new List<estado_de_animo>();
-
     }
 }

@@ -48,11 +48,18 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        // 1. Permite acceder escribiendo solo /swagger (redirecciona a index.html automáticamente)
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+        
+        // 2. OPCIONAL: Si prefieres que Swagger cargue inmediatamente al entrar a http://localhost:PUERTO/
+        // descomenta la siguiente línea:
+        // c.RoutePrefix = string.Empty; 
+    });
     app.UseCors("DevelopmentFrontend");
 }
 
