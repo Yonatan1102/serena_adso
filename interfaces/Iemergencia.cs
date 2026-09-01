@@ -9,5 +9,6 @@ namespace WebApplication1.interfaces
         Task<emergencia?> GetemergenciaById(int id);
         Task<emergencia> Postemergencia(emergencia emergencia);
         Task<emergencia?> Putemergencia(emergencia emergencia);
+        Task<bool> Deleteemergencia(int id);
     }
 }

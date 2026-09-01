@@ -98,10 +98,6 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error interno del servidor: {ex.Message}");
             }       
         }
-        private IActionResult Ok(cita? response)
-        {
-            throw new NotImplementedException();
-        }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> cancelar_cita(int id)
@@ -188,6 +184,20 @@ namespace WebApplication1.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el historial de cita.", detalle = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> EliminarHistorialCita(int id)
+        {
+            try
+            {
+                var response = await historial_cita_repositories.Deletehistorial_cita(id);
+                return response ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al eliminar el historial de cita.", detalle = ex.Message });
             }
         }
     }

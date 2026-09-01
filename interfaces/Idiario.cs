@@ -9,5 +9,6 @@ namespace WebApplication1.interfaces
         Task<diario> Postdiario(diario diario);
         Task<diario?> GetdiarioById(int id);
         Task<diario?> Putdiario(diario diario);
+        Task<bool> Deletediario(int id);
     }
 }

@@ -100,5 +100,19 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el historial clínico.", detalle = ex.Message });
             }
         }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> EliminarHistorialClinico(int id)
+        {
+            try
+            {
+                var response = await historial_clinico_repositories.Deletehistorial_clinico(id);
+                return response ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al eliminar el historial clínico.", detalle = ex.Message });
+            }
+        }
     }
 }

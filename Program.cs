@@ -29,7 +29,7 @@ builder.Services.AddScoped<Irol, rol_repositories>();
 builder.Services.AddScoped<Iusuario, usuario_repositories>();
 builder.Services.AddScoped<Iloginservice, usuario_repositories>();
 
-// 3. Controladores y Swagger con Parches para Evitar Colapsos
+// 3. Controladores y Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options => options.AddPolicy("DevelopmentFrontend", policy =>
@@ -39,10 +39,7 @@ builder.Services.AddCors(options => options.AddPolicy("DevelopmentFrontend", pol
 
 builder.Services.AddSwaggerGen(c =>
 {
-    // Resuelve conflictos de métodos/rutas duplicadas en los controladores automáticamente
     c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
-    
-    // Evita errores cuando dos modelos o DTOs comparten nombres similares
     c.CustomSchemaIds(type => type.FullName);
 });
 
@@ -53,18 +50,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        // 1. Permite acceder escribiendo solo /swagger (redirecciona a index.html automáticamente)
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-        
-        // 2. OPCIONAL: Si prefieres que Swagger cargue inmediatamente al entrar a http://localhost:PUERTO/
-        // descomenta la siguiente línea:
-        // c.RoutePrefix = string.Empty; 
     });
     app.UseCors("DevelopmentFrontend");
 }
 
 app.UseHttpsRedirection();
-app.UseAuthorization();
 app.MapControllers();
 
 app.Run();

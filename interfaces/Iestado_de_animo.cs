@@ -10,5 +10,6 @@ namespace WebApplication1.interfaces
         Task<estado_de_animo> Postestado_de_animo(estado_de_animo estado_de_animo);
         Task<estado_de_animo?> Getestado_de_animoById(int id);
         Task<estado_de_animo?> Putestado_de_animo(estado_de_animo estado_de_animo);
+        Task<bool> Deleteestado_de_animo(int id);
     }
 }

@@ -9,5 +9,6 @@ namespace WebApplication1.interfaces
         Task<historial_clinico?> Gethistorial_clinicoById(int id);
         Task<historial_clinico> Posthistorial_clinico(historial_clinico historial_clinico);
         Task<historial_clinico?> Puthistorial_clinico(historial_clinico historial_clinico);
+        Task<bool> Deletehistorial_clinico(int id);
     }
 }

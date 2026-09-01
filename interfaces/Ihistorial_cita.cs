@@ -9,5 +9,6 @@ namespace WebApplication1.interfaces
         Task<historial_cita?> Gethistorial_citaById(int id);
         Task<historial_cita> Posthistorial_cita(historial_cita historial_cita);
         Task<historial_cita?> Puthistorial_cita(historial_cita historial_cita);
+        Task<bool> Deletehistorial_cita(int id);
     }
 }

@@ -9,5 +9,6 @@ public class diario_repositories : Idiario
     public Task<List<diario>> Getdiario()=>context.diario.AsNoTracking().ToListAsync();
     public Task<diario?> GetdiarioById(int id)=>context.diario.FirstOrDefaultAsync(x=>x.id_diario==id);
     public async Task<diario> Postdiario(diario value){context.diario.Add(value);await context.SaveChangesAsync();return value;}
-    public async Task<diario?> Putdiario(diario value){var item=await context.diario.FindAsync(value.id_diario);if(item==null)return null;item.contenido=value.contenido;item.compartir_sp=value.compartir_sp;await context.SaveChangesAsync();return item;}
+    public async Task<diario?> Putdiario(diario value){var item=await context.diario.FindAsync(value.id_diario);if(item==null)return null;item.contenido=value.contenido;item.compartir_sp=value.compartir_sp;item.fecha_apertura=value.fecha_apertura;item.id_usuario=value.id_usuario;await context.SaveChangesAsync();return item;}
+    public async Task<bool> Deletediario(int id){var item=await context.diario.FindAsync(id);if(item==null)return false;context.diario.Remove(item);await context.SaveChangesAsync();return true;}
 }

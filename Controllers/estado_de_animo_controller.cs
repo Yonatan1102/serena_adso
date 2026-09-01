@@ -86,5 +86,19 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el estado de ánimo.", detalle = ex.Message });
             }
         }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> EliminarEstadoDeAnimo(int id)
+        {
+            try
+            {
+                var response = await estado_de_animo_repositories.Deleteestado_de_animo(id);
+                return response ? NoContent() : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al eliminar el estado de ánimo.", detalle = ex.Message });
+            }
+        }
     }
 }

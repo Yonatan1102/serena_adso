@@ -8,8 +8,37 @@ public class EmergenciaController : ControllerBase
 {
     private readonly Iemergencia repository;
     public EmergenciaController(Iemergencia repository)=>this.repository=repository;
-    [HttpGet] public async Task<IActionResult> Get()=>Ok(await repository.Getemergencia());
-    [HttpGet("{id:int}")] public async Task<IActionResult> Get(int id){var item=await repository.GetemergenciaById(id);return item==null?NotFound():Ok(item);}
-    [HttpPost] public async Task<IActionResult> Post([FromBody] emergencia value){if(!ModelState.IsValid)return ValidationProblem(ModelState);var item=await repository.Postemergencia(value);return CreatedAtAction(nameof(Get),new{id=item.id_emergencia},item);}
-    [HttpPut("{id:int}")] public async Task<IActionResult> Put(int id,[FromBody] emergencia value){if(id!=value.id_emergencia)return BadRequest();var item=await repository.Putemergencia(value);return item==null?NotFound():Ok(item);}
+
+    [HttpGet]
+    public async Task<IActionResult> Get() => Ok(await repository.Getemergencia());
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var item = await repository.GetemergenciaById(id);
+        return item == null ? NotFound() : Ok(item);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] emergencia value)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (value == null) return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+
+        var item = await repository.Postemergencia(value);
+        return CreatedAtAction(nameof(Get), new { id = item.id_emergencia }, item);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Put(int id, [FromBody] emergencia value)
+    {
+        if (id != value.id_emergencia) return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var item = await repository.Putemergencia(value);
+        return item == null ? NotFound() : Ok(item);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => await repository.Deleteemergencia(id) ? NoContent() : NotFound();
 }
