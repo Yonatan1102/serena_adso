@@ -98,6 +98,10 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error interno del servidor: {ex.Message}");
             }       
         }
+        private IActionResult Ok(cita? response)
+        {
+            throw new NotImplementedException();
+        }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> cancelar_cita(int id)
