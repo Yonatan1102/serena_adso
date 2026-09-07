@@ -77,6 +77,8 @@ namespace WebApplication1
             modelBuilder.Entity<cita>().Property(u => u.estado_cita).HasColumnName("estado_cita");
             modelBuilder.Entity<cita>().Property(u => u.id_usuario_aprendiz).HasColumnName("id_usuario_aprendiz");
             modelBuilder.Entity<cita>().Property(u => u.id_usuario_psicologo).HasColumnName("id_usuario_psicologo");
+            modelBuilder.Entity<cita>().HasOne<usuario>().WithMany().HasForeignKey(c => c.id_usuario_aprendiz).OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<cita>().HasOne<usuario>().WithMany().HasForeignKey(c => c.id_usuario_psicologo).OnDelete(DeleteBehavior.NoAction);
 
 
             modelBuilder.Entity<historial_cita>().ToTable("historial_cita");
