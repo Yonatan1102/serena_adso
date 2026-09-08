@@ -11,7 +11,7 @@ namespace WebApplication1.Controllers;
 
 [AllowAnonymous]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/login")]
 public class LoginController : ControllerBase
 {
     private readonly Iloginservice _loginService;

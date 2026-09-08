@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 
 namespace WebApplication1.models
@@ -23,6 +24,7 @@ namespace WebApplication1.models
         public DateTime fecha_cambio { get; set; }
 
         [ForeignKey(nameof(id_cita))]
+        [JsonIgnore]
         public virtual cita? cita { get; set; }
 
     }

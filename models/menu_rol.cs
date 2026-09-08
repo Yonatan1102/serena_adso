@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace WebApplication1.models
 {
@@ -18,9 +20,13 @@ namespace WebApplication1.models
 
 
         [ForeignKey(nameof(id_rol))]
-        public virtual rol rol { get; set; } = null!;
+        [JsonIgnore]
+        [ValidateNever]
+        public virtual rol? rol { get; set; } = null!;
 
-        [ForeignKeyAttribute(nameof(id_menu))]
-        public virtual menu menu { get; set; } = null!;
+        [ForeignKey(nameof(id_menu))]
+        [JsonIgnore]
+        [ValidateNever]
+        public virtual menu? menu { get; set; } = null!;
     }
 }

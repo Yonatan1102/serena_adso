@@ -5,7 +5,7 @@ using WebApplication1.models;
 namespace WebApplication1.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/menu")]
 public class MenuController : ControllerBase
 {
     private readonly Imenu repository;

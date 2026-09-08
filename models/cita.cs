@@ -40,7 +40,8 @@ namespace WebApplication1.models
         [ForeignKey(nameof(id_usuario_psicologo))]
         [JsonIgnore]
         public virtual usuario? id_usuario_psicologo_navegacion { get; set; }
-
+        
+        [JsonIgnore]
         public virtual ICollection<historial_cita> historial_citas { get; set; } = new List<historial_cita>();
     }
 }

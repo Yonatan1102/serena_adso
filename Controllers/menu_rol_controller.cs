@@ -5,7 +5,7 @@ using WebApplication1.models;
 namespace WebApplication1.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/menurol")]
 public class MenuRolController : ControllerBase
 {
     private readonly Imenu_rol repository;

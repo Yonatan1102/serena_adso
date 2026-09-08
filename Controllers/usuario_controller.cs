@@ -5,7 +5,7 @@ using WebApplication1.models;
 namespace WebApplication1.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/usuario")]
 public class UsuarioController : ControllerBase
 {
     private readonly Iusuario usuario_repositorie;
