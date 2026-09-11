@@ -58,7 +58,7 @@ if (app.Environment.IsDevelopment())
     app.UseCors("DevelopmentFrontend");
 }
 
-app.UseHttpsRedirection();
+
 app.MapControllers();
 
 app.Run();
