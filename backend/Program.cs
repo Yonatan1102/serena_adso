@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1;
 using WebApplication1.interfaces;
+using WebApplication1.models;
 using WebApplication1.repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,7 +35,14 @@ builder.Services.AddScoped<Iloginservice, usuario_repositories>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options => options.AddPolicy("DevelopmentFrontend", policy =>
-    policy.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
+    policy.WithOrigins(
+            builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+            [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+            ])
           .AllowAnyHeader()
           .AllowAnyMethod()));
 
@@ -44,6 +53,52 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<serena>();
+    db.Database.Migrate();
+
+    if (!db.rol.Any())
+    {
+        db.rol.AddRange(
+            new rol { nombre_rol = "Aprendiz" },
+            new rol { nombre_rol = "Psicólogo" },
+            new rol { nombre_rol = "Administrador" }
+        );
+        db.SaveChanges();
+    }
+
+    if (!db.usuario.Any())
+    {
+        var passwordHasher = new PasswordHasher<usuario>();
+
+        var rolAprendiz = db.rol.First(r => r.nombre_rol == "Aprendiz");
+        var rolPsicologo = db.rol.First(r => r.nombre_rol == "Psicólogo");
+
+        var aprendiz = new usuario
+        {
+            nombre_usuario = "Yonatan Acuña",
+            email = "yacuna@soy.sena.edu.co",
+            contrasena = "Aa12345*",
+            id_rol = rolAprendiz.id_rol
+        };
+
+        var psicologo = new usuario
+        {
+            nombre_usuario = "Dra. Laura Martínez",
+            email = "lmartinez@sena.edu.co",
+            contrasena = "Aa12345*",
+            id_rol = rolPsicologo.id_rol
+        };
+
+        aprendiz.contrasena = passwordHasher.HashPassword(aprendiz, aprendiz.contrasena);
+        psicologo.contrasena = passwordHasher.HashPassword(psicologo, psicologo.contrasena);
+
+        db.usuario.AddRange(aprendiz, psicologo);
+        db.SaveChanges();
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,0 +1,40 @@
+================================================================================
+CARPETA DE IMÁGENES PARA ESTADOS DE ÁNIMO Y AVATARES - PROYECTO SERENA (SENA)
+================================================================================
+
+Aquí debes colocar las imágenes que representarán los estados de ánimo de los aprendices.
+El sistema está configurado para cargar automáticamente las imágenes con los siguientes nombres:
+
+--------------------------------------------------------------------------------
+1. CENTRO ACTIVO: CMTC (Centro de Manufactura en Textiles y Cuero)
+--------------------------------------------------------------------------------
+Sube tus 5 fotos para CMTC con estos nombres exactos (formato .png o .jpg o .webp):
+
+1. cmtc_feliz.png     -> Estado: Feliz / Alegre / Optimista
+2. cmtc_calmado.png   -> Estado: Calmado / Sereno / Tranquilo
+3. cmtc_ansioso.png   -> Estado: Ansioso / Estresado / Inquieto
+4. cmtc_triste.png    -> Estado: Triste / Desanimado
+5. cmtc_motivado.png  -> Estado: Motivado / Con Energía (o cmtc_enojado.png)
+
+*NOTA:* La aplicación cuenta con avatares visuales y vectoriales de respaldo integrados,
+por lo que la aplicación funciona de inmediato y, en cuanto agregues tus fotos a esta carpeta,
+se mostrarán automáticamente tus imágenes personalizadas.
+
+--------------------------------------------------------------------------------
+2. CENTROS PRÓXIMAMENTE: CMM y CEET (Listos para cuando los actives)
+--------------------------------------------------------------------------------
+Para el Centro de Metalmecánica (CMM):
+- cmm_feliz.png
+- cmm_calmado.png
+- cmm_ansioso.png
+- cmm_triste.png
+- cmm_motivado.png
+
+Para el Centro de Electricidad, Electrónica y Telecomunicaciones (CEET):
+- ceet_feliz.png
+- ceet_calmado.png
+- ceet_ansioso.png
+- ceet_triste.png
+- ceet_motivado.png
+
+================================================================================

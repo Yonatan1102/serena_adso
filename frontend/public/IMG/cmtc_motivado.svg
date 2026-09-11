@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g_motivado" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F43F5E" />
+      <stop offset="100%" stop-color="#BE123C" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="40" fill="url(#g_motivado)" />
+  <circle cx="100" cy="95" r="50" fill="#FEF3C7" />
+  <!-- determined sparkle eyes -->
+  <polygon points="82,78 85,85 92,85 86,89 88,96 82,92 76,96 78,89 72,85 79,85" fill="#F59E0B" />
+  <polygon points="118,78 121,85 128,85 122,89 124,96 118,92 112,96 114,89 108,85 115,85" fill="#F59E0B" />
+  <path d="M 72 74 L 88 80" stroke="#1F2937" stroke-width="4" stroke-linecap="round" />
+  <path d="M 128 74 L 112 80" stroke="#1F2937" stroke-width="4" stroke-linecap="round" />
+  <!-- confident smile -->
+  <path d="M 80 110 Q 100 132 120 110 Z" fill="#1F2937" />
+  <path d="M 86 112 Q 100 120 114 112" fill="#EF4444" />
+  <text x="100" y="175" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="16" fill="#FFFFFF">CMTC - MOTIVADO</text>
+</svg>

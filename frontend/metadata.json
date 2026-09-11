@@ -1,0 +1,6 @@
+{
+  "name": "Serena - Acompañamiento Psicológico SENA",
+  "description": "Plataforma web de bienestar y acompañamiento psicológico para aprendices y psicólogos del SENA con gestión de citas, diario, comunidades y registro de estados de ánimo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
