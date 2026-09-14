@@ -14,7 +14,7 @@ export default defineConfig(() => {
     server: {
         proxy: {
           '/api': {
-            target: 'http://localhost:5000', // Puerto de tu API Gateway
+            target: 'http://api:8080',
             changeOrigin: true,
             secure: false,
           },

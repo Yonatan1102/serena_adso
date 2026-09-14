@@ -21,8 +21,8 @@ interface LoginViewProps {
 }
 
 export function LoginView({ onLogin }: LoginViewProps) {
-  const [correo, setCorreo] = useState('yacuna@soy.sena.edu.co');
-  const [contrasena, setContrasena] = useState('Aa12345*');
+  const [correo, setCorreo] = useState('demo@serena.local');
+  const [contrasena, setContrasena] = useState('Demo123*');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -38,7 +38,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
     setIsLoading(true);
 
     $.ajax({
-      url: 'http://localhost:5185/api/Login',
+      url: '/api/Login',
       method: 'POST',
       data: JSON.stringify({ correo, contrasena }),
       contentType: 'application/json; charset=utf-8',
@@ -66,11 +66,13 @@ export function LoginView({ onLogin }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#ecfdf5,_#f8fafc_45%,_#eef2ff)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-3xl border border-emerald-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f3e8ff,_#faf5ff_45%,_#ede9fe)] flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-3xl border border-violet-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(76,29,149,0.14)] backdrop-blur-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-3xl shadow-sm">💚</div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">SERENA</p>
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-violet-100 p-3 shadow-sm">
+            <img src="/IMG/logo.png" alt="Logo de SERENA" className="h-full w-full object-contain" />
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">SERENA</p>
           <h1 className="mt-3 text-3xl font-extrabold text-slate-900">Iniciar sesión</h1>
           <p className="mt-2 text-sm text-slate-500">Accede a tu bienestar emocional y acompañamiento SENA.</p>
         </div>
@@ -84,7 +86,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
               autoComplete="email"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
               placeholder="tu.correo@sena.edu.co"
             />
           </div>
@@ -97,7 +99,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
               autoComplete="current-password"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
               placeholder="********"
             />
           </div>
@@ -111,13 +113,13 @@ export function LoginView({ onLogin }: LoginViewProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className="flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex w-full items-center justify-center rounded-xl bg-violet-700 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-violet-700/20 transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isLoading ? 'Iniciando sesión...' : 'Ingresar'}
           </button>
         </form>
 
-        <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-xs text-slate-600">
+        <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-xs text-slate-600">
           <p className="font-semibold text-slate-700">Credenciales de prueba:</p>
           <p className="mt-2">Aprendiz: yacuna@soy.sena.edu.co / Aa12345*</p>
           <p>Psicólogo: lmartinez@sena.edu.co / Aa12345*</p>

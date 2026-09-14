@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Heart,
   ChevronDown,
+  LogOut,
 } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
 
@@ -18,6 +19,7 @@ interface HeaderProps {
   currentUser: Usuario;
   usuariosDisponibles: Usuario[];
   onSelectUser: (user: Usuario) => void;
+  onLogout: () => void;
   onToggleSidebar: () => void;
   isSidebarCollapsed: boolean;
   onOpenCrearDiarioRapido: () => void;
@@ -33,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentUser,
   usuariosDisponibles,
   onSelectUser,
+  onLogout,
   onToggleSidebar,
   isSidebarCollapsed,
   onOpenCrearDiarioRapido,
@@ -50,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-[#F8F9FA]/90 backdrop-blur-md border-b border-slate-200/70 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
+    <header className="sticky top-0 z-40 bg-[#FAF9FF]/90 backdrop-blur-md border-b border-violet-100/80 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
       {/* LADO IZQUIERDO: Logo destacado + Nombre SERENA + Slogan */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Logo de SERENA: Mucho más visible y claro */}
@@ -64,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="h-9 w-9 rounded-xl bg-[#39A900] flex items-center justify-center text-white font-black text-base shadow-xs">
+              <div className="h-9 w-9 rounded-xl bg-violet-700 flex items-center justify-center text-white font-black text-base shadow-xs">
                 S
               </div>
             )}
@@ -75,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="font-extrabold text-lg tracking-tight text-slate-900">
                 SERENA
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF7E6] text-[#2E8500] border border-[#39A900]/25">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-300/60">
                 CMTC • SENA
               </span>
             </div>
@@ -147,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
           title={idioma === 'es' ? 'Cambiar a English' : 'Switch to Spanish'}
           className="h-8 px-2 rounded-full hover:bg-slate-100 flex items-center gap-1 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer text-xs font-semibold"
         >
-          <Globe className="w-4 h-4 text-[#63C976]" />
+            <Globe className="w-4 h-4 text-violet-600" />
           <span className="uppercase text-[11px] font-bold">{idioma}</span>
         </button>
 
@@ -228,7 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
             title={`${currentUser.nombre_usuario} (${isPsicologo ? 'Psicólogo' : 'Aprendiz'})`}
             className="flex items-center gap-1.5 p-1 hover:bg-slate-100 rounded-full border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#63C976] to-[#EBADFF] text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-violet-700 to-fuchsia-300 text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs">
               {currentUser.avatar_url ? (
                 <img
                   src={currentUser.avatar_url}
@@ -250,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="px-3 py-2 border-b border-slate-100">
                 <p className="font-bold text-slate-900">{currentUser.nombre_usuario}</p>
                 <p className="text-[11px] text-slate-500">{currentUser.email}</p>
-                <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECF9EE] text-[#47A95B]">
+                <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
                   {isPsicologo ? 'Psicólogo(a) Bienestar' : `Aprendiz Ficha ${currentUser.num_ficha}`}
                 </span>
               </div>
@@ -271,7 +274,7 @@ export const Header: React.FC<HeaderProps> = ({
                       }}
                       className={`text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between transition-colors ${
                         isSelected
-                          ? 'bg-[#ECF9EE] text-slate-900 font-bold'
+                          ? 'bg-violet-100 text-slate-900 font-bold'
                           : 'text-slate-700 hover:bg-slate-50'
                       }`}
                     >
@@ -281,11 +284,22 @@ export const Header: React.FC<HeaderProps> = ({
                           {u.id_rol === 2 ? 'Psicólogo' : 'Aprendiz'} • {u.centro}
                         </p>
                       </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#63C976]" />}
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-violet-600" />}
                     </button>
                   );
                 })}
               </div>
+
+              <button
+                onClick={() => {
+                  setShowUserMenu(false);
+                  onLogout();
+                }}
+                className="mt-2 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-2 text-left font-semibold text-violet-700 transition-colors hover:text-violet-900"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>{idioma === 'es' ? 'Cerrar sesión' : 'Sign out'}</span>
+              </button>
             </div>
           )}
         </div>
