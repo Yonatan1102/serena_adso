@@ -89,6 +89,12 @@ export default function App() {
     setActiveView('home');
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('serena_access_token');
+    localStorage.removeItem('serena_current_user');
+    setIsAuthenticated(false);
+  };
+
   const handleSelectComunidad = (comunidadId: string) => {
     setSelectedComunidadId(comunidadId);
     setActiveView('comunidad');
@@ -135,12 +141,13 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#F8F9FA] text-slate-900 flex flex-col font-sans antialiased selection:bg-[#EBF7E6] selection:text-[#2E8500]">
+    <div className="h-screen overflow-hidden bg-[#FAF9FF] text-slate-900 flex flex-col font-sans antialiased selection:bg-violet-100 selection:text-violet-900">
       {/* Header Superior Estilo Reddit */}
       <Header
         currentUser={currentUser}
         usuariosDisponibles={usuariosDisponibles}
         onSelectUser={handleSelectUser}
+        onLogout={handleLogout}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         isSidebarCollapsed={isSidebarCollapsed}
         onOpenCrearDiarioRapido={() => setIsCrearDiarioRapidoOpen(true)}

@@ -714,7 +714,7 @@ const CUSTOM_FEEDS_SEMILLA: CustomFeed[] = [
 
 class SerenaApiService {
   private isConfiguredForRealBackend: boolean = false;
-  private backendBaseUrl: string = 'http://localhost:5000/api';
+  private backendBaseUrl: string = '/api';
 
   constructor() {
     this.initStorage();

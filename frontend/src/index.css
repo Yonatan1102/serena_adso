@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-sena-green: #39A900;
-  --color-sena-green-dark: #2E8500;
-  --color-sena-green-light: #EBF7E6;
+  --color-sena-green: #7E22CE;
+  --color-sena-green-dark: #581C87;
+  --color-sena-green-light: #F3E8FF;
   --color-serena-purple: #7E22CE;
   --color-serena-purple-dark: #581C87;
   --color-serena-purple-light: #FAF5FF;
 }
 
 :root {
-  --sena-green: #39A900;
-  --sena-green-dark: #2E8500;
-  --sena-green-light: #EBF7E6;
+  --sena-green: #7E22CE;
+  --sena-green-dark: #581C87;
+  --sena-green-light: #F3E8FF;
   --serena-purple: #7E22CE;
 }
 
