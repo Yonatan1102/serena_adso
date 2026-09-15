@@ -5,5 +5,6 @@ namespace WebApplication1.interfaces
         Task<models.usuario?> BuscarPorCorreo(string email);
         Task<models.usuario> Registrar(models.usuario usuario);
         Task<models.usuario?> ValidarCredenciales(string email, string contrasena);
+        Task<bool> CambiarContrasena(string email, string contrasenaActual, string nuevaContrasena);
     }
 }

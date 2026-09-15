@@ -43,7 +43,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
   // Psicólogo seleccionado para ver su disponibilidad
   const psicoActivo = (psicologosDisponibles || []).find((p) => p.id_usuario === psicologoSeleccionadoId) || defaultPsico;
 
-  const handleAgendarAprendiz = (e: React.FormEvent) => {
+  const handleAgendarAprendiz = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fechaSeleccionada || !motivo.trim()) {
       alert('Por favor selecciona una fecha y redacta el motivo de la consulta.');
@@ -53,21 +53,24 @@ export const CitasView: React.FC<CitasViewProps> = ({
     setAgendando(true);
     const fechaHoraCompleta = `${fechaSeleccionada}T${franjaSeleccionada || '09:00'}:00.000Z`;
 
-    serenaApi.agendarCita(
-      currentUser.id_usuario,
-      psicologoSeleccionadoId,
-      fechaHoraCompleta,
-      motivo
-    );
-
-    setTimeout(() => {
+    try {
+      await serenaApi.agendarCitaEnApi({
+        fecha_hora: fechaHoraCompleta,
+        motivo: motivo.trim(),
+        estado_cita: 'Pendiente',
+        id_usuario_aprendiz: currentUser.id_usuario,
+        id_usuario_psicologo: psicologoSeleccionadoId,
+      });
       setAgendando(false);
       setMotivo('');
       setFechaSeleccionada('');
       setFranjaSeleccionada('');
-      onRefreshCitas();
+      await onRefreshCitas();
       alert('¡Cita solicitada exitosamente! Tu psicólogo asignado la confirmará en breve.');
-    }, 400);
+    } catch (error) {
+      setAgendando(false);
+      alert(error instanceof Error ? error.message : 'No se pudo guardar la cita.');
+    }
   };
 
   const misCitas = isPsicologo
@@ -331,13 +334,13 @@ export const CitasView: React.FC<CitasViewProps> = ({
                   {isPsicologo && cita.estado_cita === 'Pendiente' && (
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => {
-                          serenaApi.actualizarEstadoCita(
-                            cita.id_cita,
-                            'Confirmada',
-                            'Confirmado por el psicólogo.'
-                          );
-                          onRefreshCitas();
+                        onClick={async () => {
+                          try {
+                            await serenaApi.cambiarEstadoCitaEnApi(cita, 'Confirmada');
+                            await onRefreshCitas();
+                          } catch (error) {
+                            alert(error instanceof Error ? error.message : 'No se pudo actualizar la cita.');
+                          }
                         }}
                         className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium cursor-pointer"
                       >

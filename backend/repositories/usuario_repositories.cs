@@ -58,4 +58,18 @@ public class usuario_repositories : Iusuario, Iloginservice
     }
 
     public Task<usuario> Registrar(usuario usuario) => Postusuario(usuario);
+
+    public async Task<bool> CambiarContrasena(string email, string contrasenaActual, string nuevaContrasena)
+    {
+        var usuario = await context.usuario.FirstOrDefaultAsync(x => x.email == email);
+        if (usuario == null) return false;
+
+        var hasher = new PasswordHasher<usuario>();
+        var resultado = hasher.VerifyHashedPassword(usuario, usuario.contrasena, contrasenaActual);
+        if (resultado == PasswordVerificationResult.Failed) return false;
+
+        usuario.contrasena = hasher.HashPassword(usuario, nuevaContrasena);
+        await context.SaveChangesAsync();
+        return true;
+    }
 }

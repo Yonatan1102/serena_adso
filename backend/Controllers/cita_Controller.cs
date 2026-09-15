@@ -74,9 +74,13 @@ namespace WebApplication1.Controllers
         { 
             try 
         {
+            if (cita == null || cita.fecha_hora == default || string.IsNullOrWhiteSpace(cita.motivo))
+            {
+                return BadRequest(new { mensaje = "La fecha, el motivo y el cuerpo de la cita son obligatorios." });
+            }
 
             var response = await cita_repositories.Postcita(cita);
-            return Ok(response);
+            return CreatedAtAction(nameof(obtener_cita), new { id = response.id_cita }, response);
         }
             catch (Exception ex)
             {
@@ -84,13 +88,23 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPut]
-        public async Task<IActionResult> actualizar_cita([FromBody] cita cita)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> actualizar_cita(int id, [FromBody] cita cita)
         {
             try
             {
+                if (cita == null)
+                {
+                    return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+                }
+
+                if (id != cita.id_cita)
+                {
+                    return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+                }
+
                 var response = await cita_repositories.Putcita(cita);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {

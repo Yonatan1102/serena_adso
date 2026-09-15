@@ -962,6 +962,41 @@ class SerenaApiService {
     return nuevaCita;
   }
 
+  public async getCitasDesdeApi(): Promise<Cita[]> {
+    const response = await fetch(`${this.backendBaseUrl}/cita`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async agendarCitaEnApi(cita: Omit<Cita, 'id_cita'>): Promise<Cita> {
+    const response = await fetch(`${this.backendBaseUrl}/cita/agendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cita),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async actualizarCitaEnApi(cita: Cita): Promise<Cita> {
+    const response = await fetch(`${this.backendBaseUrl}/cita/${cita.id_cita}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cita),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async eliminarCitaEnApi(id_cita: number): Promise<void> {
+    const response = await fetch(`${this.backendBaseUrl}/cita/${id_cita}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+  }
+
+  public async cambiarEstadoCitaEnApi(cita: Cita, estado_cita: Cita['estado_cita']): Promise<Cita> {
+    return this.actualizarCitaEnApi({ ...cita, estado_cita });
+  }
+
   public solicitarCitaSinAgendar(id_psicologo: number, id_aprendiz: number, motivo: string): Cita {
     const lista: Cita[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.CITAS) || '[]');
     const nueva: Cita = {
@@ -1211,6 +1246,52 @@ class SerenaApiService {
     return nuevaEntrada;
   }
 
+  public async getDiarioDesdeApi(
+    id_usuario_aprendiz: number,
+    rol_solicitante: number,
+    id_usuario_solicitante: number
+  ): Promise<Diario[]> {
+    const response = await fetch(`${this.backendBaseUrl}/diario`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Diario[] = await response.json();
+    if (rol_solicitante === 1) {
+      return data.filter((entrada) => entrada.id_usuario === id_usuario_solicitante);
+    }
+    if (rol_solicitante === 2) {
+      return data.filter((entrada) => entrada.id_usuario === id_usuario_aprendiz && entrada.compartir_sp);
+    }
+    return [];
+  }
+
+  public async guardarEntradaDiarioEnApi(entrada: Omit<Diario, 'id_diario'>): Promise<Diario> {
+    const response = await fetch(`${this.backendBaseUrl}/diario/crear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entrada),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async actualizarEntradaDiarioEnApi(entrada: Diario): Promise<Diario> {
+    const response = await fetch(`${this.backendBaseUrl}/diario/${entrada.id_diario}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entrada),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async eliminarEntradaDiarioEnApi(id_diario: number): Promise<void> {
+    const response = await fetch(`${this.backendBaseUrl}/diario/${id_diario}`, { method: 'DELETE' });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+  }
+
+  public async cambiarPermisoCompartirDiarioEnApi(entrada: Diario, compartir_sp: number): Promise<Diario> {
+    return this.actualizarEntradaDiarioEnApi({ ...entrada, compartir_sp });
+  }
+
   public cambiarPermisoCompartirDiario(id_diario: number, nuevoCompartir: number): void {
     const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
     const entrada = data.find((d) => d.id_diario === id_diario);
@@ -1360,6 +1441,17 @@ class SerenaApiService {
   public setBackendConfig(isLive: boolean, baseUrl: string) {
     this.isConfiguredForRealBackend = isLive;
     this.backendBaseUrl = baseUrl;
+  }
+
+  private async getApiError(response: Response): Promise<string> {
+    const body = await response.text();
+    if (!body) return `La API respondió ${response.status}.`;
+    try {
+      const json = JSON.parse(body);
+      return json.mensaje || json.title || body;
+    } catch {
+      return body;
+    }
   }
 }
 

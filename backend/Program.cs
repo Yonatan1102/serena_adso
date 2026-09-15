@@ -32,7 +32,8 @@ builder.Services.AddScoped<Iusuario, usuario_repositories>();
 builder.Services.AddScoped<Iloginservice, usuario_repositories>();
 
 // 3. Controladores y Swagger
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.PropertyNamingPolicy = null);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options => options.AddPolicy("DevelopmentFrontend", policy =>
     policy.WithOrigins(

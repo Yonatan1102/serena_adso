@@ -105,9 +105,17 @@ export default function App() {
     setPublicaciones([...serenaApi.getPublicaciones()]);
   };
 
-  const handleRefreshCitas = () => {
-    setCitas([...serenaApi.getCitas()]);
+  const handleRefreshCitas = async () => {
+    try {
+      setCitas(await serenaApi.getCitasDesdeApi());
+    } catch {
+      setCitas([...serenaApi.getCitas()]);
+    }
   };
+
+  useEffect(() => {
+    void handleRefreshCitas();
+  }, []);
 
   const handleRefreshFormularios = () => {
     setFormularios([...serenaApi.getFormularios()]);

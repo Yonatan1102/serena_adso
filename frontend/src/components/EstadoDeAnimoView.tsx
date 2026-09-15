@@ -52,8 +52,8 @@ const CMTC_MOODS: AvatarMoodOption[] = [
     colorGrad: 'from-emerald-400 to-teal-600',
     textColor: 'text-emerald-800',
     badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-    primaryImage: '/IMG/cmtc_feliz.png',
-    fallbackSvg: '/IMG/cmtc_feliz.svg',
+    primaryImage: '/IMG/feliz.png',
+    fallbackSvg: '/IMG/feliz.png',
     valorNumerico: 5,
     fraseConsejo: '¡Excelente día! Aprovecha este impulso positivo para compartir con tus compañeros de ficha.',
   },
@@ -64,8 +64,8 @@ const CMTC_MOODS: AvatarMoodOption[] = [
     colorGrad: 'from-sky-400 to-blue-600',
     textColor: 'text-blue-800',
     badgeBg: 'bg-blue-100 text-blue-900 border-blue-300',
-    primaryImage: '/IMG/cmtc_calmado.png',
-    fallbackSvg: '/IMG/cmtc_calmado.svg',
+    primaryImage: '/IMG/calmado.png',
+    fallbackSvg: '/IMG/calmado.png',
     valorNumerico: 4,
     fraseConsejo: 'La tranquilidad es tu mejor aliada para la concentración en el código y el taller textil.',
   },
@@ -76,8 +76,8 @@ const CMTC_MOODS: AvatarMoodOption[] = [
     colorGrad: 'from-amber-400 to-amber-600',
     textColor: 'text-amber-800',
     badgeBg: 'bg-amber-100 text-amber-900 border-amber-300',
-    primaryImage: '/IMG/cmtc_ansioso.png',
-    fallbackSvg: '/IMG/cmtc_ansioso.svg',
+    primaryImage: '/IMG/ancioso.png',
+    fallbackSvg: '/IMG/ancioso.png',
     valorNumerico: 2,
     fraseConsejo: 'Recuerda hacer una pausa activa de respiración 4x4. Si la sobrecarga persiste, agenda con tu psicólogo.',
   },
@@ -88,8 +88,8 @@ const CMTC_MOODS: AvatarMoodOption[] = [
     colorGrad: 'from-slate-400 to-slate-600',
     textColor: 'text-slate-700',
     badgeBg: 'bg-slate-200 text-slate-800 border-slate-300',
-    primaryImage: '/IMG/cmtc_triste.png',
-    fallbackSvg: '/IMG/cmtc_triste.svg',
+    primaryImage: '/IMG/triste.png',
+    fallbackSvg: '/IMG/triste.png',
     valorNumerico: 1,
     fraseConsejo: 'Está bien no estar bien todo el tiempo. En Bienestar al Aprendiz estamos para escucharte sin juzgarte.',
   },
@@ -100,8 +100,8 @@ const CMTC_MOODS: AvatarMoodOption[] = [
     colorGrad: 'from-rose-400 to-red-600',
     textColor: 'text-red-800',
     badgeBg: 'bg-rose-100 text-rose-900 border-rose-300',
-    primaryImage: '/IMG/cmtc_motivado.png',
-    fallbackSvg: '/IMG/cmtc_motivado.svg',
+    primaryImage: '/IMG/motivado.png',
+    fallbackSvg: '/IMG/motivado.png',
     valorNumerico: 5,
     fraseConsejo: '¡Gran determinación! Canaliza esa fuerza para avanzar en tu proyecto formativo del SENA.',
   },
@@ -185,61 +185,17 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Registro de Estado de Ánimo & Selección de Avatares
+            Registro de Estado de Ánimo 
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
             Cada día representa una nueva oportunidad. Selecciona el avatar que mejor refleje cómo te sientes hoy en tu formación en el SENA.
           </p>
         </div>
 
-        {/* Botón de instrucciones de imágenes */}
-        <button
-          onClick={() => setMostrarGuiaIMG(!mostrarGuiaIMG)}
-          className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition-colors flex items-center gap-2 shrink-0 cursor-pointer"
-        >
-          <FolderPlus className="w-4 h-4 text-slate-600" />
-          <span>{mostrarGuiaIMG ? 'Ocultar Nombres de Archivos' : 'Ver Nombres para Carpeta /IMG'}</span>
-        </button>
+      
       </div>
 
-      {/* Banner de Guía para la Carpeta /IMG/ */}
-      {mostrarGuiaIMG && (
-        <div className="bg-transparent rounded-2xl p-4 border border-slate-200/80 text-xs text-slate-800 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 mb-2 font-bold text-slate-900 text-sm">
-            <FolderPlus className="w-4 h-4 text-[#7E22CE]" />
-            <span>Nombres de Archivos para la Carpeta /IMG (Público)</span>
-          </div>
-          <p className="mb-3 text-slate-600">
-            Sube tus fotos correspondientes al <strong>Centro {centroUsuario}</strong> a la carpeta <code>/public/IMG/</code> con los siguientes nombres exactos:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 font-mono text-[11px]">
-            <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-              <span className="font-semibold text-slate-800">1. Feliz</span>
-              <p className="text-slate-500 mt-0.5">cmtc_feliz.png</p>
-            </div>
-            <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-              <span className="font-semibold text-slate-800">2. Calmado</span>
-              <p className="text-slate-500 mt-0.5">cmtc_calmado.png</p>
-            </div>
-            <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-              <span className="font-semibold text-slate-800">3. Ansioso</span>
-              <p className="text-slate-500 mt-0.5">cmtc_ansioso.png</p>
-            </div>
-            <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-              <span className="font-semibold text-slate-800">4. Triste</span>
-              <p className="text-slate-500 mt-0.5">cmtc_triste.png</p>
-            </div>
-            <div className="p-2.5 rounded-xl border border-slate-200 bg-white">
-              <span className="font-semibold text-slate-800">5. Motivado</span>
-              <p className="text-slate-500 mt-0.5">cmtc_motivado.png</p>
-            </div>
-          </div>
-          <p className="mt-3 text-[11px] text-slate-500">
-            💡 <em>Nota:</em> Si aún no has subido las imágenes a la carpeta <code>/public/IMG/</code>, la aplicación utiliza automáticamente los avatares vectoriales integrados.
-          </p>
-        </div>
-      )}
-
+      
       {/* =========================================================================
           CARRUSEL DE AVATARES NATURAL & INTEGRADO (Plano, sobrio y orgánico)
           ========================================================================= */}
@@ -545,7 +501,7 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
                     alt={item.nombre_estado}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/IMG/cmtc_feliz.svg';
+                      (e.target as HTMLImageElement).src = '/IMG/feliz.png';
                     }}
                   />
                 </div>

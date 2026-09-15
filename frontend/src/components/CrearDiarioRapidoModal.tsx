@@ -25,26 +25,29 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contenido.trim()) return;
 
     setGuardando(true);
-    serenaApi.guardarEntradaDiario(
-      currentUser.id_usuario,
-      titulo.trim() || (idioma === 'es' ? 'Reflexión diaria' : 'Daily Reflection'),
-      contenido.trim(),
-      compartirSp ? 1 : 0
-    );
-
-    setTimeout(() => {
+    try {
+      await serenaApi.guardarEntradaDiarioEnApi({
+        id_usuario: currentUser.id_usuario,
+        titulo: titulo.trim() || (idioma === 'es' ? 'Reflexión diaria' : 'Daily Reflection'),
+        contenido: contenido.trim(),
+        fecha_apertura: new Date().toISOString(),
+        compartir_sp: compartirSp ? 1 : 0,
+      });
       setGuardando(false);
       setTitulo('');
       setContenido('');
       setCompartirSp(false);
       if (onSaved) onSaved();
       onClose();
-    }, 300);
+    } catch (error) {
+      setGuardando(false);
+      alert(error instanceof Error ? error.message : 'No se pudo guardar la entrada.');
+    }
   };
 
   return (

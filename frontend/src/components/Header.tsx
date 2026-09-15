@@ -12,8 +12,10 @@ import {
   Heart,
   ChevronDown,
   LogOut,
+  KeyRound,
 } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
+import $ from 'jquery';
 
 interface HeaderProps {
   currentUser: Usuario;
@@ -51,6 +53,52 @@ export const Header: React.FC<HeaderProps> = ({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleChangePassword = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordMessage('');
+    setPasswordError('');
+
+    if (newPassword.length < 8) {
+      setPasswordError('La nueva contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Las contraseñas nuevas no coinciden.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    $.ajax({
+      url: '/api/Login/cambiar-contrasena',
+      method: 'POST',
+      data: JSON.stringify({
+        correo: currentUser.email,
+        contrasenaActual: currentPassword,
+        nuevaContrasena: newPassword,
+      }),
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
+      success: (response) => {
+        setPasswordMessage(response?.mensaje || 'Contraseña actualizada correctamente.');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setIsChangingPassword(false);
+      },
+      error: (xhr) => {
+        setPasswordError(xhr?.responseJSON?.mensaje || 'No se pudo actualizar la contraseña.');
+        setIsChangingPassword(false);
+      },
+    });
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF9FF]/90 backdrop-blur-md border-b border-violet-100/80 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
@@ -292,6 +340,19 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => {
+                  setShowChangePassword(true);
+                  setShowUserMenu(false);
+                  setPasswordMessage('');
+                  setPasswordError('');
+                }}
+                className="mt-2 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-2 text-left font-semibold text-slate-700 transition-colors hover:text-violet-700"
+              >
+                <KeyRound className="h-4 w-4" />
+                <span>{idioma === 'es' ? 'Cambiar contraseña' : 'Change password'}</span>
+              </button>
+
+              <button
+                onClick={() => {
                   setShowUserMenu(false);
                   onLogout();
                 }}
@@ -304,6 +365,61 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {showChangePassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" onClick={() => setShowChangePassword(false)}>
+          <form
+            onSubmit={handleChangePassword}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">Cambiar contraseña</h2>
+                <p className="mt-1 text-xs text-slate-500">Actualiza el acceso de {currentUser.email}.</p>
+              </div>
+              <button type="button" onClick={() => setShowChangePassword(false)} className="text-xl text-slate-400 hover:text-slate-700" aria-label="Cerrar">×</button>
+            </div>
+
+            <div className="space-y-4">
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="Contraseña actual"
+                autoComplete="current-password"
+                required
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+              />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Nueva contraseña (mínimo 8 caracteres)"
+                autoComplete="new-password"
+                required
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+              />
+              <input
+                type="password"
+                value={confirmNewPassword}
+                onChange={(event) => setConfirmNewPassword(event.target.value)}
+                placeholder="Confirmar nueva contraseña"
+                autoComplete="new-password"
+                required
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+              />
+            </div>
+
+            {passwordError && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{passwordError}</p>}
+            {passwordMessage && <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{passwordMessage}</p>}
+
+            <button type="submit" disabled={isChangingPassword} className="mt-5 w-full rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-70">
+              {isChangingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
+            </button>
+          </form>
+        </div>
+      )}
     </header>
   );
 };

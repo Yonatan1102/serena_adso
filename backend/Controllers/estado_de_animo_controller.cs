@@ -40,7 +40,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var response = await estado_de_animo_repositories.Getestado_de_animoById(id);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {
@@ -73,13 +73,23 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPut]
-        public async Task<IActionResult> ActualizarCita([FromBody] estado_de_animo estado_de_animo)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> ActualizarCita(int id, [FromBody] estado_de_animo estado_de_animo)
         {
             try
             {
+                if (estado_de_animo == null)
+                {
+                    return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+                }
+
+                if (id != estado_de_animo.id_estado)
+                {
+                    return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+                }
+
                 var response = await estado_de_animo_repositories.Putestado_de_animo(estado_de_animo);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {

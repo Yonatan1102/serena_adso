@@ -24,7 +24,7 @@ namespace WebApplication1.models
         public string? motivo { get; set; }
 
         [Required]
-        [AllowedValues("pendiente", "confirmada", "cancelada", "pospuesta")]
+        [AllowedValues("Pendiente", "Confirmada", "Realizada", "Cancelada")]
         public string estado_cita { get; set; } = null!;
 
         [Column("id_usuario_aprendiz")]

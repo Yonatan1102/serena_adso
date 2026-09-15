@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BookMarked,
   Lock,
@@ -33,45 +33,57 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
     ? aprendizSeleccionado?.id_usuario || 1
     : currentUser.id_usuario;
 
-  const [entradas, setEntradas] = useState<Diario[]>(() =>
-    serenaApi.getDiario(idObjetivo, currentUser.id_rol, currentUser.id_usuario)
-  );
+  const [entradas, setEntradas] = useState<Diario[]>([]);
 
   const [nuevoTitulo, setNuevoTitulo] = useState('');
   const [nuevoContenido, setNuevoContenido] = useState('');
   const [compartirSp, setCompartirSp] = useState<boolean>(false);
   const [guardando, setGuardando] = useState(false);
 
-  const handleGuardarEntrada = (e: React.FormEvent) => {
+  useEffect(() => {
+    const cargarEntradas = async () => {
+      try {
+        setEntradas(await serenaApi.getDiarioDesdeApi(idObjetivo, currentUser.id_rol, currentUser.id_usuario));
+      } catch {
+        setEntradas(serenaApi.getDiario(idObjetivo, currentUser.id_rol, currentUser.id_usuario));
+      }
+    };
+    void cargarEntradas();
+  }, [currentUser.id_rol, currentUser.id_usuario, idObjetivo]);
+
+  const handleGuardarEntrada = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoContenido.trim()) return;
 
     setGuardando(true);
-    serenaApi.guardarEntradaDiario(
-      currentUser.id_usuario,
-      nuevoTitulo || 'Reflexión diaria',
-      nuevoContenido,
-      compartirSp ? 1 : 0
-    );
-
-    setTimeout(() => {
+    try {
+      await serenaApi.guardarEntradaDiarioEnApi({
+        id_usuario: currentUser.id_usuario,
+        titulo: nuevoTitulo || 'Reflexión diaria',
+        contenido: nuevoContenido,
+        fecha_apertura: new Date().toISOString(),
+        compartir_sp: compartirSp ? 1 : 0,
+      });
       setGuardando(false);
       setNuevoTitulo('');
       setNuevoContenido('');
       setCompartirSp(false);
-      setEntradas(
-        serenaApi.getDiario(idObjetivo, currentUser.id_rol, currentUser.id_usuario)
-      );
+      setEntradas(await serenaApi.getDiarioDesdeApi(idObjetivo, currentUser.id_rol, currentUser.id_usuario));
       alert('Entrada de diario guardada y cifrada en reposo con éxito.');
-    }, 350);
+    } catch (error) {
+      setGuardando(false);
+      alert(error instanceof Error ? error.message : 'No se pudo guardar la entrada.');
+    }
   };
 
-  const handleToggleCompartir = (entrada: Diario) => {
+  const handleToggleCompartir = async (entrada: Diario) => {
     const nuevoValor = entrada.compartir_sp === 1 ? 0 : 1;
-    serenaApi.cambiarPermisoCompartirDiario(entrada.id_diario, nuevoValor);
-    setEntradas(
-      serenaApi.getDiario(idObjetivo, currentUser.id_rol, currentUser.id_usuario)
-    );
+    try {
+      const actualizada = await serenaApi.cambiarPermisoCompartirDiarioEnApi(entrada, nuevoValor);
+      setEntradas((actuales) => actuales.map((item) => item.id_diario === actualizada.id_diario ? actualizada : item));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo actualizar el permiso.');
+    }
   };
 
   return (

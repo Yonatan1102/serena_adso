@@ -77,21 +77,36 @@ namespace WebApplication1.Controllers
         {
             try
             {
+                if (diario == null || string.IsNullOrWhiteSpace(diario.contenido))
+                {
+                    return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
+                }
+
                 var response = await diarioRepository.Postdiario(diario);
-                return Ok(response);
+                return CreatedAtAction(nameof(ObtenerDiario), new { id = response.id_diario }, response);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { mensaje = "Ocurrió un error interno al crear el diario.", detalle = ex.Message });
             }
         }
-        [HttpPut]
-        public async Task<IActionResult> ActualizarDiario([FromBody] diario diario)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> ActualizarDiario(int id, [FromBody] diario diario)
         { 
             try
         {
+            if (diario == null)
+            {
+                return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+            }
+
+            if (id != diario.id_diario)
+            {
+                return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+            }
+
             var response = await diarioRepository.Putdiario(diario);
-            return Ok(response);
+            return response == null ? NotFound() : Ok(response);
         }
             catch (Exception ex)
             {

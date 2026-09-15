@@ -55,6 +55,23 @@ public class LoginController : ControllerBase
         });
     }
 
+    [HttpPost("cambiar-contrasena")]
+    public async Task<IActionResult> CambiarContrasena([FromBody] ChangePasswordRequest request)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (request.contrasenaActual == request.nuevaContrasena)
+            return BadRequest(new { mensaje = "La nueva contraseña debe ser diferente a la actual." });
+
+        var cambioRealizado = await _loginService.CambiarContrasena(
+            request.correo,
+            request.contrasenaActual,
+            request.nuevaContrasena);
+
+        return cambioRealizado
+            ? Ok(new { mensaje = "Contraseña actualizada correctamente." })
+            : Unauthorized(new { mensaje = "El correo o la contraseña actual no son correctos." });
+    }
+
     private string GenerarJwtToken(usuario usuario)
     {
         var secretKey = _config["Jwt:Key"];
@@ -88,4 +105,18 @@ public class LoginRequest
 
     [System.ComponentModel.DataAnnotations.Required]
     public string contrasena { get; set; } = string.Empty;
+}
+
+public class ChangePasswordRequest
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.EmailAddress]
+    public string correo { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required]
+    public string contrasenaActual { get; set; } = string.Empty;
+
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.MinLength(8)]
+    public string nuevaContrasena { get; set; } = string.Empty;
 }
