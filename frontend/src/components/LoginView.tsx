@@ -210,7 +210,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
         {!isRegistering && <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-xs text-slate-600">
           <p className="font-semibold text-slate-700">Credenciales de prueba:</p>
-          <p className="mt-2">Aprendiz: yacuna@soy.sena.edu.co / Aa12345*</p>
+          <p className="mt-2">Aprendiz: yacuna@soy.sena.edu.co /xdgr Aa12345*</p>
           <p>Psicólogo: lmartinez@sena.edu.co / Aa12345*</p>
         </div>}
       </div>

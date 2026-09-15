@@ -32,7 +32,7 @@ interface EstadoDeAnimoViewProps {
 }
 
 interface AvatarMoodOption {
-  id: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
+  id: 'Feliz' | 'Tranquilo' | 'Ansioso' | 'Triste' | 'Motivado';
   nombre: string;
   subtitulo: string;
   colorGrad: string;
