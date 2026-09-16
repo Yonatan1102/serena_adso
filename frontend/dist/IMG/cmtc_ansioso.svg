@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g_ansioso" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="40" fill="url(#g_ansioso)" />
+  <circle cx="100" cy="95" r="50" fill="#FEF3C7" />
+  <circle cx="82" cy="85" r="8" fill="#1F2937" />
+  <circle cx="118" cy="85" r="8" fill="#1F2937" />
+  <circle cx="84" cy="83" r="2.5" fill="#FFFFFF" />
+  <circle cx="120" cy="83" r="2.5" fill="#FFFFFF" />
+  <!-- wavy anxious mouth -->
+  <path d="M 80 115 Q 87 108 94 115 T 107 115 T 120 115" fill="none" stroke="#1F2937" stroke-width="4" stroke-linecap="round" />
+  <!-- sweat drop -->
+  <path d="M 135 70 C 135 65 140 60 140 60 C 140 60 145 65 145 70 C 145 73 143 75 140 75 C 137 75 135 73 135 70 Z" fill="#60A5FA" />
+  <text x="100" y="175" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="16" fill="#FFFFFF">CMTC - ANSIOSO</text>
+</svg>
