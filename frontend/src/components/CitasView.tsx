@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CalendarCheck,
   Clock,
@@ -34,7 +34,14 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
   // Formulario de agendamiento para aprendiz
   const defaultPsico = (psicologosDisponibles || [])[0];
-  const [psicologoSeleccionadoId, setPsicologoSeleccionadoId] = useState<number>(defaultPsico?.id_usuario || 4);
+  const [psicologoSeleccionadoId, setPsicologoSeleccionadoId] = useState<number>(0);
+
+  // Sincroniza el profesional con los datos reales que llegan de la API (evita IDs mock como 4)
+  useEffect(() => {
+    if (psicologoSeleccionadoId === 0 && psicologosDisponibles.length > 0) {
+      setPsicologoSeleccionadoId(psicologosDisponibles[0].id_usuario);
+    }
+  }, [psicologosDisponibles, psicologoSeleccionadoId]);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('');
   const [franjaSeleccionada, setFranjaSeleccionada] = useState<string>('');
   const [motivo, setMotivo] = useState<string>('');
@@ -45,6 +52,10 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
   const handleAgendarAprendiz = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!psicologoSeleccionadoId) {
+      alert('No hay psicólogos registrados para agendar una cita.');
+      return;
+    }
     if (!fechaSeleccionada || !motivo.trim()) {
       alert('Por favor selecciona una fecha y redacta el motivo de la consulta.');
       return;
@@ -181,13 +192,18 @@ export const CitasView: React.FC<CitasViewProps> = ({
                   <select
                     value={psicologoSeleccionadoId}
                     onChange={(e) => setPsicologoSeleccionadoId(Number(e.target.value))}
-                    className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white font-normal"
+                    disabled={psicologosDisponibles.length === 0}
+                    className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white font-normal disabled:opacity-60"
                   >
-                    {psicologosDisponibles.map((p) => (
-                      <option key={p.id_usuario} value={p.id_usuario}>
-                        {p.nombre_usuario} - {p.especialidad}
-                      </option>
-                    ))}
+                    {psicologosDisponibles.length === 0 ? (
+                      <option value={0}>No hay psicólogos registrados</option>
+                    ) : (
+                      psicologosDisponibles.map((p) => (
+                        <option key={p.id_usuario} value={p.id_usuario}>
+                          {p.nombre_usuario} - {p.especialidad || 'Bienestar'}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 

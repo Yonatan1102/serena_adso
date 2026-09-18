@@ -126,18 +126,20 @@ export interface Diario {
   id_diario: number;
   id_usuario: number;
   fecha_apertura: string;
-  compartir_sp: number; // 1 = Compartido con psicólogo, 0 = Privado
+  compartir_sp: boolean; // true = Compartido con psicólogo, false = Privado
   contenido: string; // Encriptado simulado AES
   titulo?: string;
 }
 
 export interface EstadoDeAnimo {
-  id_estado: number;
+  id_estado?: number;
+  id_estado_usuario?: number;
   nombre_estado: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
   fecha_estado: string;
   id_usuario: number;
-  centro: 'CMTC' | 'CMM' | 'CEET';
-  avatar_path: string;
+  motivo?: string;
+  centro?: 'CMTC' | 'CMM' | 'CEET';
+  avatar_path?: string;
   nota?: string;
   intensidad?: number; // 1 - 5
 }

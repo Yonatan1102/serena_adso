@@ -36,6 +36,6 @@ namespace WebApplication1.models
 
         public virtual historial_clinico? historial_Clinico { get; set; }
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
-        public virtual ICollection<estado_de_animo> estado_de_animo { get; set; } = new List<estado_de_animo>();
+        public virtual ICollection<estado_animo_usuario> estado_animo_usuarios { get; set; } = new List<estado_animo_usuario>();
     }
 }

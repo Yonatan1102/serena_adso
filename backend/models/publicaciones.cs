@@ -23,5 +23,23 @@ namespace WebApplication1.models
 
         [Column("id_usuario")]
         public int id_usuario { get; set; }
+
+        [Column("id_comunidad")]
+        [StringLength(100)]
+        public string? id_comunidad { get; set; }
+
+        [Column("etiqueta")]
+        [StringLength(80)]
+        public string? etiqueta { get; set; }
+
+        [Column("votos")]
+        public int votos { get; set; }
+
+        [Column("comentarios_count")]
+        public int comentarios_count { get; set; }
+
+        [Column("imagen_url")]
+        [StringLength(500)]
+        public string? imagen_url { get; set; }
     }
 }

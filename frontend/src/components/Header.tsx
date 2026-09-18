@@ -15,12 +15,11 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
-import $ from 'jquery';
 
 interface HeaderProps {
   currentUser: Usuario;
   usuariosDisponibles: Usuario[];
-  onSelectUser: (user: Usuario) => void;
+  onSelectUser?: (user: Usuario) => void;
   onLogout: () => void;
   onToggleSidebar: () => void;
   isSidebarCollapsed: boolean;
@@ -61,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [passwordError, setPasswordError] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const handleChangePassword = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPasswordMessage('');
     setPasswordError('');
@@ -76,28 +75,32 @@ export const Header: React.FC<HeaderProps> = ({
     }
 
     setIsChangingPassword(true);
-    $.ajax({
-      url: '/api/Login/cambiar-contrasena',
-      method: 'POST',
-      data: JSON.stringify({
-        correo: currentUser.email,
-        contrasenaActual: currentPassword,
-        nuevaContrasena: newPassword,
-      }),
-      contentType: 'application/json; charset=utf-8',
-      dataType: 'json',
-      success: (response) => {
-        setPasswordMessage(response?.mensaje || 'Contraseña actualizada correctamente.');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmNewPassword('');
-        setIsChangingPassword(false);
-      },
-      error: (xhr) => {
-        setPasswordError(xhr?.responseJSON?.mensaje || 'No se pudo actualizar la contraseña.');
-        setIsChangingPassword(false);
-      },
-    });
+
+    try {
+      const response = await fetch('/api/Login/cambiar-contrasena', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          correo: currentUser.email,
+          contrasenaActual: currentPassword,
+          nuevaContrasena: newPassword,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.mensaje || 'No se pudo actualizar la contraseña.');
+      }
+
+      setPasswordMessage(payload?.mensaje || 'Contraseña actualizada correctamente.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setIsChangingPassword(false);
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : 'No se pudo actualizar la contraseña.');
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -306,36 +309,16 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
 
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                {idioma === 'es' ? 'Cambiar Rol de Prueba:' : 'Switch Test Role:'}
+              <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                {idioma === 'es' ? 'Cuenta actual' : 'Current account'}
               </div>
 
-              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                {usuariosDisponibles.map((u) => {
-                  const isSelected = u.id_usuario === currentUser.id_usuario;
-                  return (
-                    <button
-                      key={u.id_usuario}
-                      onClick={() => {
-                        onSelectUser(u);
-                        setShowUserMenu(false);
-                      }}
-                      className={`text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between transition-colors ${
-                        isSelected
-                          ? 'bg-violet-100 text-slate-900 font-bold'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="truncate">
-                        <p className="truncate font-semibold">{u.nombre_usuario}</p>
-                        <p className="text-[10px] text-slate-400">
-                          {u.id_rol === 2 ? 'Psicólogo' : 'Aprendiz'} • {u.centro}
-                        </p>
-                      </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-violet-600" />}
-                    </button>
-                  );
-                })}
+              <div className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600">
+                <p className="font-semibold text-slate-800">{currentUser.nombre_usuario}</p>
+                <p className="mt-0.5">{currentUser.email}</p>
+                <p className="mt-1 text-[10px] text-violet-700 font-bold">
+                  {currentUser.id_rol === 2 ? 'Psicólogo(a)' : currentUser.id_rol === 3 ? 'Administrador(a)' : 'Aprendiz'}
+                </p>
               </div>
 
               <button

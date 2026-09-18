@@ -15,14 +15,7 @@ import { motion } from 'motion/react';
 import { Usuario, Comunidad, Menu, CustomFeed } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
 
-/* ========================================================================
-   ICONOS IDÉNTICOS A REDDIT (SEGÚN IMAGEN DE REFERENCIA ADJUNTA image.png)
-   1. Home: Silueta sólida de casa con puerta
-   2. Popular: Flecha diagonal hacia arriba a la derecha dentro de un círculo
-   3. News: Periódico con doblado y líneas de texto
-   4. Explore: 3 círculos (1 arriba, 2 abajo)
-   5. Plus: Signo más fino y limpio (+ Start a community / + Cita)
-   ======================================================================== */
+
 
 export const RedditHomeIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
   <svg viewBox="0 0 20 20" fill="currentColor" className={className}>

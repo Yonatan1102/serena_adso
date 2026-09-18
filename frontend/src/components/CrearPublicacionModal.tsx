@@ -28,27 +28,29 @@ export const CrearPublicacionModal: React.FC<CrearPublicacionModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim() || !contenido.trim()) return;
 
     setGuardando(true);
-    serenaApi.crearPublicacion(
-      titulo,
-      contenido,
-      currentUser.id_usuario,
-      comunidadId,
-      etiqueta
-    );
-
-    setTimeout(() => {
-      setGuardando(false);
+    try {
+      await serenaApi.crearPublicacionEnApi({
+        titulo,
+        contenido,
+        id_usuario: currentUser.id_usuario,
+        id_comunadad: comunidadId,
+        etiqueta,
+      });
       setTitulo('');
       setContenido('');
       onPublicacionCreada();
       onClose();
       alert('¡Publicación creada exitosamente en la comunidad!');
-    }, 300);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo crear la publicación.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (

@@ -21,6 +21,7 @@ builder.Services.AddScoped<Icita, cita_repositories>();
 builder.Services.AddScoped<Idiario, diario_repositories>();
 builder.Services.AddScoped<Iemergencia, emergencia_repositories>();
 builder.Services.AddScoped<Iestado_de_animo, estado_de_animo_repositories>();
+builder.Services.AddScoped<Iestado_animo_usuario, estado_animo_usuario_repositories>();
 builder.Services.AddScoped<Iformulario, formulario_repositories>();
 builder.Services.AddScoped<Ihistorial_cita, historial_cita_repositories>();
 builder.Services.AddScoped<Ihistorial_clinico, historial_clinico_repositories>();
@@ -66,6 +67,18 @@ using (var scope = app.Services.CreateScope())
             new rol { nombre_rol = "Aprendiz" },
             new rol { nombre_rol = "Psicólogo" },
             new rol { nombre_rol = "Administrador" }
+        );
+        db.SaveChanges();
+    }
+
+    if (!db.estado_de_animo.Any())
+    {
+        db.estado_de_animo.AddRange(
+            new estado_de_animo { nombre_estado = "Feliz" },
+            new estado_de_animo { nombre_estado = "Calmado" },
+            new estado_de_animo { nombre_estado = "Ansioso" },
+            new estado_de_animo { nombre_estado = "Triste" },
+            new estado_de_animo { nombre_estado = "Motivado" }
         );
         db.SaveChanges();
     }

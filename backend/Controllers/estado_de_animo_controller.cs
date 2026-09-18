@@ -59,9 +59,9 @@ namespace WebApplication1.Controllers
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (estado_de_animo.id_usuario == 0)
+                if (string.IsNullOrWhiteSpace(estado_de_animo.nombre_estado))
                 {
-                    return BadRequest(new { mensaje = "El usuario del historial clínico es obligatorio." });
+                    return BadRequest(new { mensaje = "El nombre del estado es obligatorio." });
                 }
 
                 var response = await estado_de_animo_repositories.Postestado_de_animo(estado_de_animo);

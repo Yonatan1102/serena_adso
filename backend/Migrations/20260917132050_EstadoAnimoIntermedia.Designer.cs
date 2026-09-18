@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApplication1;
 
@@ -11,9 +12,11 @@ using WebApplication1;
 namespace WebApplication1.Migrations
 {
     [DbContext(typeof(serena))]
-    partial class serenaModelSnapshot : ModelSnapshot
+    [Migration("20260917132050_EstadoAnimoIntermedia")]
+    partial class EstadoAnimoIntermedia
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -154,12 +157,6 @@ namespace WebApplication1.Migrations
                     b.Property<int>("id_usuario")
                         .HasColumnType("int")
                         .HasColumnName("id_usuario");
-
-                    b.Property<string>("motivo")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)")
-                        .HasColumnName("motivo");
 
                     b.HasKey("id_estado_usuario");
 
@@ -343,46 +340,23 @@ namespace WebApplication1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_publicaciones"));
 
-                    b.Property<int>("comentarios_count")
-                        .HasColumnType("int")
-                        .HasColumnName("comentarios_count");
-
                     b.Property<string>("contenido")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("contenido");
-
-                    b.Property<string>("etiqueta")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)")
-                        .HasColumnName("etiqueta");
 
                     b.Property<DateTime>("fecha_publicacion")
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_publicacion");
 
-                    b.Property<string>("id_comunidad")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("id_comunidad");
-
                     b.Property<int>("id_usuario")
                         .HasColumnType("int")
                         .HasColumnName("id_usuario");
-
-                    b.Property<string>("imagen_url")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("imagen_url");
 
                     b.Property<string>("titulo")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("titulo");
-
-                    b.Property<int>("votos")
-                        .HasColumnType("int")
-                        .HasColumnName("votos");
 
                     b.HasKey("id_publicaciones");
 

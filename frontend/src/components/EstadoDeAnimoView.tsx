@@ -132,30 +132,42 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
     setSelectedIndex((prev) => (prev < CMTC_MOODS.length - 1 ? prev + 1 : 0));
   };
 
-  const handleGuardarEstado = (e: React.FormEvent) => {
+  const handleGuardarEstado = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const avatarFinalPath = imgErrors[currentMood.id]
-      ? currentMood.fallbackSvg
-      : currentMood.primaryImage;
+    try {
+      const avatarFinalPath = imgErrors[currentMood.id]
+        ? currentMood.fallbackSvg
+        : currentMood.primaryImage;
 
-    serenaApi.registrarEstadoDeAnimo(
-      currentUser.id_usuario,
-      currentMood.id,
-      centroUsuario,
-      avatarFinalPath,
-      notaPersonal,
-      intensidad
-    );
+      const estadoCatalogo = currentMood.id;
+      const estadoId = {
+        Feliz: 1,
+        Calmado: 2,
+        Ansioso: 3,
+        Triste: 4,
+        Motivado: 5,
+      }[estadoCatalogo] ?? 1;
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+      await serenaApi.registrarEstadoDeAnimoEnApi({
+        id_usuario: currentUser.id_usuario,
+        id_estado: estadoId,
+        fecha_estado: new Date().toISOString(),
+        motivo: notaPersonal.trim() || 'Sin motivo específico',
+      });
+
       setNotaPersonal('');
-      onEstadoRegistrado();
+      await onEstadoRegistrado();
       setMensajeExito(`¡Tu estado de ánimo "${currentMood.nombre}" se guardó exitosamente!`);
       setTimeout(() => setMensajeExito(null), 4000);
-    }, 300);
+    } catch (error) {
+      setMensajeExito(null);
+      console.error('Error guardando estado de ánimo:', error);
+      alert(error instanceof Error ? error.message : 'No se pudo guardar el estado de ánimo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Datos para la gráfica de evolución (RF-EA-02)

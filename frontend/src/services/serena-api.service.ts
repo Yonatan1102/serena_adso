@@ -722,9 +722,37 @@ class SerenaApiService {
 
   private initStorage() {
     if (typeof window === 'undefined') return;
-    if (!localStorage.getItem(STORAGE_KEYS.USUARIOS)) {
-      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(USUARIOS_SEMILLA));
+
+    const legacyUsuarios = localStorage.getItem(STORAGE_KEYS.USUARIOS);
+    const legacyCurrentUser = localStorage.getItem('serena_current_user');
+
+    if (legacyUsuarios && legacyUsuarios !== '[]') {
+      try {
+        const parsed = JSON.parse(legacyUsuarios) as Usuario[];
+        const hasMockData = Array.isArray(parsed) && parsed.some((u) => u.email?.includes('@soy.sena.edu.co') || u.email?.includes('@sena.edu.co'));
+        if (hasMockData) {
+          localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+        }
+      } catch {
+        localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+      }
     }
+
+    if (!localStorage.getItem(STORAGE_KEYS.USUARIOS)) {
+      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+    }
+
+    if (legacyCurrentUser && legacyCurrentUser !== '[]') {
+      try {
+        const parsed = JSON.parse(legacyCurrentUser) as Usuario;
+        if (parsed && parsed.email && (parsed.email.includes('@soy.sena.edu.co') || parsed.email.includes('@sena.edu.co'))) {
+          localStorage.removeItem('serena_current_user');
+        }
+      } catch {
+        localStorage.removeItem('serena_current_user');
+      }
+    }
+
     if (!localStorage.getItem(STORAGE_KEYS.COMUNIDADES)) {
       localStorage.setItem(STORAGE_KEYS.COMUNIDADES, JSON.stringify(COMUNIDADES_SEMILLA));
     }
@@ -764,9 +792,26 @@ class SerenaApiService {
   }
 
   // --- Usuarios & Autenticación ---
+  public async getUsuariosDesdeApi(): Promise<Usuario[]> {
+    const response = await fetch(`${this.backendBaseUrl}/Usuario`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data = await response.json();
+    const usuarios = Array.isArray(data) ? data : [];
+    localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(usuarios));
+    return usuarios;
+  }
+
   public getUsuarios(): Usuario[] {
     const data = localStorage.getItem(STORAGE_KEYS.USUARIOS);
-    return data ? JSON.parse(data) : USUARIOS_SEMILLA;
+    const usuarios = data ? JSON.parse(data) : [];
+    return Array.isArray(usuarios) ? usuarios : [];
+  }
+
+  public clearMockUserData(): void {
+    const storedUsuarios = localStorage.getItem(STORAGE_KEYS.USUARIOS);
+    if (storedUsuarios && storedUsuarios !== '[]') {
+      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+    }
   }
 
   public getCurrentUser(): Usuario {
@@ -774,11 +819,18 @@ class SerenaApiService {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {
+      } catch {
         // fallback
       }
     }
-    return this.getUsuarios()[0]; // Default: Yonatan Acuña (Aprendiz CMTC)
+
+    return {
+      id_usuario: 0,
+      nombre_usuario: 'Usuario',
+      email: '',
+      id_rol: 1,
+      centro: 'CMTC',
+    } as Usuario;
   }
 
   public setCurrentUser(user: Usuario): void {
@@ -830,6 +882,23 @@ class SerenaApiService {
   }
 
   // --- Publicaciones (Feed) ---
+  public async getPublicacionesDesdeApi(comunidadId?: string): Promise<Publicacion[]> {
+    const response = await fetch(`${this.backendBaseUrl}/publicaciones`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Publicacion[] = await response.json();
+    const publicaciones = data.map((p) => ({
+      ...p,
+      autor: this.getUsuarioById(p.id_usuario),
+    }));
+
+    if (comunidadId) {
+      // Las publicaciones sin comunidad asignada se muestran en el feed principal
+      return publicaciones.filter((p) => !p.id_comunidad || p.id_comunidad === comunidadId);
+    }
+
+    return publicaciones.sort((a, b) => new Date(b.fecha_publicacion).getTime() - new Date(a.fecha_publicacion).getTime());
+  }
+
   public getPublicaciones(comunidadId?: string): Publicacion[] {
     const data = localStorage.getItem(STORAGE_KEYS.PUBLICACIONES);
     const lista: Publicacion[] = data ? JSON.parse(data) : PUBLICACIONES_SEMILLA;
@@ -848,6 +917,39 @@ class SerenaApiService {
 
   public getPublicacionesPorAutor(id_usuario: number): Publicacion[] {
     return this.getPublicaciones().filter((p) => p.id_usuario === id_usuario);
+  }
+
+  public async crearPublicacionEnApi(payload: {
+    titulo: string;
+    contenido: string;
+    id_usuario: number;
+    id_comunadad?: string;
+    etiqueta?: string;
+    fecha_publicacion?: string;
+  }): Promise<Publicacion> {
+    const response = await fetch(`${this.backendBaseUrl}/publicaciones/crear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        id_comunidad: payload.id_comunadad || 's/CMTC',
+        fecha_publicacion: payload.fecha_publicacion ?? new Date().toISOString(),
+        votos: 1,
+        comentarios_count: 0,
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async votarPublicacionEnApi(publicacion: Publicacion, delta: number): Promise<Publicacion> {
+    const response = await fetch(`${this.backendBaseUrl}/publicaciones`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...publicacion, votos: (publicacion.votos || 0) + delta }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
   }
 
   public crearPublicacion(titulo: string, contenido: string, id_usuario: number, id_comunidad: string, etiqueta?: string): Publicacion {
@@ -965,7 +1067,20 @@ class SerenaApiService {
   public async getCitasDesdeApi(): Promise<Cita[]> {
     const response = await fetch(`${this.backendBaseUrl}/cita`);
     if (!response.ok) throw new Error(await this.getApiError(response));
-    return response.json();
+    const data: Cita[] = await response.json();
+    return data.map((c) => ({
+      ...c,
+      estado_cita: this.normalizarEstadoCita(c.estado_cita),
+    }));
+  }
+
+  private normalizarEstadoCita(estado?: string): Cita['estado_cita'] {
+    if (!estado) return 'Pendiente';
+    const capitalizado = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+    if (['Pendiente', 'Confirmada', 'Realizada', 'Cancelada'].includes(capitalizado)) {
+      return capitalizado as Cita['estado_cita'];
+    }
+    return 'Pendiente';
   }
 
   public async agendarCitaEnApi(cita: Omit<Cita, 'id_cita'>): Promise<Cita> {
@@ -1218,20 +1333,20 @@ class SerenaApiService {
     }
   }
 
-  // --- Diario Personal con Cifrado AES (RF-DIA-01 a 03, RN-02) ---
+  // --- Diario Personal (un diario por aprendiz; las entradas son actualizaciones) ---
   public getDiario(id_usuario_aprendiz: number, rol_solicitante: number, id_usuario_solicitante: number): Diario[] {
     const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
     if (rol_solicitante === 1) {
       // El aprendiz solo ve su propio diario (RN-03)
       return data.filter((d) => d.id_usuario === id_usuario_solicitante);
     } else if (rol_solicitante === 2) {
-      // RN-02: El psicólogo SOLO recibe registros donde compartir_sp === 1
-      return data.filter((d) => d.id_usuario === id_usuario_aprendiz && d.compartir_sp === 1);
+      // RN-02: El psicólogo SOLO recibe registros donde compartir_sp === true
+      return data.filter((d) => d.id_usuario === id_usuario_aprendiz && d.compartir_sp);
     }
     return [];
   }
 
-  public guardarEntradaDiario(id_usuario: number, titulo: string, contenido: string, compartir_sp: number): Diario {
+  public guardarEntradaDiario(id_usuario: number, titulo: string, contenido: string, compartir_sp: boolean): Diario {
     const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
     const nuevaEntrada: Diario = {
       id_diario: Date.now(),
@@ -1246,59 +1361,40 @@ class SerenaApiService {
     return nuevaEntrada;
   }
 
-  public async getDiarioDesdeApi(
-    id_usuario_aprendiz: number,
-    rol_solicitante: number,
-    id_usuario_solicitante: number
-  ): Promise<Diario[]> {
-    const response = await fetch(`${this.backendBaseUrl}/diario`);
+  public async getDiarioDesdeApi(id_usuario: number): Promise<Diario | null> {
+    const response = await fetch(`${this.backendBaseUrl}/diario/usuario/${id_usuario}`);
+    if (response.status === 404) return null;
     if (!response.ok) throw new Error(await this.getApiError(response));
-    const data: Diario[] = await response.json();
-    if (rol_solicitante === 1) {
-      return data.filter((entrada) => entrada.id_usuario === id_usuario_solicitante);
-    }
-    if (rol_solicitante === 2) {
-      return data.filter((entrada) => entrada.id_usuario === id_usuario_aprendiz && entrada.compartir_sp);
-    }
-    return [];
+    return response.json();
   }
 
-  public async guardarEntradaDiarioEnApi(entrada: Omit<Diario, 'id_diario'>): Promise<Diario> {
+  public async actualizarDiarioEnApi(entrada: {
+    id_usuario: number;
+    contenido: string;
+    compartir_sp: boolean;
+  }): Promise<Diario> {
     const response = await fetch(`${this.backendBaseUrl}/diario/crear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entrada),
+      body: JSON.stringify({
+        id_usuario: entrada.id_usuario,
+        contenido: entrada.contenido,
+        compartir_sp: entrada.compartir_sp,
+        fecha_apertura: new Date().toISOString(),
+      }),
     });
     if (!response.ok) throw new Error(await this.getApiError(response));
     return response.json();
   }
 
-  public async actualizarEntradaDiarioEnApi(entrada: Diario): Promise<Diario> {
-    const response = await fetch(`${this.backendBaseUrl}/diario/${entrada.id_diario}`, {
+  public async cambiarPermisoCompartirDiarioEnApi(diario: Diario, compartir_sp: boolean): Promise<Diario> {
+    const response = await fetch(`${this.backendBaseUrl}/diario/${diario.id_diario}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entrada),
+      body: JSON.stringify({ ...diario, compartir_sp }),
     });
     if (!response.ok) throw new Error(await this.getApiError(response));
     return response.json();
-  }
-
-  public async eliminarEntradaDiarioEnApi(id_diario: number): Promise<void> {
-    const response = await fetch(`${this.backendBaseUrl}/diario/${id_diario}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error(await this.getApiError(response));
-  }
-
-  public async cambiarPermisoCompartirDiarioEnApi(entrada: Diario, compartir_sp: number): Promise<Diario> {
-    return this.actualizarEntradaDiarioEnApi({ ...entrada, compartir_sp });
-  }
-
-  public cambiarPermisoCompartirDiario(id_diario: number, nuevoCompartir: number): void {
-    const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
-    const entrada = data.find((d) => d.id_diario === id_diario);
-    if (entrada) {
-      entrada.compartir_sp = nuevoCompartir;
-      localStorage.setItem(STORAGE_KEYS.DIARIO, JSON.stringify(data));
-    }
   }
 
   // --- Estado de Ánimo (RF-EA-01, RF-EA-02) ---
@@ -1311,6 +1407,32 @@ class SerenaApiService {
 
   public getHistorialEstados(id_usuario: number): EstadoDeAnimo[] {
     return this.getEstadosDeAnimo(id_usuario);
+  }
+
+  public async getHistorialEstadosDesdeApi(id_usuario: number): Promise<EstadoDeAnimo[]> {
+    const response = await fetch(`${this.backendBaseUrl}/estado-animo-usuario/usuario/${id_usuario}`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  public async registrarEstadoDeAnimoEnApi(payload: {
+    id_usuario: number;
+    id_estado: number;
+    fecha_estado?: string;
+    motivo?: string;
+  }): Promise<EstadoDeAnimo> {
+    const response = await fetch(`${this.backendBaseUrl}/estado-animo-usuario`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        fecha_estado: payload.fecha_estado ?? new Date().toISOString(),
+        motivo: payload.motivo ?? 'Sin motivo específico',
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return await response.json();
   }
 
   public registrarEstadoDeAnimo(
@@ -1363,9 +1485,39 @@ class SerenaApiService {
   }
 
   // --- Formularios (RF-FOR-01) ---
+  public async getFormulariosDesdeApi(): Promise<Formulario[]> {
+    const response = await fetch(`${this.backendBaseUrl}/Formulario`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
   public getFormularios(): Formulario[] {
     const data = localStorage.getItem(STORAGE_KEYS.FORMULARIOS);
     return data ? JSON.parse(data) : FORMULARIOS_SEMILLA;
+  }
+
+  public async crearFormularioEnApi(payload: {
+    nombre_formulario: string;
+    descripcion: string;
+    id_usuario: number;
+    preguntas_count?: number;
+    tiempo_estimado?: string;
+    id_comunidad?: string;
+    respondido?: boolean;
+  }): Promise<Formulario> {
+    const response = await fetch(`${this.backendBaseUrl}/Formulario`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        preguntas_count: payload.preguntas_count ?? 5,
+        tiempo_estimado: payload.tiempo_estimado ?? '3 minutos',
+        id_comunidad: payload.id_comunidad ?? 's/CMTC',
+        respondido: payload.respondido ?? false,
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
   }
 
   public crearFormulario(nombre: string, descripcion: string, id_usuario: number, preguntasCount: number = 5, comunidadId?: string): Formulario {

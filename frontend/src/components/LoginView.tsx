@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import $ from 'jquery';
 
 interface LoginResponseUser {
   id_usuario: number;
@@ -23,14 +22,15 @@ interface LoginViewProps {
 export function LoginView({ onLogin }: LoginViewProps) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [nombre, setNombre] = useState('');
-  const [correo, setCorreo] = useState('demo@serena.local');
-  const [contrasena, setContrasena] = useState('Demo123*');
+  const [correo, setCorreo] = useState('');
+  const [contrasena, setContrasena] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [idRol, setIdRol] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setSuccess('');
@@ -57,47 +57,47 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
     setIsLoading(true);
 
-    $.ajax({
-      url: isRegistering ? '/api/Login/registrar' : '/api/Login',
-      method: 'POST',
-      data: JSON.stringify(
-        isRegistering
-          ? { nombre_usuario: nombre, email: correo, contrasena, id_rol: 1 }
-          : { correo, contrasena },
-      ),
-      contentType: 'application/json; charset=utf-8',
-      dataType: 'json',
-      xhrFields: { withCredentials: false },
-      success: (response) => {
-        if (isRegistering) {
-          setIsRegistering(false);
-          setNombre('');
-          setConfirmarContrasena('');
-          setSuccess('Registro exitoso. Ahora puedes iniciar sesión.');
-          setIsLoading(false);
-          return;
-        }
+    try {
+      const response = await fetch(isRegistering ? '/api/Login/registrar' : '/api/Login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          isRegistering
+            ? { nombre_usuario: nombre, email: correo, contrasena, id_rol: idRol }
+            : { correo, contrasena },
+        ),
+      });
 
-        const usuario = response?.usuario ?? response?.data?.usuario;
-        const token = response?.token ?? response?.data?.token;
+      const payload = await response.json().catch(() => ({}));
 
-        if (!usuario || !token) {
-          setError('La respuesta del servidor no incluye usuario o token.');
-          setIsLoading(false);
-          return;
-        }
+      if (!response.ok) {
+        const message = payload?.mensaje || (isRegistering ? 'No se pudo completar el registro.' : 'No se pudo iniciar sesión.');
+        throw new Error(message);
+      }
 
-        onLogin(usuario, token);
+      if (isRegistering) {
+        setIsRegistering(false);
+        setNombre('');
+        setConfirmarContrasena('');
+        setSuccess('Registro exitoso. Ahora puedes iniciar sesión.');
         setIsLoading(false);
-      },
-      error: (xhr) => {
-        const message = xhr?.responseJSON?.mensaje || (
-          isRegistering ? 'No se pudo completar el registro.' : 'No se pudo iniciar sesión.'
-        );
-        setError(message);
-        setIsLoading(false);
-      },
-    });
+        return;
+      }
+
+      const usuario = payload?.usuario ?? payload?.data?.usuario;
+      const token = payload?.token ?? payload?.data?.token;
+
+      if (!usuario || !token) {
+        throw new Error('La respuesta del servidor no incluye usuario o token.');
+      }
+
+      onLogin(usuario, token);
+      setIsLoading(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Ocurrió un error inesperado.';
+      setError(message);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -120,18 +120,34 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {isRegistering && (
-            <div>
-              <label htmlFor="nombre" className="mb-2 block text-sm font-medium text-slate-700">Nombre completo</label>
-              <input
-                id="nombre"
-                type="text"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                autoComplete="name"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-                placeholder="Tu nombre completo"
-              />
-            </div>
+            <>
+              <div>
+                <label htmlFor="nombre" className="mb-2 block text-sm font-medium text-slate-700">Nombre completo</label>
+                <input
+                  id="nombre"
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  autoComplete="name"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                  placeholder="Tu nombre completo"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="tipoUsuario" className="mb-2 block text-sm font-medium text-slate-700">Tipo de usuario</label>
+                <select
+                  id="tipoUsuario"
+                  value={idRol}
+                  onChange={(e) => setIdRol(Number(e.target.value))}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                >
+                  <option value={1}>Aprendiz</option>
+                  <option value={2}>Psicólogo</option>
+                  <option value={3}>Administrador</option>
+                </select>
+              </div>
+            </>
           )}
 
           <div>
@@ -208,11 +224,12 @@ export function LoginView({ onLogin }: LoginViewProps) {
           {isRegistering ? 'Ya tengo una cuenta' : 'Crear una cuenta'}
         </button>
 
-        {!isRegistering && <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-xs text-slate-600">
-          <p className="font-semibold text-slate-700">Credenciales de prueba:</p>
-          <p className="mt-2">Aprendiz: yacuna@soy.sena.edu.co /xdgr Aa12345*</p>
-          <p>Psicólogo: lmartinez@sena.edu.co / Aa12345*</p>
-        </div>}
+        {!isRegistering && (
+          <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-xs text-slate-600">
+            <p className="font-semibold text-slate-700">Acceso real</p>
+            <p className="mt-2">Usa las credenciales creadas en la base de datos del backend o regístrate con tu tipo de usuario.</p>
+          </div>
+        )}
       </div>
     </div>
   );

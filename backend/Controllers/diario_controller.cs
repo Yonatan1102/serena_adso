@@ -47,6 +47,22 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet("usuario/{id_usuario:int}")]
+        public async Task<IActionResult> ObtenerDiarioPorUsuario(int id_usuario)
+        {
+            try
+            {
+                var response = await diarioRepository.GetdiarioByUsuario(id_usuario);
+                return response == null
+                    ? NotFound(new { mensaje = "El usuario aún no tiene un diario." })
+                    : Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el diario del usuario.", detalle = ex.Message });
+            }
+        }
+
         [HttpPost("crear")]
         public async Task<IActionResult> crear_diario([FromBody] diario diario)
         {
@@ -63,8 +79,9 @@ namespace WebApplication1.Controllers
                     return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
                 }
 
-                var response = await diarioRepository.Postdiario(diario);
-                return CreatedAtAction(nameof(ObtenerDiario), new { id = response.id_diario }, response);
+                // Un aprendiz tiene UN SOLO diario: si ya existe, esta llamada agrega una actualización.
+                var response = await diarioRepository.UpsertDiario(diario);
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -82,8 +99,8 @@ namespace WebApplication1.Controllers
                     return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
                 }
 
-                var response = await diarioRepository.Postdiario(diario);
-                return CreatedAtAction(nameof(ObtenerDiario), new { id = response.id_diario }, response);
+                var response = await diarioRepository.UpsertDiario(diario);
+                return Ok(response);
             }
             catch (Exception ex)
             {

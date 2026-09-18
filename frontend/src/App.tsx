@@ -27,7 +27,7 @@ export default function App() {
     return Boolean(localStorage.getItem('serena_access_token'));
   });
 
-  const usuariosDisponibles = serenaApi.getUsuarios();
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
   const [currentUser, setCurrentUser] = useState<Usuario>(() => {
     const storedUser = localStorage.getItem('serena_current_user');
     if (storedUser) {
@@ -50,12 +50,10 @@ export default function App() {
 
   // Estados reactivos sincronizados con serenaApi
   const [comunidades, setComunidades] = useState<Comunidad[]>(() => serenaApi.getComunidades());
-  const [publicaciones, setPublicaciones] = useState<Publicacion[]>(() => serenaApi.getPublicaciones());
-  const [historialEstados, setHistorialEstados] = useState<EstadoDeAnimo[]>(() =>
-    serenaApi.getHistorialEstados(currentUser.id_usuario)
-  );
-  const [citas, setCitas] = useState<Cita[]>(() => serenaApi.getCitas());
-  const [formularios, setFormularios] = useState<Formulario[]>(() => serenaApi.getFormularios());
+  const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
+  const [historialEstados, setHistorialEstados] = useState<EstadoDeAnimo[]>([]);
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [formularios, setFormularios] = useState<Formulario[]>([]);
 
   // Modales
   const [isEmergenciaOpen, setIsEmergenciaOpen] = useState<boolean>(false);
@@ -70,16 +68,32 @@ export default function App() {
 
   const [aprendizSeleccionado, setAprendizSeleccionado] = useState<Usuario | undefined>(undefined);
 
+  useEffect(() => {
+    const loadUsuarios = async () => {
+      try {
+        const usuarios = await serenaApi.getUsuariosDesdeApi();
+        setUsuariosDisponibles(usuarios);
+      } catch {
+        setUsuariosDisponibles([]);
+      }
+    };
+
+    void loadUsuarios();
+  }, []);
+
   // Actualizar historial al cambiar usuario
   useEffect(() => {
-    setHistorialEstados(serenaApi.getHistorialEstados(currentUser.id_usuario));
-  }, [currentUser]);
+    const loadHistorialEstados = async () => {
+      try {
+        const estados = await serenaApi.getHistorialEstadosDesdeApi(currentUser.id_usuario);
+        setHistorialEstados(estados);
+      } catch {
+        setHistorialEstados([]);
+      }
+    };
 
-  const handleSelectUser = (user: Usuario) => {
-    serenaApi.setCurrentUser(user);
-    setCurrentUser(user);
-    setActiveView('home');
-  };
+    void loadHistorialEstados();
+  }, [currentUser]);
 
   const handleLoginSuccess = (usuario: Usuario, token: string) => {
     localStorage.setItem('serena_access_token', token);
@@ -100,25 +114,44 @@ export default function App() {
     setActiveView('comunidad');
   };
 
-  const handleVote = (id_pub: number, delta: number) => {
-    serenaApi.votarPublicacion(id_pub, delta, currentUser.id_usuario);
-    setPublicaciones([...serenaApi.getPublicaciones()]);
+  const handleVote = async (id_pub: number, delta: number) => {
+    const publicacion = publicaciones.find((p) => p.id_publicaciones === id_pub);
+    if (!publicacion) return;
+    try {
+      await serenaApi.votarPublicacionEnApi(publicacion, delta);
+      await handleRefreshPublicaciones();
+    } catch {
+      // Si falla, se deja el estado actual
+    }
+  };
+
+  const handleRefreshPublicaciones = async () => {
+    try {
+      setPublicaciones(await serenaApi.getPublicacionesDesdeApi(selectedComunidadId));
+    } catch {
+      setPublicaciones([]);
+    }
   };
 
   const handleRefreshCitas = async () => {
     try {
       setCitas(await serenaApi.getCitasDesdeApi());
     } catch {
-      setCitas([...serenaApi.getCitas()]);
+      setCitas([]);
     }
   };
 
   useEffect(() => {
     void handleRefreshCitas();
-  }, []);
+    void handleRefreshPublicaciones();
+  }, [selectedComunidadId]);
 
-  const handleRefreshFormularios = () => {
-    setFormularios([...serenaApi.getFormularios()]);
+  const handleRefreshFormularios = async () => {
+    try {
+      setFormularios(await serenaApi.getFormulariosDesdeApi());
+    } catch {
+      setFormularios([]);
+    }
   };
 
   const handleAbrirExpediente = (aprendiz: Usuario) => {
@@ -154,7 +187,6 @@ export default function App() {
       <Header
         currentUser={currentUser}
         usuariosDisponibles={usuariosDisponibles}
-        onSelectUser={handleSelectUser}
         onLogout={handleLogout}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         isSidebarCollapsed={isSidebarCollapsed}
@@ -229,8 +261,13 @@ export default function App() {
             <EstadoDeAnimoView
               currentUser={currentUser}
               historialEstados={historialEstados}
-              onEstadoRegistrado={() => {
-                setHistorialEstados(serenaApi.getHistorialEstados(currentUser.id_usuario));
+              onEstadoRegistrado={async () => {
+                try {
+                  const estados = await serenaApi.getHistorialEstadosDesdeApi(currentUser.id_usuario);
+                  setHistorialEstados(estados);
+                } catch {
+                  setHistorialEstados([]);
+                }
               }}
             />
           )}
@@ -286,15 +323,22 @@ export default function App() {
                 const nombre = prompt('Ingresa el título del nuevo formulario para el CMTC:');
                 if (nombre) {
                   const desc = prompt('Ingresa una breve descripción:');
-                  serenaApi.crearFormulario(
-                    nombre,
-                    desc || 'Formulario de bienestar formativo',
-                    currentUser.id_usuario,
-                    5,
-                    's/CMTC'
-                  );
-                  handleRefreshFormularios();
-                  alert('¡Formulario publicado para los aprendices del CMTC!');
+                  void (async () => {
+                    try {
+                      await serenaApi.crearFormularioEnApi({
+                        nombre_formulario: nombre,
+                        descripcion: desc || 'Formulario de bienestar formativo',
+                        id_usuario: currentUser.id_usuario,
+                        preguntas_count: 5,
+                        id_comunidad: 's/CMTC',
+                        respondido: false,
+                      });
+                      await handleRefreshFormularios();
+                      alert('¡Formulario publicado para los aprendices del CMTC!');
+                    } catch (error) {
+                      alert(error instanceof Error ? error.message : 'No se pudo crear el formulario.');
+                    }
+                  })();
                 }
               }}
             />
@@ -359,7 +403,7 @@ export default function App() {
         isOpen={isCrearPubOpen}
         onClose={() => setIsCrearPubOpen(false)}
         onPublicacionCreada={() => {
-          setPublicaciones([...serenaApi.getPublicaciones()]);
+          void handleRefreshPublicaciones();
         }}
       />
 

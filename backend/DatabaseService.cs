@@ -18,6 +18,7 @@ namespace WebApplication1
         public DbSet<historial_cita> historial_cita { get; set; }
         public DbSet<historial_clinico> historial_clinico { get; set; }
         public DbSet<estado_de_animo> estado_de_animo { get; set; }
+        public DbSet<estado_animo_usuario> estado_animo_usuario { get; set; }
         public DbSet<diario> diario { get; set; }
         public DbSet<publicaciones> publicaciones { get; set; }
         public DbSet<emergencia> emergencia { get; set; }
@@ -102,8 +103,24 @@ namespace WebApplication1
             modelBuilder.Entity<estado_de_animo>().HasKey(u => u.id_estado);
             modelBuilder.Entity<estado_de_animo>().Property(u => u.id_estado).HasColumnName("id_estado").ValueGeneratedOnAdd();
             modelBuilder.Entity<estado_de_animo>().Property(u => u.nombre_estado).HasColumnName("nombre_estado");
-            modelBuilder.Entity<estado_de_animo>().Property(u => u.fecha_estado).HasColumnName("fecha_estado");
-            modelBuilder.Entity<estado_de_animo>().Property(u => u.id_usuario).HasColumnName("id_usuario");
+
+            modelBuilder.Entity<estado_animo_usuario>().ToTable("estado_animo_usuario");
+            modelBuilder.Entity<estado_animo_usuario>().HasKey(u => u.id_estado_usuario);
+            modelBuilder.Entity<estado_animo_usuario>().Property(u => u.id_estado_usuario).HasColumnName("id_estado_usuario").ValueGeneratedOnAdd();
+            modelBuilder.Entity<estado_animo_usuario>().Property(u => u.id_estado).HasColumnName("id_estado");
+            modelBuilder.Entity<estado_animo_usuario>().Property(u => u.id_usuario).HasColumnName("id_usuario");
+            modelBuilder.Entity<estado_animo_usuario>().Property(u => u.fecha_estado).HasColumnName("fecha_estado");
+            modelBuilder.Entity<estado_animo_usuario>().Property(u => u.motivo).HasColumnName("motivo");
+            modelBuilder.Entity<estado_animo_usuario>()
+                .HasOne(u => u.usuario)
+                .WithMany(u => u.estado_animo_usuarios)
+                .HasForeignKey(u => u.id_usuario)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<estado_animo_usuario>()
+                .HasOne(u => u.estado_de_animo)
+                .WithMany(e => e.estado_animo_usuarios)
+                .HasForeignKey(u => u.id_estado)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<diario>().ToTable("diario");
             modelBuilder.Entity<diario>().HasKey(u => u.id_diario);
@@ -119,6 +136,11 @@ namespace WebApplication1
             modelBuilder.Entity<publicaciones>().Property(u => u.titulo).HasColumnName("titulo");
             modelBuilder.Entity<publicaciones>().Property(u => u.contenido).HasColumnName("contenido");
             modelBuilder.Entity<publicaciones>().Property(u => u.fecha_publicacion).HasColumnName("fecha_publicacion");
+            modelBuilder.Entity<publicaciones>().Property(u => u.id_comunidad).HasColumnName("id_comunidad");
+            modelBuilder.Entity<publicaciones>().Property(u => u.etiqueta).HasColumnName("etiqueta");
+            modelBuilder.Entity<publicaciones>().Property(u => u.votos).HasColumnName("votos");
+            modelBuilder.Entity<publicaciones>().Property(u => u.comentarios_count).HasColumnName("comentarios_count");
+            modelBuilder.Entity<publicaciones>().Property(u => u.imagen_url).HasColumnName("imagen_url");
 
             modelBuilder.Entity<emergencia>().ToTable("emergencia");
             modelBuilder.Entity<emergencia>().HasKey(u => u.id_emergencia);
