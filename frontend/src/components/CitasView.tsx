@@ -46,6 +46,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
   const [franjaSeleccionada, setFranjaSeleccionada] = useState<string>('');
   const [motivo, setMotivo] = useState<string>('');
   const [agendando, setAgendando] = useState<boolean>(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
 
   // Psicólogo seleccionado para ver su disponibilidad
   const psicoActivo = (psicologosDisponibles || []).find((p) => p.id_usuario === psicologoSeleccionadoId) || defaultPsico;
@@ -53,14 +54,15 @@ export const CitasView: React.FC<CitasViewProps> = ({
   const handleAgendarAprendiz = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!psicologoSeleccionadoId) {
-      alert('No hay psicólogos registrados para agendar una cita.');
+      setMensaje('No hay psicólogos registrados para agendar una cita.');
       return;
     }
     if (!fechaSeleccionada || !motivo.trim()) {
-      alert('Por favor selecciona una fecha y redacta el motivo de la consulta.');
+      setMensaje('Por favor selecciona una fecha y redacta el motivo de la consulta.');
       return;
     }
 
+    setMensaje(null);
     setAgendando(true);
     const fechaHoraCompleta = `${fechaSeleccionada}T${franjaSeleccionada || '09:00'}:00.000Z`;
 
@@ -77,10 +79,10 @@ export const CitasView: React.FC<CitasViewProps> = ({
       setFechaSeleccionada('');
       setFranjaSeleccionada('');
       await onRefreshCitas();
-      alert('¡Cita solicitada exitosamente! Tu psicólogo asignado la confirmará en breve.');
+      setMensaje('Cita solicitada exitosamente. Tu psicólogo asignado la confirmará en breve.');
     } catch (error) {
       setAgendando(false);
-      alert(error instanceof Error ? error.message : 'No se pudo guardar la cita.');
+      setMensaje(error instanceof Error ? error.message : 'No se pudo guardar la cita.');
     }
   };
 
@@ -93,12 +95,11 @@ export const CitasView: React.FC<CitasViewProps> = ({
       {/* Cabecera del Módulo de Citas */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87] font-semibold text-xs">
-              Módulo de Citas y Trazabilidad
-            </span>
-            <span className="text-xs text-slate-400">• RF-CIT-01 & RF-CIT-02</span>
-          </div>
+          {mensaje && (
+            <div className="rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-800">
+              {mensaje}
+            </div>
+          )}
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             {isPsicologo ? 'Gestión de Citas y Agenda Psicológica' : 'Agendamiento de Citas de Bienestar'}
           </h2>
@@ -286,7 +287,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
               Historial de Citas y Sesiones Registradas
             </h3>
             <p className="text-xs text-slate-400">
-              Registro auditado de estados: Pendiente, Confirmada, Realizada o Cancelada (RN-04)
+              Estados disponibles: Pendiente, Confirmada, Realizada o Cancelada
             </p>
           </div>
           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg">
@@ -347,20 +348,35 @@ export const CitasView: React.FC<CitasViewProps> = ({
                     </div>
                   </div>
 
-                  {isPsicologo && cita.estado_cita === 'Pendiente' && (
+                  {isPsicologo && (cita.estado_cita === 'Pendiente' || cita.estado_cita === 'Confirmada') && (
                     <div className="flex items-center gap-2 shrink-0">
+                      {cita.estado_cita === 'Pendiente' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await serenaApi.cambiarEstadoCitaEnApi(cita, 'Confirmada');
+                              await onRefreshCitas();
+                            } catch (error) {
+                              setMensaje(error instanceof Error ? error.message : 'No se pudo actualizar la cita.');
+                            }
+                          }}
+                          className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium cursor-pointer"
+                        >
+                          Confirmar
+                        </button>
+                      )}
                       <button
                         onClick={async () => {
                           try {
-                            await serenaApi.cambiarEstadoCitaEnApi(cita, 'Confirmada');
+                            await serenaApi.cambiarEstadoCitaEnApi(cita, 'Cancelada');
                             await onRefreshCitas();
                           } catch (error) {
-                            alert(error instanceof Error ? error.message : 'No se pudo actualizar la cita.');
+                            setMensaje(error instanceof Error ? error.message : 'No se pudo cancelar la cita.');
                           }
                         }}
-                        className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium cursor-pointer"
+                        className="px-3 py-1 border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-medium cursor-pointer"
                       >
-                        Confirmar
+                        Cancelar
                       </button>
                     </div>
                   )}

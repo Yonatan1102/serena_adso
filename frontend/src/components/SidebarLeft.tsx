@@ -126,7 +126,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
     <motion.aside
       initial={false}
       animate={{
-        width: isCollapsed ? 68 : 256,
+        width: isCollapsed ? 48 : 224,
       }}
       transition={{
         duration: 0.2,

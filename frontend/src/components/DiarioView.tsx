@@ -99,12 +99,6 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
       {/* Cabecera del Diario */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87] font-semibold text-xs">
-              Módulo de Diario Personal & Terapia
-            </span>
-            <span className="text-xs text-slate-400">• RF-DIA-01 & RN-02</span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             {isPsicologo
               ? `Diario de: ${aprendizSeleccionado?.nombre_usuario || 'Aprendiz'}`
@@ -127,14 +121,13 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
         )}
       </div>
 
-      {/* REGLA RN-02: Aviso de Cifrado y Propiedad */}
       <div className="bg-transparent rounded-2xl p-3.5 sm:p-4 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex items-center justify-between gap-4 text-xs text-slate-700">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-[#7E22CE]/10 text-[#7E22CE] flex items-center justify-center shrink-0">
             <Lock className="w-4 h-4" />
           </div>
           <div>
-            <p className="font-semibold text-slate-900">Privacidad y Custodia Criptográfica (RN-02)</p>
+            <p className="font-semibold text-slate-900">Privacidad y custodia</p>
             <p className="text-slate-500 text-[11px]">
               {isPsicologo
                 ? 'Si el diario no está compartido, ningún profesional puede acceder a él.'
@@ -179,7 +172,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
               />
             </div>
 
-            {/* Toggle de Permiso para Compartir con el Psicólogo (RF-DIA-02) */}
+            {/* Toggle de permiso para compartir con el psicólogo */}
             <div className="p-3 rounded-xl border border-slate-100 bg-white/60 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2.5">
                 {compartirSp ? (

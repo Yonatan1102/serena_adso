@@ -21,7 +21,7 @@ public class estado_animo_usuario_controller : ControllerBase
         try
         {
             var response = await _repository.Getestado_animo_usuario();
-            return Ok(response);
+            return Ok(response.Select(ToResponse));
         }
         catch (Exception ex)
         {
@@ -35,7 +35,7 @@ public class estado_animo_usuario_controller : ControllerBase
         try
         {
             var response = await _repository.Getestado_animo_usuarioPorUsuario(idUsuario);
-            return Ok(response);
+            return Ok(response.Select(ToResponse));
         }
         catch (Exception ex)
         {
@@ -49,7 +49,7 @@ public class estado_animo_usuario_controller : ControllerBase
         try
         {
             var response = await _repository.Getestado_animo_usuarioById(id);
-            return response == null ? NotFound() : Ok(response);
+            return response == null ? NotFound() : Ok(ToResponse(response));
         }
         catch (Exception ex)
         {
@@ -75,7 +75,7 @@ public class estado_animo_usuario_controller : ControllerBase
                 return BadRequest(new { mensaje = "El motivo del registro es obligatorio." });
 
             var response = await _repository.Postestado_animo_usuario(value);
-            return Ok(response);
+            return Ok(ToResponse(response));
         }
         catch (Exception ex)
         {
@@ -95,7 +95,7 @@ public class estado_animo_usuario_controller : ControllerBase
                 return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
 
             var response = await _repository.Putestado_animo_usuario(value);
-            return response == null ? NotFound() : Ok(response);
+            return response == null ? NotFound() : Ok(ToResponse(response));
         }
         catch (Exception ex)
         {
@@ -116,4 +116,23 @@ public class estado_animo_usuario_controller : ControllerBase
             return StatusCode(500, new { mensaje = "No se pudo eliminar el registro de estado de ánimo.", detalle = ex.Message });
         }
     }
+
+    private static EstadoAnimoUsuarioResponse ToResponse(estado_animo_usuario value) =>
+        new(
+            value.id_estado_usuario,
+            value.id_estado,
+            value.id_usuario,
+            value.fecha_estado,
+            value.motivo,
+            value.estado_de_animo?.nombre_estado
+        );
 }
+
+public sealed record EstadoAnimoUsuarioResponse(
+    int id_estado_usuario,
+    int id_estado,
+    int id_usuario,
+    DateTime fecha_estado,
+    string motivo,
+    string? nombre_estado
+);

@@ -62,7 +62,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="font-bold text-slate-900 text-base">Acceso Restringido (RN-01)</h2>
+          <h2 className="font-bold text-slate-900 text-base">Acceso restringido</h2>
           <p className="text-xs text-slate-500 leading-relaxed">
             Solo profesionales de psicología y bienestar autorizados por el SENA tienen permiso para consultar expedientes clínicos e historiales de aprendices.
           </p>
@@ -196,7 +196,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
   const handleGuardarSoporte = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoSoporte.nombre_documento.trim() || !nuevoSoporte.entidad.trim()) {
-      alert('Por favor indica el nombre del documento y la entidad emisora.');
+      setAlertaExito('Por favor indica el nombre del documento y la entidad emisora.');
       return;
     }
 
@@ -1046,7 +1046,6 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                             Total votos: {pub.votos}
                           </span>
                           <span>•</span>
-                          <span>{pub.comentarios || pub.comentarios_count || 0} comentarios</span>
                         </div>
                       </div>
                     </div>
@@ -1088,7 +1087,6 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                           Total votos: {pub.votos}
                         </span>
                         <span>•</span>
-                        <span>{pub.comentarios || pub.comentarios_count || 0} comentarios</span>
                       </div>
                     </div>
                   </div>

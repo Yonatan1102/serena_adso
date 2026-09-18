@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import {
   ArrowBigUp,
   ArrowBigDown,
-  MessageSquare,
   Share2,
   Bookmark,
-  Sparkles,
   ShieldAlert,
   Calendar,
   Play,
@@ -254,7 +252,7 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
           ) : (
             listaOrdenada.map((pub) => {
               const userVote = userVotes[pub.id_publicaciones] || 0;
-              const votosTotales = (pub.votos || 0) + userVote;
+              const votosTotales = pub.votos || 0;
               const isSaved = savedPosts.includes(pub.id_publicaciones);
 
               return (
@@ -294,9 +292,6 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
                         {pub.autor?.nombre_usuario || 'Dra. Laura Morales'}
                       </span>
 
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87]">
-                        SENA CMTC
-                      </span>
                     </div>
                   </div>
 
@@ -311,10 +306,10 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
                   </p>
 
                   {/* Imagen adjunta si existe */}
-                  {pub.url_imagen && (
+                  {pub.imagen_url && (
                     <div className="rounded-xl overflow-hidden max-h-80 w-full bg-slate-100 mt-1">
                       <img
-                        src={pub.url_imagen}
+                        src={pub.imagen_url}
                         alt={pub.titulo}
                         className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-300"
                         onError={(e) => {
@@ -356,15 +351,6 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
                         <ArrowBigDown className={`w-4 h-4 ${userVote === -1 ? 'fill-current' : ''}`} />
                       </button>
                     </div>
-
-                    {/* Comentarios */}
-                    <button
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors cursor-pointer"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{pub.comentarios || 18}</span>
-                    </button>
 
                     {/* Compartir */}
                     <button
@@ -409,19 +395,13 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
         {/* Tarjeta 1: Bienestar al Aprendiz SENA */}
         <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#7E22CE]/10 text-[#7E22CE] flex items-center justify-center font-bold shrink-0">
-              <Sparkles className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-xl bg-[#7E22CE]/10 flex items-center justify-center shrink-0 overflow-hidden">
+              <img src="/IMG/logo.png" alt="" className="w-7 h-7 object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-bold text-sm text-slate-900">SERENA</h3>
-                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-[#7E22CE]/10 text-[#581C87]">
-                  CMTC
-                </span>
               </div>
-              <p className="text-[10px] text-slate-500 leading-tight">
-                Tu compañera Digital para el bienestar emocional
-              </p>
             </div>
           </div>
 
@@ -520,21 +500,20 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
           </div>
         </div>
 
-        {/* Tarjeta 3: Agenda & Tamizajes Formativos */}
+        {/* Tarjeta 3: agenda y encuestas formativas */}
         <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col gap-2.5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h4 className="font-bold text-xs text-slate-900">
-              {idioma === 'es' ? 'Agenda & Tamizajes' : 'Agenda & Screenings'}
+              {idioma === 'es' ? 'Agenda y encuestas' : 'Agenda & Surveys'}
             </h4>
             <span className="text-[10px] text-slate-500 font-normal">
-              SENA CMTC
             </span>
           </div>
 
           {/* Barra de progreso cuantitativa minimalista */}
           <div className="flex flex-col gap-1 py-1">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-600 font-medium">Tamizajes Formativos</span>
+              <span className="text-slate-600 font-medium">Encuestas formativas</span>
               <span className="font-bold text-[#581C87]">2 / 3 completados (67%)</span>
             </div>
             <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">

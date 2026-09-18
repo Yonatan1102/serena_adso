@@ -338,7 +338,7 @@ const DIARIOS_SEMILLA: Diario[] = [
     contenido:
       'Hoy logramos terminar la arquitectura del microservicio. Al principio me sentí abrumado por las fechas de entrega, pero dividir las tareas con mi compañero me devolvió la calma. Me siento enfocado.',
     fecha_apertura: new Date(Date.now() - 86400000 * 1).toISOString(),
-    compartir_sp: 1, // Compartido con Dra. Laura
+    compartir_sp: true, // Compartido con Dra. Laura
   },
   {
     id_diario: 2,
@@ -347,7 +347,7 @@ const DIARIOS_SEMILLA: Diario[] = [
     contenido:
       'Nota privada: Recordar no tomar café después de las 6:00 PM. Anoche me costó dormir por estar revisando código hasta tarde.',
     fecha_apertura: new Date(Date.now() - 86400000 * 3).toISOString(),
-    compartir_sp: 0, // PRIVADO - No visible para psicólogo
+    compartir_sp: false, // PRIVADO - No visible para psicólogo
   },
 ];
 
@@ -891,12 +891,13 @@ class SerenaApiService {
       autor: this.getUsuarioById(p.id_usuario),
     }));
 
-    if (comunidadId) {
-      // Las publicaciones sin comunidad asignada se muestran en el feed principal
-      return publicaciones.filter((p) => !p.id_comunidad || p.id_comunidad === comunidadId);
-    }
+    const filtradas = comunidadId
+      ? publicaciones.filter((p) => !p.id_comunidad || p.id_comunidad === comunidadId)
+      : publicaciones;
 
-    return publicaciones.sort((a, b) => new Date(b.fecha_publicacion).getTime() - new Date(a.fecha_publicacion).getTime());
+    return filtradas.sort(
+      (a, b) => new Date(b.fecha_publicacion).getTime() - new Date(a.fecha_publicacion).getTime()
+    );
   }
 
   public getPublicaciones(comunidadId?: string): Publicacion[] {
@@ -923,8 +924,9 @@ class SerenaApiService {
     titulo: string;
     contenido: string;
     id_usuario: number;
-    id_comunadad?: string;
+    id_comunidad?: string;
     etiqueta?: string;
+    imagen_url?: string;
     fecha_publicacion?: string;
   }): Promise<Publicacion> {
     const response = await fetch(`${this.backendBaseUrl}/publicaciones/crear`, {
@@ -932,9 +934,9 @@ class SerenaApiService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...payload,
-        id_comunidad: payload.id_comunadad || 's/CMTC',
+        id_comunidad: payload.id_comunidad || 's/CMTC',
         fecha_publicacion: payload.fecha_publicacion ?? new Date().toISOString(),
-        votos: 1,
+        votos: 0,
         comentarios_count: 0,
       }),
     });
@@ -961,7 +963,7 @@ class SerenaApiService {
       fecha_publicacion: new Date().toISOString(),
       id_usuario,
       id_comunidad,
-      votos: 1,
+      votos: 0,
       comentarios_count: 0,
       etiqueta: etiqueta || 'Bienestar',
     };

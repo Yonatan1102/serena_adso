@@ -43,6 +43,7 @@ export default function App() {
   // Configuración de interfaz
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [idioma, setIdioma] = useState<'es' | 'en'>('es');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('serena_theme') === 'dark');
 
   // Navegación
   const [activeView, setActiveView] = useState<string>('home');
@@ -172,9 +173,21 @@ export default function App() {
     setIdioma((prev) => (prev === 'es' ? 'en' : 'es'));
   };
 
+  const handleToggleTheme = () => {
+    setIsDarkMode((previous) => {
+      const next = !previous;
+      localStorage.setItem('serena_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
+
   // Psicólogos y aprendices
-  const psicologosDisponibles = usuariosDisponibles.filter((u) => u.id_rol === 2);
-  const aprendicesDisponibles = usuariosDisponibles.filter((u) => u.id_rol === 1);
+  const psicologosDisponibles = usuariosDisponibles.filter(
+    (u) => u.id_rol === 2 && (!currentUser.num_ficha || !u.num_ficha || u.num_ficha === currentUser.num_ficha)
+  );
+  const aprendicesDisponibles = usuariosDisponibles.filter(
+    (u) => u.id_rol === 1 && (!currentUser.num_ficha || !u.num_ficha || u.num_ficha === currentUser.num_ficha)
+  );
   const currentComunidad = comunidades.find((c) => c.id === selectedComunidadId) || comunidades[0];
 
   if (!isAuthenticated) {
@@ -182,7 +195,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#FAF9FF] text-slate-900 flex flex-col font-sans antialiased selection:bg-violet-100 selection:text-violet-900">
+    <div className={isDarkMode ? 'dark h-screen overflow-hidden flex flex-col font-sans antialiased selection:bg-violet-900 selection:text-violet-100' : 'h-screen overflow-hidden bg-[#FAF9FF] text-slate-900 flex flex-col font-sans antialiased selection:bg-violet-100 selection:text-violet-900'}>
       {/* Header Superior Estilo Reddit */}
       <Header
         currentUser={currentUser}
@@ -194,6 +207,9 @@ export default function App() {
         onOpenCreatePublicacion={() => setIsCrearPubOpen(true)}
         onOpenBackendGuide={() => setIsBackendGuideOpen(true)}
         onOpenEmergencia={() => setIsEmergenciaOpen(true)}
+        onGoHome={() => setActiveView('home')}
+        isDarkMode={isDarkMode}
+        onToggleTheme={handleToggleTheme}
         idioma={idioma}
         onToggleIdioma={handleToggleIdioma}
       />
@@ -334,9 +350,8 @@ export default function App() {
                         respondido: false,
                       });
                       await handleRefreshFormularios();
-                      alert('¡Formulario publicado para los aprendices del CMTC!');
                     } catch (error) {
-                      alert(error instanceof Error ? error.message : 'No se pudo crear el formulario.');
+                      console.error(error);
                     }
                   })();
                 }
@@ -349,7 +364,7 @@ export default function App() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="font-black text-lg text-slate-900">
-                    Reportes y Trazabilidad Institucional
+                    Reportes institucionales
                   </h2>
                   <p className="text-xs text-slate-500">
                     Centro CMTC • Ficha ADSO 3288046 • Bienestar al Aprendiz
@@ -370,7 +385,7 @@ export default function App() {
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-2xl font-black text-[#B95FE0]">{formularios.length}</p>
-                  <p className="text-xs font-bold text-slate-500 uppercase mt-1">Formularios / Tamizajes</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase mt-1">Formularios y encuestas</p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-2xl font-black text-slate-800">{publicaciones.length}</p>
@@ -402,8 +417,13 @@ export default function App() {
         defaultComunidadId={selectedComunidadId}
         isOpen={isCrearPubOpen}
         onClose={() => setIsCrearPubOpen(false)}
-        onPublicacionCreada={() => {
-          void handleRefreshPublicaciones();
+        onPublicacionCreada={async (publicacion) => {
+          const publicacionConAutor = {
+            ...publicacion,
+            autor: usuariosDisponibles.find((usuario) => usuario.id_usuario === publicacion.id_usuario),
+          };
+          setPublicaciones((actuales) => [publicacionConAutor, ...actuales]);
+          await handleRefreshPublicaciones();
         }}
       />
 

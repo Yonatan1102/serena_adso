@@ -44,6 +44,8 @@ public class estado_animo_usuario_repositories : Iestado_animo_usuario
         if (usuarioExiste == null)
             throw new InvalidOperationException("El usuario indicado no existe.");
 
+        value.estado_de_animo = estadoExiste;
+        value.usuario = usuarioExiste;
         context.estado_animo_usuario.Add(value);
         await context.SaveChangesAsync();
         return value;
@@ -58,6 +60,8 @@ public class estado_animo_usuario_repositories : Iestado_animo_usuario
         item.id_usuario = value.id_usuario;
         item.fecha_estado = value.fecha_estado;
         item.motivo = value.motivo;
+        item.estado_de_animo = await context.estado_de_animo.FindAsync(value.id_estado)
+            ?? throw new InvalidOperationException("El estado de ánimo indicado no existe.");
 
         await context.SaveChangesAsync();
         return item;

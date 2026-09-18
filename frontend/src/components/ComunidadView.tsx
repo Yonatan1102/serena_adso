@@ -11,7 +11,6 @@ import {
   Sparkles,
   ArrowBigUp,
   ArrowBigDown,
-  MessageSquare,
   Share2,
   X,
   ExternalLink,
@@ -59,9 +58,6 @@ export const ComunidadView: React.FC<ComunidadViewProps> = ({
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="px-2.5 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87] font-semibold text-xs uppercase tracking-wider">
               {comunidad.id}
-            </span>
-            <span className="text-xs text-slate-500">
-              Centro: <strong className="text-slate-800 font-semibold">{comunidad.centro}</strong>
             </span>
             {comunidad.es_oficial && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EBF7E6] text-[#2E8500]">
@@ -270,10 +266,6 @@ export const ComunidadView: React.FC<ComunidadViewProps> = ({
                     </button>
                   </div>
 
-                  <span className="flex items-center gap-1 text-[11px]">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>{pub.comentarios_count || 0} comentarios</span>
-                  </span>
                 </div>
               </div>
             </article>

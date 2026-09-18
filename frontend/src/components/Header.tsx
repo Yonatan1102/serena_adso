@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Bell,
   Globe,
+  Moon,
   Settings,
   Plus,
   User as UserIcon,
@@ -30,6 +31,9 @@ interface HeaderProps {
   idioma: 'es' | 'en';
   onToggleIdioma: () => void;
   onSearchChange?: (term: string) => void;
+  onGoHome: () => void;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -46,6 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
   idioma,
   onToggleIdioma,
   onSearchChange,
+  onGoHome,
+  isDarkMode,
+  onToggleTheme,
 }) => {
   const isPsicologo = currentUser.id_rol === 2;
   const [logoError, setLogoError] = useState(false);
@@ -106,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#FAF9FF]/90 backdrop-blur-md border-b border-violet-100/80 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
       {/* LADO IZQUIERDO: Logo destacado + Nombre SERENA + Slogan */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <button type="button" onClick={onGoHome} className="flex items-center gap-2 sm:gap-3 shrink-0 text-left cursor-pointer" title="Ir al inicio">
         {/* Logo de SERENA: Mucho más visible y claro */}
         <div className="flex items-center gap-2.5">
           <div className="h-9 sm:h-10 w-auto flex items-center justify-center shrink-0">
@@ -129,17 +136,10 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="font-extrabold text-lg tracking-tight text-slate-900">
                 SERENA
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-300/60">
-                CMTC • SENA
-              </span>
             </div>
-            {/* Slogan solicitado: "Tu compañera Digital para el bienestar emocional" */}
-            <span className="hidden xl:inline text-[10px] text-slate-500 font-medium tracking-tight mt-0.5">
-              Tu compañera Digital para el bienestar emocional
-            </span>
           </div>
         </div>
-      </div>
+      </button>
 
       {/* LADO DERECHO: Botón de Emergencia LLAMATIVO SIN PARPADEAR + Acciones */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
@@ -159,6 +159,15 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
         )}
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          aria-label={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+        >
+          {isDarkMode ? <span className="text-sm">☀</span> : <Moon className="w-4 h-4" />}
+        </button>
         {/* 5. Engranaje (Configuración) */}
         <div className="relative">
           <button

@@ -19,6 +19,7 @@ export const CrearSubComunidadModal: React.FC<CrearSubComunidadModalProps> = ({
   const [subNombre, setSubNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [creando, setCreando] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -30,6 +31,7 @@ export const CrearSubComunidadModal: React.FC<CrearSubComunidadModalProps> = ({
     if (!subNombre.trim() || !descripcion.trim()) return;
 
     setCreando(true);
+    setMensaje(null);
     const nueva = serenaApi.crearSubComunidad(subNombre, descripcion, currentUser);
 
     setTimeout(() => {
@@ -38,7 +40,7 @@ export const CrearSubComunidadModal: React.FC<CrearSubComunidadModalProps> = ({
       setDescripcion('');
       onComunidadCreada(nueva.id);
       onClose();
-      alert(`¡Comunidad "${nueva.id}" creada con éxito por ${currentUser.nombre_usuario}!`);
+      setMensaje(`Comunidad "${nueva.id}" creada con éxito.`);
     }, 300);
   };
 
@@ -71,6 +73,7 @@ export const CrearSubComunidadModal: React.FC<CrearSubComunidadModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {mensaje && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{mensaje}</p>}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
               Nombre de la Subcomunidad (Tema / Ficha / Área):

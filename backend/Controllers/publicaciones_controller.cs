@@ -21,7 +21,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var responsive = await _publicacionesrepositories.Getpublicaciones();
-                return Ok(responsive);
+                return Ok(responsive.Select(ToResponse));
             }
             catch (Exception ex)
             {
@@ -47,7 +47,7 @@ namespace WebApplication1.Controllers
                     return NotFound(new { mensaje = $"No se encontró la publicación con el ID {id}." });
                 }
 
-                return Ok(responsive);
+                return Ok(ToResponse(responsive));
             }
             catch (Exception ex)
             {
@@ -76,7 +76,7 @@ namespace WebApplication1.Controllers
                 }
 
                 var response = await _publicacionesrepositories.Postpublicaciones(publicaciones);
-                return CreatedAtAction(nameof(Publicaciones), new { id = response.id_publicaciones }, response);
+                return CreatedAtAction(nameof(Publicaciones), new { id = response.id_publicaciones }, ToResponse(response));
             }
             catch (Exception ex)
             {
@@ -100,7 +100,7 @@ namespace WebApplication1.Controllers
                 }
 
                 var response = await _publicacionesrepositories.Postpublicaciones(publicaciones);
-                return Ok(response);
+                return Ok(ToResponse(response));
             }
             catch (Exception ex)
             {
@@ -125,7 +125,7 @@ namespace WebApplication1.Controllers
                     return NotFound(new { mensaje = "No se pudo actualizar porque la publicación no existe." });
                 }
 
-                return Ok(response);
+                return Ok(ToResponse(response));
             }
             catch (Exception ex)
             {
@@ -142,6 +142,32 @@ namespace WebApplication1.Controllers
         {
             return await _publicacionesrepositories.Deletepublicaciones(id) ? NoContent() : NotFound();
         }
-    }
-}
 
+        private static PublicacionResponse ToResponse(publicaciones value) =>
+            new(
+                value.id_publicaciones,
+                value.titulo,
+                value.contenido,
+                value.fecha_publicacion,
+                value.id_usuario,
+                value.id_comunidad,
+                value.etiqueta,
+                value.votos,
+                value.comentarios_count,
+                value.imagen_url is { Length: <= 2_800_000 } ? value.imagen_url : null
+            );
+    }
+
+    public sealed record PublicacionResponse(
+        int id_publicaciones,
+        string titulo,
+        string? contenido,
+        DateTime fecha_publicacion,
+        int id_usuario,
+        string? id_comunidad,
+        string? etiqueta,
+        int votos,
+        int comentarios_count,
+        string? imagen_url
+    );
+}

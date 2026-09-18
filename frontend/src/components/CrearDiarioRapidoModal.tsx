@@ -21,6 +21,7 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
   const [contenido, setContenido] = useState('');
   const [compartirSp, setCompartirSp] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -29,6 +30,7 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
     if (!contenido.trim()) return;
 
     setGuardando(true);
+    setError(null);
     try {
       await serenaApi.actualizarDiarioEnApi({
         id_usuario: currentUser.id_usuario,
@@ -42,7 +44,7 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
       onClose();
     } catch (error) {
       setGuardando(false);
-      alert(error instanceof Error ? error.message : 'No se pudo guardar la actualización.');
+      setError(error instanceof Error ? error.message : 'No se pudo guardar la actualización.');
     }
   };
 
@@ -108,12 +110,13 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
               </span>
               <span className="text-slate-500">
                 {idioma === 'es'
-                  ? 'Si lo desmarcas, solo tú podrás leer tu diario. Cumple con la regla RN-02 de privacidad.'
-                  : 'If unchecked, only you can read your journal. Enforces RN-02 privacy rule.'}
+                  ? 'Si lo desmarcas, solo tú podrás leer tu diario.'
+                  : 'If unchecked, only you can read your journal.'}
               </span>
             </label>
           </div>
 
+          {error && <p className="text-xs text-rose-600">{error}</p>}
           {/* Footer botones */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button

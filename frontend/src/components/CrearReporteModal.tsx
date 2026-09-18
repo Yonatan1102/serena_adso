@@ -18,20 +18,17 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
   const [tipoReporte, setTipoReporte] = useState('citas');
   const [rangoFechas, setRangoFechas] = useState('mes');
   const [generado, setGenerado] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGenerar = (e: React.FormEvent) => {
     e.preventDefault();
     setGenerado(true);
+    setMensaje(null);
     setTimeout(() => {
-      alert(
-        idioma === 'es'
-          ? `Reporte de ${tipoReporte} exportado exitosamente conforme a los lineamientos del SENA CMTC.`
-          : `Report of ${tipoReporte} successfully generated and exported.`
-      );
+      setMensaje(idioma === 'es' ? `Reporte de ${tipoReporte} exportado exitosamente.` : `Report of ${tipoReporte} successfully generated and exported.`);
       setGenerado(false);
-      onClose();
     }, 600);
   };
 
@@ -48,7 +45,7 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
                 {idioma === 'es' ? 'Crear Reporte Institucional' : 'Create Institutional Report'}
               </h3>
               <p className="text-[11px] text-slate-500">
-                {idioma === 'es' ? 'Trazabilidad y métricas de Bienestar al Aprendiz' : 'Traceability & Wellness Metrics'}
+                {idioma === 'es' ? 'Métricas de Bienestar al Aprendiz' : 'Wellness Metrics'}
               </p>
             </div>
           </div>
@@ -61,6 +58,7 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
         </div>
 
         <form onSubmit={handleGenerar} className="p-6 flex flex-col gap-4">
+          {mensaje && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{mensaje}</p>}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
               {idioma === 'es' ? 'Tipo de Reporte a Generar:' : 'Report Type:'}
@@ -74,7 +72,7 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
                 {idioma === 'es' ? 'Citas y Atenciones Psicológicas (Historial Inmutable)' : 'Appointments & Counseling (Immutable Logs)'}
               </option>
               <option value="tamizajes">
-                {idioma === 'es' ? 'Resultados de Tamizajes y Encuestas' : 'Screening Surveys & Form Results'}
+                {idioma === 'es' ? 'Resultados de encuestas' : 'Survey Results'}
               </option>
               <option value="animo">
                 {idioma === 'es' ? 'Evolución de Estados de Ánimo del Centro CMTC' : 'Mood Evolution Trends for CMTC'}

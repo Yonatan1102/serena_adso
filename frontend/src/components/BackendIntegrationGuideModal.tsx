@@ -215,7 +215,7 @@ CREATE TABLE estado_de_animo (
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Reglas de Negocio (RN)</span>
+            <span>Reglas de negocio</span>
           </button>
         </div>
 
@@ -272,19 +272,19 @@ CREATE TABLE estado_de_animo (
           {tab === 'arquitectura' && (
             <div className="flex flex-col gap-3 text-xs text-slate-600">
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
-                <h4 className="font-bold text-emerald-900 mb-1">RN-01: Confidencialidad de Historia Clínica</h4>
+                <h4 className="font-bold text-emerald-900 mb-1">Confidencialidad de historia clínica</h4>
                 <p>Solo un usuario con id_rol = 2 (Psicólogo) o id_rol = 3 (Admin) puede consultar y editar historias clínicas.</p>
               </div>
               <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200">
-                <h4 className="font-bold text-indigo-900 mb-1">RN-02: Propiedad y Cifrado de Diario</h4>
+                <h4 className="font-bold text-indigo-900 mb-1">Propiedad y cifrado del diario</h4>
                 <p>El aprendiz es dueño absoluto de sus escritos. Si compartir_sp = 0, nadie más tiene acceso a sus datos.</p>
               </div>
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200">
-                <h4 className="font-bold text-blue-900 mb-1">RN-04: Trazabilidad Inmutable de Citas</h4>
+                <h4 className="font-bold text-blue-900 mb-1">Historial de citas</h4>
                 <p>Cada transición de estado genera un registro en historial_cita con timestamp y responsable.</p>
               </div>
               <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200">
-                <h4 className="font-bold text-rose-900 mb-1">RN-05: Bitácora de Emergencias</h4>
+                <h4 className="font-bold text-rose-900 mb-1">Registro de emergencias</h4>
                 <p>Toda activación del botón de emergencia se audita permanentemente para seguimiento de bienestar.</p>
               </div>
             </div>

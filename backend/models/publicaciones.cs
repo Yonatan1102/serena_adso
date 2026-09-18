@@ -38,8 +38,7 @@ namespace WebApplication1.models
         [Column("comentarios_count")]
         public int comentarios_count { get; set; }
 
-        [Column("imagen_url")]
-        [StringLength(500)]
+        [Column("imagen_url", TypeName = "nvarchar(max)")]
         public string? imagen_url { get; set; }
     }
 }

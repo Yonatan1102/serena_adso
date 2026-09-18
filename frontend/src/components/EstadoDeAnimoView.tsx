@@ -32,7 +32,7 @@ interface EstadoDeAnimoViewProps {
 }
 
 interface AvatarMoodOption {
-  id: 'Feliz' | 'Tranquilo' | 'Ansioso' | 'Triste' | 'Motivado';
+  id: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
   nombre: string;
   subtitulo: string;
   colorGrad: string;
@@ -164,13 +164,13 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
     } catch (error) {
       setMensajeExito(null);
       console.error('Error guardando estado de ánimo:', error);
-      alert(error instanceof Error ? error.message : 'No se pudo guardar el estado de ánimo.');
+      setMensajeExito(error instanceof Error ? error.message : 'No se pudo guardar el estado de ánimo.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Datos para la gráfica de evolución (RF-EA-02)
+  // Datos para la gráfica de evolución
   const chartData = (historialEstados || []).map((h) => {
     const fecha = new Date(h.fecha_estado);
     const moodRef = CMTC_MOODS.find((m) => m.id === h.nombre_estado);
@@ -187,15 +187,6 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
       {/* Cabecera Principal */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87] font-semibold text-xs">
-              Módulo de Acompañamiento Emocional
-            </span>
-            {/* Credenciales del Centro: No modificables, provienen de la cuenta */}
-            <span className="text-xs text-slate-500 font-normal">
-              Centro asignado: <strong className="text-slate-800 font-semibold">{centroUsuario} - SENA</strong>
-            </span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Registro de Estado de Ánimo 
           </h2>
@@ -351,7 +342,7 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
         </div>
       </div>
 
-      {/* Formulario para Guardar Registro Diario (RF-EA-01) */}
+      {/* Formulario para guardar el registro diario */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col gap-4">
         <div>
           <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-0.5 flex items-center gap-2">
@@ -431,7 +422,7 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
         </form>
       </div>
 
-      {/* CONSULTA DE EVOLUCIÓN EMOCIONAL (GRÁFICA RECHARTS - RF-EA-02) */}
+      {/* Consulta de evolución emocional */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div>
@@ -442,7 +433,7 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
               </h3>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Gráfica histórica alimentada por tus registros diarios de estado de ánimo (RF-EA-02)
+              Gráfica histórica alimentada por tus registros diarios de estado de ánimo
             </p>
           </div>
 

@@ -66,14 +66,8 @@ export const FormulariosView: React.FC<FormulariosViewProps> = ({
       {/* Header */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87] font-semibold text-xs">
-              Módulo de Formularios y Tamizajes
-            </span>
-            <span className="text-xs text-slate-400">• RF-FOR-01</span>
-          </div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {isPsicologo ? 'Gestión y Creación de Formularios' : 'Encuestas y Tamizajes de Bienestar'}
+            {isPsicologo ? 'Gestión y creación de formularios' : 'Encuestas de bienestar'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
             {isPsicologo

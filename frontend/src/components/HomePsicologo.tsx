@@ -12,7 +12,6 @@ import {
   Sparkles,
   ArrowBigUp,
   ArrowBigDown,
-  MessageSquare,
   Share2,
   Bookmark,
   MoreHorizontal,
@@ -75,9 +74,16 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
   const countCanceladas = citas.filter((c) => c.estado_cita === 'Cancelada').length;
   const totalCitas = citas.length || 1;
 
-  const handleCambiarEstado = (idCita: number, nuevoEstado: 'Confirmada' | 'Cancelada' | 'Realizada') => {
-    serenaApi.actualizarEstadoCita(idCita, nuevoEstado, 'Actualización de estado desde panel clínico del psicólogo.');
-    onRefreshCitas();
+  const handleCambiarEstado = async (
+    cita: Cita,
+    nuevoEstado: 'Confirmada' | 'Cancelada' | 'Realizada'
+  ) => {
+    try {
+      await serenaApi.cambiarEstadoCitaEnApi(cita, nuevoEstado);
+      await onRefreshCitas();
+    } catch (error) {
+      console.error('Error actualizando el estado de la cita:', error);
+    }
   };
 
   const handleEnviarSolicitud = (e: React.FormEvent) => {
@@ -114,7 +120,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
   };
 
   const totalUpvotes = misPublicaciones.reduce((acc, p) => acc + (p.votos || 0), 0);
-  const totalComentarios = misPublicaciones.reduce((acc, p) => acc + (p.comentarios || 0), 0);
 
   return (
     <div className="flex-1 flex flex-col gap-6 max-w-6xl mx-auto w-full">
@@ -294,7 +299,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                     <div className="flex items-center gap-1.5 shrink-0">
                       {cita.estado_cita === 'Pendiente' && (
                         <button
-                          onClick={() => handleCambiarEstado(cita.id_cita, 'Confirmada')}
+                          onClick={() => void handleCambiarEstado(cita, 'Confirmada')}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#2E8500] hover:bg-[#39A900]/10 transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -304,7 +309,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
                       {cita.estado_cita === 'Confirmada' && (
                         <button
-                          onClick={() => handleCambiarEstado(cita.id_cita, 'Realizada')}
+                          onClick={() => void handleCambiarEstado(cita, 'Realizada')}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#581C87] hover:bg-[#7E22CE]/10 transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -314,7 +319,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
                       {cita.estado_cita !== 'Cancelada' && cita.estado_cita !== 'Realizada' && (
                         <button
-                          onClick={() => handleCambiarEstado(cita.id_cita, 'Cancelada')}
+                          onClick={() => void handleCambiarEstado(cita, 'Cancelada')}
                           className="px-2 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                         >
                           <XCircle className="w-3.5 h-3.5" />
@@ -473,7 +478,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
             ) : (
               misPublicaciones.map((pub) => {
                 const userVote = userVotes[pub.id_publicaciones] || 0;
-                const votosTotales = (pub.votos || 0) + userVote;
+                const votosTotales = pub.votos || 0;
                 const isSaved = savedPosts.includes(pub.id_publicaciones);
 
                 return (
@@ -549,11 +554,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                         </button>
                       </div>
 
-                      <button className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors cursor-pointer">
-                        <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{pub.comentarios || pub.comentarios_count || 0}</span>
-                      </button>
-
                       <button
                         onClick={() => handleShare(pub)}
                         className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors cursor-pointer"
@@ -590,7 +590,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
               </div>
 
               {/* Estadísticas cuantitativas en grid sobrio */}
-              <div className="grid grid-cols-3 gap-2 text-center p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="grid grid-cols-2 gap-2 text-center p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                 <div>
                   <p className="text-base font-bold text-slate-900">{misPublicaciones.length}</p>
                   <p className="text-[10px] text-slate-400 font-medium uppercase">Posts</p>
@@ -598,10 +598,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                 <div>
                   <p className="text-base font-bold text-[#7E22CE]">{totalUpvotes}</p>
                   <p className="text-[10px] text-slate-400 font-medium uppercase">Votos</p>
-                </div>
-                <div>
-                  <p className="text-base font-bold text-[#2E8500]">{totalComentarios}</p>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase">Respuestas</p>
                 </div>
               </div>
 
@@ -622,7 +618,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                       <span className="text-[#7E22CE] font-medium">
                         ▲ {p.votos || 0} votos
                       </span>
-                      <span>💬 {p.comentarios || p.comentarios_count || 0}</span>
                       <span className="text-[#2E8500] font-medium">96% positivo</span>
                     </div>
                   </div>

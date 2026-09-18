@@ -32,6 +32,18 @@ namespace WebApplication1.models
         [ForeignKey("rol")] 
         public int id_rol { get; set; }
 
+        [StringLength(120)]
+        public string? sede { get; set; }
+
+        [StringLength(20)]
+        public string? centro { get; set; }
+
+        [StringLength(150)]
+        public string? programa_formacion { get; set; }
+
+        [StringLength(30)]
+        public string? num_ficha { get; set; }
+
         public virtual rol? rol { get; set; }
 
         public virtual historial_clinico? historial_Clinico { get; set; }
