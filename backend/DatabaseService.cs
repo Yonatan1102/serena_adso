@@ -22,8 +22,7 @@ namespace WebApplication1
         public DbSet<diario> diario { get; set; }
         public DbSet<publicaciones> publicaciones { get; set; }
         public DbSet<emergencia> emergencia { get; set; }
-
-
+        public DbSet<disponibilidad> disponibilidad { get; set; } = null!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
