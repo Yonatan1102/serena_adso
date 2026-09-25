@@ -13,28 +13,28 @@ public class disponibilidad_Repositories : Idisponibilidad
         _context = context;
     }
 
-    public async Task<List<disponibilidad>> GetDisponibilidad()
+    public async Task<List<disponibilidad>> Getdisponibilidad()
     {
         return await _context.disponibilidad
-            .AsNoTracking<disponibilidad>()
+            .AsNoTracking()
             .ToListAsync();
     }
 
-    public async Task<disponibilidad?> GetDisponibilidadById(int id)
+    public async Task<disponibilidad?> GetdisponibilidadById(int id)
     {
         return await _context.disponibilidad
-            .AsNoTracking<disponibilidad>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.id_disponibilidad == id);
     }
 
-    public async Task<disponibilidad> PostDisponibilidad(disponibilidad value)
+    public async Task<disponibilidad> Postdisponibilidad(disponibilidad value)
     {
         _context.disponibilidad.Add(value);
         await _context.SaveChangesAsync();
         return value;
     }
 
-    public async Task<disponibilidad?> PutDisponibilidad(disponibilidad value)
+    public async Task<disponibilidad?> Putdisponibilidad(disponibilidad value)
     {
         var item = await _context.disponibilidad.FindAsync(value.id_disponibilidad);
         if (item is null) return null;
@@ -50,7 +50,7 @@ public class disponibilidad_Repositories : Idisponibilidad
         return item;
     }
 
-    public async Task<bool> DeleteDisponibilidad(int id)
+    public async Task<bool> Deletedisponibilidad(int id)
     {
         var item = await _context.disponibilidad.FindAsync(id);
         if (item is null) return false;

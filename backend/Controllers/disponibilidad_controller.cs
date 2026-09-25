@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 namespace WebApplication1.Controllers;
-[ApiController]
 
+[ApiController]
+[Tags("Disponibilidad")]
+[ApiExplorerSettings(GroupName = "Disponibilidad")]
 [Route("api/disponibilidad")]
 public class disponibilidad_Controller : ControllerBase
 {

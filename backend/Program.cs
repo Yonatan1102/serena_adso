@@ -27,6 +27,7 @@ builder.Services.AddScoped<Ihistorial_cita, historial_cita_repositories>();
 builder.Services.AddScoped<Ihistorial_clinico, historial_clinico_repositories>();
 builder.Services.AddScoped<Imenu, menu_repositories>();
 builder.Services.AddScoped<Imenu_rol, menu_rol_repositories>();
+builder.Services.AddScoped<Idisponibilidad, disponibilidad_Repositories>();
 builder.Services.AddScoped<Ipublicaciones, publicaciones_repositories>();
 builder.Services.AddScoped<Irol, rol_repositories>();
 builder.Services.AddScoped<Iusuario, usuario_repositories>();

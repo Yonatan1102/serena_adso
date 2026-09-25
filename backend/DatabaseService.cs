@@ -148,6 +148,26 @@ namespace WebApplication1
             modelBuilder.Entity<emergencia>().Property(u => u.descripcion).HasColumnName("descripcion");
             modelBuilder.Entity<emergencia>().Property(u => u.fecha_emergencia).HasColumnName("fecha_emergencia");
 
+            modelBuilder.Entity<disponibilidad>().ToTable("disponibilidad");
+            modelBuilder.Entity<disponibilidad>().HasKey(d => d.id_disponibilidad);
+            modelBuilder.Entity<disponibilidad>().Property(d => d.id_disponibilidad).HasColumnName("id_disponibilidad").ValueGeneratedOnAdd();
+            modelBuilder.Entity<disponibilidad>().Property(d => d.id_usuario).HasColumnName("id_usuario");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.id_rol).HasColumnName("id_rol");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.dia_semana).HasColumnName("dia_semana");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.hora_inicio).HasColumnName("hora_inicio");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.hora_fin).HasColumnName("hora_fin");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.estado).HasColumnName("estado");
+            modelBuilder.Entity<disponibilidad>()
+                .HasOne(d => d.usuario)
+                .WithMany(u => u.disponibilidades)
+                .HasForeignKey(d => d.id_usuario)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<disponibilidad>()
+                .HasOne(d => d.rol)
+                .WithMany(r => r.disponibilidades)
+                .HasForeignKey(d => d.id_rol)
+                .OnDelete(DeleteBehavior.Restrict);
+
         }
 
         public async Task<bool> SaveChangesAsync()
