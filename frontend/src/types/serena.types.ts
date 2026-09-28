@@ -168,6 +168,38 @@ export interface Emergencia {
   usuario?: Usuario;
 }
 
+export interface Disponibilidad {
+  id_disponibilidad: number;
+  id_usuario: number;
+  id_rol: number;
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+  estado?: boolean;
+  usuario?: Usuario;
+  rol?: Rol;
+}
+
+export interface Ficha {
+  id_ficha: number;
+  codigo_ficha: string;
+  programa: string;
+  centro: 'CMTC' | 'CMM' | 'CEET';
+  jornada?: 'Diurna' | 'Nocturna' | 'Mixta' | 'Fines de Semana';
+  estado?: boolean;
+  usuarios?: Usuario[];
+}
+
+export interface UsuarioFicha {
+  id_usuario_ficha: number;
+  id_usuario: number;
+  id_ficha: number;
+  fecha_asignacion?: string;
+  estado?: boolean;
+  usuario?: Usuario;
+  ficha?: Ficha;
+}
+
 export interface Formulario {
   id_formulario: number;
   nombre_formulario: string;

@@ -50,5 +50,6 @@ namespace WebApplication1.models
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
         public virtual ICollection<estado_animo_usuario> estado_animo_usuarios { get; set; } = new List<estado_animo_usuario>();
         public virtual ICollection<disponibilidad> disponibilidades { get; set; } = new List<disponibilidad>();
+        public virtual ICollection<usuario_ficha> usuario_fichas { get; set; } = new List<usuario_ficha>();
     }
 }
