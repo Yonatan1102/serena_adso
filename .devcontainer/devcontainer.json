@@ -1,0 +1,18 @@
+{
+  "name": "Serena ADSO",
+  "forwardPorts": [3000, 5185, 1433],
+  "portsAttributes": {
+    "3000": {
+      "label": "Serena frontend",
+      "onAutoForward": "openPreview"
+    },
+    "5185": {
+      "label": "Serena API",
+      "onAutoForward": "notify"
+    },
+    "1433": {
+      "label": "Serena SQL Server",
+      "onAutoForward": "silent"
+    }
+  }
+}
