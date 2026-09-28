@@ -22,8 +22,9 @@ namespace WebApplication1
         public DbSet<diario> diario { get; set; }
         public DbSet<publicaciones> publicaciones { get; set; }
         public DbSet<emergencia> emergencia { get; set; }
-
-
+        public DbSet<disponibilidad> disponibilidad { get; set; } = null!;
+        public DbSet<ficha> ficha { get; set; } = null!;
+        public DbSet<usuario_ficha> usuario_ficha { get; set; } = null!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -148,6 +149,53 @@ namespace WebApplication1
             modelBuilder.Entity<emergencia>().Property(u => u.id_usuario).HasColumnName("id_usuario");
             modelBuilder.Entity<emergencia>().Property(u => u.descripcion).HasColumnName("descripcion");
             modelBuilder.Entity<emergencia>().Property(u => u.fecha_emergencia).HasColumnName("fecha_emergencia");
+
+            modelBuilder.Entity<disponibilidad>().ToTable("disponibilidad");
+            modelBuilder.Entity<disponibilidad>().HasKey(d => d.id_disponibilidad);
+            modelBuilder.Entity<disponibilidad>().Property(d => d.id_disponibilidad).HasColumnName("id_disponibilidad").ValueGeneratedOnAdd();
+            modelBuilder.Entity<disponibilidad>().Property(d => d.id_usuario).HasColumnName("id_usuario");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.id_rol).HasColumnName("id_rol");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.dia_semana).HasColumnName("dia_semana");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.hora_inicio).HasColumnName("hora_inicio");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.hora_fin).HasColumnName("hora_fin");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.estado).HasColumnName("estado");
+            modelBuilder.Entity<disponibilidad>()
+                .HasOne(d => d.usuario)
+                .WithMany(u => u.disponibilidades)
+                .HasForeignKey(d => d.id_usuario)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<disponibilidad>()
+                .HasOne(d => d.rol)
+                .WithMany(r => r.disponibilidades)
+                .HasForeignKey(d => d.id_rol)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ficha>().ToTable("ficha");
+            modelBuilder.Entity<ficha>().HasKey(f => f.id_ficha);
+            modelBuilder.Entity<ficha>().Property(f => f.id_ficha).HasColumnName("id_ficha").ValueGeneratedOnAdd();
+            modelBuilder.Entity<ficha>().Property(f => f.codigo_ficha).HasColumnName("codigo_ficha");
+            modelBuilder.Entity<ficha>().Property(f => f.programa).HasColumnName("programa");
+            modelBuilder.Entity<ficha>().Property(f => f.centro).HasColumnName("centro");
+            modelBuilder.Entity<ficha>().Property(f => f.jornada).HasColumnName("jornada");
+            modelBuilder.Entity<ficha>().Property(f => f.estado).HasColumnName("estado");
+
+            modelBuilder.Entity<usuario_ficha>().ToTable("usuario_ficha");
+            modelBuilder.Entity<usuario_ficha>().HasKey(uf => uf.id_usuario_ficha);
+            modelBuilder.Entity<usuario_ficha>().Property(uf => uf.id_usuario_ficha).HasColumnName("id_usuario_ficha").ValueGeneratedOnAdd();
+            modelBuilder.Entity<usuario_ficha>().Property(uf => uf.id_usuario).HasColumnName("id_usuario");
+            modelBuilder.Entity<usuario_ficha>().Property(uf => uf.id_ficha).HasColumnName("id_ficha");
+            modelBuilder.Entity<usuario_ficha>().Property(uf => uf.fecha_asignacion).HasColumnName("fecha_asignacion");
+            modelBuilder.Entity<usuario_ficha>().Property(uf => uf.estado).HasColumnName("estado");
+            modelBuilder.Entity<usuario_ficha>()
+                .HasOne(uf => uf.usuario)
+                .WithMany(u => u.usuario_fichas)
+                .HasForeignKey(uf => uf.id_usuario)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<usuario_ficha>()
+                .HasOne(uf => uf.ficha)
+                .WithMany(f => f.usuario_fichas)
+                .HasForeignKey(uf => uf.id_ficha)
+                .OnDelete(DeleteBehavior.Cascade);
 
         }
 

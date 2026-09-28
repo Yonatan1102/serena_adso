@@ -27,6 +27,9 @@ builder.Services.AddScoped<Ihistorial_cita, historial_cita_repositories>();
 builder.Services.AddScoped<Ihistorial_clinico, historial_clinico_repositories>();
 builder.Services.AddScoped<Imenu, menu_repositories>();
 builder.Services.AddScoped<Imenu_rol, menu_rol_repositories>();
+builder.Services.AddScoped<Idisponibilidad, disponibilidad_Repositories>();
+builder.Services.AddScoped<Ificha, ficha_repositories>();
+builder.Services.AddScoped<Iusuario_ficha, usuario_ficha_repositories>();
 builder.Services.AddScoped<Ipublicaciones, publicaciones_repositories>();
 builder.Services.AddScoped<Irol, rol_repositories>();
 builder.Services.AddScoped<Iusuario, usuario_repositories>();
@@ -59,6 +62,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<serena>();
+    db.Database.EnsureCreated();
     db.Database.Migrate();
 
     if (!db.rol.Any())
@@ -90,26 +94,140 @@ using (var scope = app.Services.CreateScope())
         var rolAprendiz = db.rol.First(r => r.nombre_rol == "Aprendiz");
         var rolPsicologo = db.rol.First(r => r.nombre_rol == "Psicólogo");
 
-        var aprendiz = new usuario
+        var usuarios = new[]
         {
-            nombre_usuario = "Yonatan Acuña",
-            email = "yacuna@soy.sena.edu.co",
-            contrasena = "Aa12345*",
-            id_rol = rolAprendiz.id_rol
+            new usuario
+            {
+                nombre_usuario = "Yonatan Acuña",
+                email = "yacuna@soy.sena.edu.co",
+                contrasena = "Aa12345*",
+                id_rol = rolAprendiz.id_rol,
+                num_ficha = "3288046",
+                sede = "CMTC",
+                centro = "CMTC",
+                programa_formacion = "ADSO",
+            },
+            new usuario
+            {
+                nombre_usuario = "Josué Tovar",
+                email = "jtovar@soy.sena.edu.co",
+                contrasena = "Aa12345*",
+                id_rol = rolAprendiz.id_rol,
+                num_ficha = "3288046",
+                sede = "CMTC",
+                centro = "CMTC",
+                programa_formacion = "Textil",
+            },
+            new usuario
+            {
+                nombre_usuario = "Camila Restrepo",
+                email = "crestrepo@soy.sena.edu.co",
+                contrasena = "Aa12345*",
+                id_rol = rolAprendiz.id_rol,
+                num_ficha = "3288046",
+                sede = "CMTC",
+                centro = "CMTC",
+                programa_formacion = "Patronaje",
+            },
+            new usuario
+            {
+                nombre_usuario = "Dra. Laura Martínez",
+                email = "lmartinez@sena.edu.co",
+                contrasena = "Aa12345*",
+                id_rol = rolPsicologo.id_rol,
+                num_ficha = "3288046",
+                sede = "CMTC",
+                centro = "CMTC",
+                programa_formacion = "Psicología",
+            },
+            new usuario
+            {
+                nombre_usuario = "Dr. Carlos Pardo",
+                email = "cpardo@sena.edu.co",
+                contrasena = "Aa12345*",
+                id_rol = rolPsicologo.id_rol,
+                num_ficha = "3288046",
+                sede = "CMTC",
+                centro = "CMTC",
+                programa_formacion = "Orientación Vocacional",
+            }
         };
 
-        var psicologo = new usuario
+        foreach (var usuario in usuarios)
         {
-            nombre_usuario = "Dra. Laura Martínez",
-            email = "lmartinez@sena.edu.co",
-            contrasena = "Aa12345*",
-            id_rol = rolPsicologo.id_rol
-        };
+            usuario.contrasena = passwordHasher.HashPassword(usuario, usuario.contrasena);
+        }
 
-        aprendiz.contrasena = passwordHasher.HashPassword(aprendiz, aprendiz.contrasena);
-        psicologo.contrasena = passwordHasher.HashPassword(psicologo, psicologo.contrasena);
+        db.usuario.AddRange(usuarios);
+        db.SaveChanges();
+    }
 
-        db.usuario.AddRange(aprendiz, psicologo);
+    if (!db.ficha.Any())
+    {
+        db.ficha.AddRange(
+            new ficha { codigo_ficha = "3288046", programa = "ADSO", centro = "CMTC", jornada = "Diurna", estado = true },
+            new ficha { codigo_ficha = "2025001", programa = "Textil", centro = "CMTC", jornada = "Diurna", estado = true }
+        );
+        db.SaveChanges();
+    }
+
+    if (!db.usuario_ficha.Any())
+    {
+        var fichaActual = db.ficha.First(f => f.codigo_ficha == "3288046");
+        var aprendices = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Aprendiz").id_rol).ToList();
+        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
+
+        foreach (var aprendiz in aprendices)
+        {
+            db.usuario_ficha.Add(new usuario_ficha
+            {
+                id_usuario = aprendiz.id_usuario,
+                id_ficha = fichaActual.id_ficha,
+                fecha_asignacion = DateTime.UtcNow,
+                estado = true
+            });
+        }
+
+        foreach (var psicologo in psicologos)
+        {
+            db.usuario_ficha.Add(new usuario_ficha
+            {
+                id_usuario = psicologo.id_usuario,
+                id_ficha = fichaActual.id_ficha,
+                fecha_asignacion = DateTime.UtcNow,
+                estado = true
+            });
+        }
+
+        db.SaveChanges();
+    }
+
+    if (!db.disponibilidad.Any())
+    {
+        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
+        foreach (var psicologo in psicologos)
+        {
+            db.disponibilidad.AddRange(
+                new disponibilidad
+                {
+                    id_usuario = psicologo.id_usuario,
+                    id_rol = psicologo.id_rol,
+                    dia_semana = 1,
+                    hora_inicio = new TimeSpan(9, 0, 0),
+                    hora_fin = new TimeSpan(11, 0, 0),
+                    estado = true
+                },
+                new disponibilidad
+                {
+                    id_usuario = psicologo.id_usuario,
+                    id_rol = psicologo.id_rol,
+                    dia_semana = 3,
+                    hora_inicio = new TimeSpan(10, 0, 0),
+                    hora_fin = new TimeSpan(12, 0, 0),
+                    estado = true
+                }
+            );
+        }
         db.SaveChanges();
     }
 }

@@ -12,7 +12,7 @@ import {
   Send,
   History,
 } from 'lucide-react';
-import { Usuario, Cita } from '../types/serena.types';
+import { Usuario, Cita, Disponibilidad } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
 
 interface CitasViewProps {
@@ -47,9 +47,33 @@ export const CitasView: React.FC<CitasViewProps> = ({
   const [motivo, setMotivo] = useState<string>('');
   const [agendando, setAgendando] = useState<boolean>(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [franjasDisponiblesPsico, setFranjasDisponiblesPsico] = useState<string[]>([]);
 
   // Psicólogo seleccionado para ver su disponibilidad
   const psicoActivo = (psicologosDisponibles || []).find((p) => p.id_usuario === psicologoSeleccionadoId) || defaultPsico;
+
+  useEffect(() => {
+    const cargarFranjas = async () => {
+      if (!psicoActivo?.id_usuario) {
+        setFranjasDisponiblesPsico([]);
+        return;
+      }
+
+      try {
+        const disponibilidad: Disponibilidad[] = await serenaApi.getDisponibilidadPorUsuarioDesdeApi(psicoActivo.id_usuario);
+        const franjas = disponibilidad
+          .filter((slot) => slot.estado !== false)
+          .map((slot) => slot.hora_inicio.slice(0, 5))
+          .filter((hora, index, self) => self.indexOf(hora) === index)
+          .sort();
+        setFranjasDisponiblesPsico(franjas.length > 0 ? franjas : psicoActivo.disponibilidad || []);
+      } catch {
+        setFranjasDisponiblesPsico(psicoActivo.disponibilidad || []);
+      }
+    };
+
+    void cargarFranjas();
+  }, [psicoActivo]);
 
   const handleAgendarAprendiz = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,12 +174,12 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
                   <div className="mt-1">
                     <p className="text-xs font-semibold text-slate-700 mb-1.5">
-                      Franjas habituales disponibles:
+                      Franjas disponibles:
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {psicoActivo.disponibilidad?.map((franja) => (
+                      {(franjasDisponiblesPsico.length > 0 ? franjasDisponiblesPsico : ['Sin franjas registradas']).map((franja) => (
                         <span
-                          key={franja}
+                          key={`${psicoActivo.id_usuario}-${franja}`}
                           className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-medium"
                         >
                           {franja}
@@ -228,9 +252,9 @@ export const CitasView: React.FC<CitasViewProps> = ({
                   Franja horaria preferida:
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                  {['08:30', '10:00', '11:30', '14:00', '15:30', '16:30'].map((hora) => (
+                  {(franjasDisponiblesPsico.length > 0 ? franjasDisponiblesPsico : ['09:00', '10:00', '11:00']).map((hora) => (
                     <button
-                      key={hora}
+                      key={`${psicoActivo?.id_usuario ?? 'psico'}-${hora}`}
                       type="button"
                       onClick={() => setFranjaSeleccionada(hora)}
                       className={`py-1.5 px-2 rounded-xl text-xs font-medium transition-colors border cursor-pointer ${

@@ -21,6 +21,9 @@ import {
   Menu,
   MenuRol,
   CustomFeed,
+  Disponibilidad,
+  Ficha,
+  UsuarioFicha,
 } from '../types/serena.types';
 
 const STORAGE_KEYS = {
@@ -40,6 +43,9 @@ const STORAGE_KEYS = {
   MENUS: 'serena_menus',
   MENU_ROL: 'serena_menu_rol',
   CUSTOM_FEEDS: 'serena_custom_feeds',
+  DISPONIBILIDAD: 'serena_disponibilidad',
+  FICHAS: 'serena_fichas',
+  USUARIO_FICHA: 'serena_usuario_ficha',
   CONFIG: 'serena_config',
 };
 
@@ -437,6 +443,79 @@ const FORMULARIOS_SEMILLA: Formulario[] = [
   },
 ];
 
+const FICHAS_SEMILLA: Ficha[] = [
+  {
+    id_ficha: 1,
+    codigo_ficha: '3288046',
+    programa: 'ADSO',
+    centro: 'CMTC',
+    jornada: 'Diurna',
+    estado: true,
+  },
+  {
+    id_ficha: 2,
+    codigo_ficha: '2025001',
+    programa: 'Textil',
+    centro: 'CMTC',
+    jornada: 'Diurna',
+    estado: true,
+  },
+];
+
+const DISPONIBILIDAD_SEMILLA: Disponibilidad[] = [
+  {
+    id_disponibilidad: 1,
+    id_usuario: 4,
+    id_rol: 2,
+    dia_semana: 1,
+    hora_inicio: '09:00:00',
+    hora_fin: '11:00:00',
+    estado: true,
+  },
+  {
+    id_disponibilidad: 2,
+    id_usuario: 4,
+    id_rol: 2,
+    dia_semana: 3,
+    hora_inicio: '10:00:00',
+    hora_fin: '12:00:00',
+    estado: true,
+  },
+  {
+    id_disponibilidad: 3,
+    id_usuario: 5,
+    id_rol: 2,
+    dia_semana: 2,
+    hora_inicio: '14:00:00',
+    hora_fin: '16:00:00',
+    estado: true,
+  },
+];
+
+const USUARIO_FICHA_SEMILLA: UsuarioFicha[] = [
+  {
+    id_usuario_ficha: 1,
+    id_usuario: 1,
+    id_ficha: 1,
+    fecha_asignacion: new Date().toISOString(),
+    estado: true,
+  },
+  {
+    id_usuario_ficha: 2,
+    id_usuario: 2,
+    id_ficha: 1,
+    fecha_asignacion: new Date().toISOString(),
+    estado: true,
+  },
+  {
+    id_usuario_ficha: 3,
+    id_usuario: 3,
+    id_ficha: 2,
+    fecha_asignacion: new Date().toISOString(),
+    estado: true,
+  },
+];
+
 const HISTORIAL_CLINICO_SEMILLA: HistorialClinico[] = [
   {
     id_hl_clinico: 1,
@@ -789,6 +868,15 @@ class SerenaApiService {
     if (!localStorage.getItem(STORAGE_KEYS.CUSTOM_FEEDS)) {
       localStorage.setItem(STORAGE_KEYS.CUSTOM_FEEDS, JSON.stringify(CUSTOM_FEEDS_SEMILLA));
     }
+    if (!localStorage.getItem(STORAGE_KEYS.FICHAS)) {
+      localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(FICHAS_SEMILLA));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD)) {
+      localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(DISPONIBILIDAD_SEMILLA));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.USUARIO_FICHA)) {
+      localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(USUARIO_FICHA_SEMILLA));
+    }
   }
 
   // --- Usuarios & Autenticación ---
@@ -799,6 +887,39 @@ class SerenaApiService {
     const usuarios = Array.isArray(data) ? data : [];
     localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(usuarios));
     return usuarios;
+  }
+
+  public async getFichasDesdeApi(): Promise<Ficha[]> {
+    const response = await fetch(`${this.backendBaseUrl}/ficha`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Ficha[] = await response.json();
+    localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(data));
+    return data;
+  }
+
+  public async getUsuarioFichaDesdeApi(): Promise<UsuarioFicha[]> {
+    const response = await fetch(`${this.backendBaseUrl}/usuario-ficha`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: UsuarioFicha[] = await response.json();
+    localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(data));
+    return data;
+  }
+
+  public async getDisponibilidadDesdeApi(): Promise<Disponibilidad[]> {
+    const response = await fetch(`${this.backendBaseUrl}/disponibilidad`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Disponibilidad[] = await response.json();
+    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    return data;
+  }
+
+  public async getDisponibilidadPorUsuarioDesdeApi(id_usuario: number): Promise<Disponibilidad[]> {
+    const response = await fetch(`${this.backendBaseUrl}/disponibilidad`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Disponibilidad[] = await response.json();
+    const lista = data.filter((d) => d.id_usuario === id_usuario && d.estado !== false);
+    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    return lista;
   }
 
   public getUsuarios(): Usuario[] {
@@ -843,6 +964,44 @@ class SerenaApiService {
 
   public getPsicologosPorCentro(centro: string): Usuario[] {
     return this.getUsuarios().filter((u) => u.id_rol === 2 && u.centro === centro);
+  }
+
+  public getFichas(): Ficha[] {
+    const data = localStorage.getItem(STORAGE_KEYS.FICHAS);
+    return data ? JSON.parse(data) : FICHAS_SEMILLA;
+  }
+
+  public getFichaById(id_ficha: number): Ficha | undefined {
+    return this.getFichas().find((f) => f.id_ficha === id_ficha);
+  }
+
+  public getDisponibilidadPorUsuario(id_usuario: number): Disponibilidad[] {
+    const data = localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD);
+    const lista: Disponibilidad[] = data ? JSON.parse(data) : DISPONIBILIDAD_SEMILLA;
+    return lista.filter((d) => d.id_usuario === id_usuario);
+  }
+
+  public getUsuariosPorFicha(id_ficha: number): Usuario[] {
+    const data = localStorage.getItem(STORAGE_KEYS.USUARIO_FICHA);
+    const relaciones: UsuarioFicha[] = data ? JSON.parse(data) : USUARIO_FICHA_SEMILLA;
+    const idsUsuarios = relaciones.filter((uf) => uf.id_ficha === id_ficha).map((uf) => uf.id_usuario);
+    return this.getUsuarios().filter((u) => idsUsuarios.includes(u.id_usuario));
+  }
+
+  public crearDisponibilidad(id_usuario: number, id_rol: number, dia_semana: number, hora_inicio: string, hora_fin: string): Disponibilidad {
+    const data: Disponibilidad[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD) || '[]');
+    const nueva: Disponibilidad = {
+      id_disponibilidad: Date.now(),
+      id_usuario,
+      id_rol,
+      dia_semana,
+      hora_inicio,
+      hora_fin,
+      estado: true,
+    };
+    data.push(nueva);
+    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    return nueva;
   }
 
   // --- Comunidades ---

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Usuario, Comunidad, Publicacion, EstadoDeAnimo, Cita, Formulario } from './types/serena.types';
+import { Usuario, Comunidad, Publicacion, EstadoDeAnimo, Cita, Formulario, Ficha, UsuarioFicha } from './types/serena.types';
 import { serenaApi } from './services/serena-api.service';
 import { LoginView } from './components/LoginView';
 import { Header } from './components/Header';
@@ -28,6 +28,8 @@ export default function App() {
   });
 
   const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
+  const [fichasDisponibles, setFichasDisponibles] = useState<Ficha[]>([]);
+  const [relacionesUsuarioFicha, setRelacionesUsuarioFicha] = useState<UsuarioFicha[]>([]);
   const [currentUser, setCurrentUser] = useState<Usuario>(() => {
     const storedUser = localStorage.getItem('serena_current_user');
     if (storedUser) {
@@ -72,10 +74,18 @@ export default function App() {
   useEffect(() => {
     const loadUsuarios = async () => {
       try {
-        const usuarios = await serenaApi.getUsuariosDesdeApi();
+        const [usuarios, fichas, relaciones] = await Promise.all([
+          serenaApi.getUsuariosDesdeApi(),
+          serenaApi.getFichasDesdeApi(),
+          serenaApi.getUsuarioFichaDesdeApi(),
+        ]);
         setUsuariosDisponibles(usuarios);
+        setFichasDisponibles(fichas);
+        setRelacionesUsuarioFicha(relaciones);
       } catch {
         setUsuariosDisponibles([]);
+        setFichasDisponibles([]);
+        setRelacionesUsuarioFicha([]);
       }
     };
 
@@ -181,13 +191,28 @@ export default function App() {
     });
   };
 
+  const obtenerFichaUsuario = (usuario: Usuario) => {
+    const relacion = relacionesUsuarioFicha.find((r) => r.id_usuario === usuario.id_usuario && r.estado !== false);
+    if (relacion) {
+      const fichaRelacionada = fichasDisponibles.find((f) => f.id_ficha === relacion.id_ficha);
+      if (fichaRelacionada) return fichaRelacionada.codigo_ficha;
+    }
+    return usuario.num_ficha ?? null;
+  };
+
+  const fichaActualUsuario = obtenerFichaUsuario(currentUser);
+
   // Psicólogos y aprendices
-  const psicologosDisponibles = usuariosDisponibles.filter(
-    (u) => u.id_rol === 2 && (!currentUser.num_ficha || !u.num_ficha || u.num_ficha === currentUser.num_ficha)
-  );
-  const aprendicesDisponibles = usuariosDisponibles.filter(
-    (u) => u.id_rol === 1 && (!currentUser.num_ficha || !u.num_ficha || u.num_ficha === currentUser.num_ficha)
-  );
+  const psicologosDisponibles = usuariosDisponibles.filter((u) => {
+    if (u.id_rol !== 2) return false;
+    if (!fichaActualUsuario) return true;
+    return obtenerFichaUsuario(u) === fichaActualUsuario;
+  });
+  const aprendicesDisponibles = usuariosDisponibles.filter((u) => {
+    if (u.id_rol !== 1) return false;
+    if (!fichaActualUsuario) return true;
+    return obtenerFichaUsuario(u) === fichaActualUsuario;
+  });
   const currentComunidad = comunidades.find((c) => c.id === selectedComunidadId) || comunidades[0];
 
   if (!isAuthenticated) {
