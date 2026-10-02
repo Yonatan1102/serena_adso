@@ -40,8 +40,12 @@ builder.Services.AddCors(options => options.AddPolicy("DevelopmentFrontend", pol
             [
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
+                "http://0.0.0.0:3000",
+                "http://[::1]:3000",
                 "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "http://0.0.0.0:5173",
+                "http://[::1]:5173"
             ])
           .AllowAnyHeader()
           .AllowAnyMethod()));
@@ -107,10 +111,15 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
     });
-    app.UseCors("DevelopmentFrontend");
 }
 
-app.UseHttpsRedirection();
+app.UseCors("DevelopmentFrontend");
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.MapControllers();
 
 app.Run();

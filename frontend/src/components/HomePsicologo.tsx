@@ -27,7 +27,10 @@ interface HomePsicologoProps {
   aprendicesSeguimiento: Usuario[];
   publicaciones: Publicacion[];
   onOpenCreatePublicacion: () => void;
+  onOpenCreateFormulario: () => void;
   onSelectAprendizHistoria: (aprendiz: Usuario) => void;
+  onSelectAprendizDiario: (aprendiz: Usuario) => void;
+  onVote: (id_pub: number, delta: number) => void;
   onRefreshCitas: () => void;
   idioma?: 'es' | 'en';
 }
@@ -38,7 +41,10 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
   aprendicesSeguimiento = [],
   publicaciones = [],
   onOpenCreatePublicacion,
+  onOpenCreateFormulario,
   onSelectAprendizHistoria,
+  onSelectAprendizDiario,
+  onVote,
   onRefreshCitas,
   idioma = 'es',
 }) => {

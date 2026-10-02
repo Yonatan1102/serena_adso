@@ -26,6 +26,7 @@ interface HeaderProps {
   onOpenEmergencia?: () => void;
   idioma: 'es' | 'en';
   onToggleIdioma: () => void;
+  onLogout?: () => void;
   onSearchChange?: (term: string) => void;
 }
 
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenEmergencia,
   idioma,
   onToggleIdioma,
+  onLogout,
   onSearchChange,
 }) => {
   const isPsicologo = currentUser.id_rol === 2;
@@ -258,6 +260,16 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
                 {idioma === 'es' ? 'Cambiar Rol de Prueba:' : 'Switch Test Role:'}
               </div>
+
+              <button
+                onClick={() => {
+                  onLogout?.();
+                  setShowUserMenu(false);
+                }}
+                className="mt-2 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-left text-xs font-semibold text-red-700 transition hover:bg-red-100"
+              >
+                {idioma === 'es' ? 'Cerrar sesión' : 'Log out'}
+              </button>
 
               <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
                 {usuariosDisponibles.map((u) => {

@@ -14,6 +14,8 @@ export interface Usuario {
   email: string;
   id_rol: number;
   centro: 'CMTC' | 'CMM' | 'CEET';
+  centro_formacion?: 'CMTC' | 'CMM' | 'CEET';
+  ultimo_estado_animo?: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
   num_ficha?: string;
   avatar_url?: string;
   especialidad?: string; // Para psicólogos
@@ -134,6 +136,7 @@ export interface Diario {
 export interface EstadoDeAnimo {
   id_estado: number;
   nombre_estado: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
+  estado?: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
   fecha_estado: string;
   id_usuario: number;
   centro: 'CMTC' | 'CMM' | 'CEET';
@@ -154,6 +157,7 @@ export interface Publicacion {
   comentarios_count: number;
   comentarios?: number;
   imagen_url?: string;
+  url_imagen?: string;
   etiqueta?: string;
 }
 

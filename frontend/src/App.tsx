@@ -24,10 +24,10 @@ import { CrearReporteModal } from './components/CrearReporteModal';
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true;
-    return Boolean(localStorage.getItem('serena_access_token'));
+    const token = localStorage.getItem('serena_access_token') || localStorage.getItem('serena_auth_token');
+    return Boolean(token);
   });
 
-  const usuariosDisponibles = serenaApi.getUsuarios();
   const [currentUser, setCurrentUser] = useState<Usuario>(() => {
     const storedUser = localStorage.getItem('serena_current_user');
     if (storedUser) {
@@ -39,6 +39,15 @@ export default function App() {
     }
     return serenaApi.getCurrentUser();
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isAuthenticated) {
+      localStorage.setItem('serena_current_user', JSON.stringify(currentUser));
+    }
+  }, [currentUser, isAuthenticated]);
+
+  const usuariosDisponibles = serenaApi.getUsuarios();
 
   // Configuración de interfaz
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -83,9 +92,20 @@ export default function App() {
 
   const handleLoginSuccess = (usuario: Usuario, token: string) => {
     localStorage.setItem('serena_access_token', token);
+    localStorage.setItem('serena_auth_token', token);
+    localStorage.setItem('serena_current_user', JSON.stringify(usuario));
     serenaApi.setCurrentUser(usuario);
     setCurrentUser(usuario);
     setIsAuthenticated(true);
+    setActiveView('home');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('serena_access_token');
+    localStorage.removeItem('serena_auth_token');
+    localStorage.removeItem('serena_current_user');
+    setCurrentUser(serenaApi.getCurrentUser());
+    setIsAuthenticated(false);
     setActiveView('home');
   };
 
@@ -149,6 +169,7 @@ export default function App() {
         onOpenEmergencia={() => setIsEmergenciaOpen(true)}
         idioma={idioma}
         onToggleIdioma={handleToggleIdioma}
+        onLogout={handleLogout}
       />
 
       {/* Contenedor Principal: Sidebar Izquierdo Pinned Independiente + Feed Scroll */}
@@ -198,7 +219,6 @@ export default function App() {
                 citas={citas}
                 publicaciones={publicaciones}
                 aprendicesSeguimiento={aprendicesDisponibles}
-                emergencias={serenaApi.getEmergencias()}
                 onOpenCreatePublicacion={() => setIsCrearPubOpen(true)}
                 onOpenCreateFormulario={() => setActiveView('formularios')}
                 onRefreshCitas={handleRefreshCitas}
