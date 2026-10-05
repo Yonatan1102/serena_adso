@@ -1,6 +1,62 @@
 @WebApplication1_HostAddress = http://localhost:5185
+@recaptchaToken = replace-with-a-valid-recaptcha-token
+@accessToken = replace-with-a-jwt
 
-GET {{WebApplication1_HostAddress}}/weatherforecast/
+### Login — requires a reCAPTCHA v2 response token
+POST {{WebApplication1_HostAddress}}/api/Login
+Content-Type: application/json
+
+{
+  "correo": "aprendiz@example.com",
+  "contrasena": "replace-with-password",
+  "recaptchaToken": "{{recaptchaToken}}"
+}
+
+### Register — consent is required
+POST {{WebApplication1_HostAddress}}/api/Login/registrar
+Content-Type: application/json
+
+{
+  "nombre_usuario": "Nombre de prueba",
+  "email": "aprendiz@example.com",
+  "contrasena": "replace-with-password",
+  "id_rol": 1,
+  "documento": "123456789",
+  "acepta_tratamiento_datos": true,
+  "recaptchaToken": "{{recaptchaToken}}"
+}
+
+### Publicly visible, currently available slots for a professional
+GET {{WebApplication1_HostAddress}}/api/disponibilidad/disponibles/2
 Accept: application/json
+
+### Professional's own availability — replace token with a Psicosocial JWT
+GET {{WebApplication1_HostAddress}}/api/disponibilidad/mis-disponibilidades
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Admin directory — requires an Admin JWT
+GET {{WebApplication1_HostAddress}}/api/admin/psicosociales
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Admin metrics for a professional
+GET {{WebApplication1_HostAddress}}/api/admin/psicosociales/2
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Request an orientation — requires a reCAPTCHA v2 response token
+POST {{WebApplication1_HostAddress}}/api/cita/agendar
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "fecha_hora": "2026-10-05T15:00:00Z",
+  "motivo": "Solicitud de orientación",
+  "estado_cita": "Pendiente",
+  "id_usuario_aprendiz": 1,
+  "id_usuario_psicologo": 2,
+  "recaptchaToken": "{{recaptchaToken}}"
+}
 
 ###

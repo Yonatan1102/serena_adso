@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 
 namespace WebApplication1.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class UsuarioController : ControllerBase
 {
@@ -15,7 +18,12 @@ public class UsuarioController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Listarusuario()
     {
-        var usuarios = await usuario_repositorie.Getusuario();
+        var todos = await usuario_repositorie.Getusuario();
+        var usuarios = User.IsInRole("Admin")
+            ? todos
+            : User.IsInRole("Psicosocial")
+                ? todos.Where(usuario => usuario.id_rol == 1).ToList()
+                : todos.Where(usuario => usuario.id_rol == 2).ToList();
         usuarios.ForEach(usuario => Sanitizar(usuario));
         return Ok(usuarios);
     }
@@ -24,9 +32,19 @@ public class UsuarioController : ControllerBase
     public async Task<IActionResult> Obtenerusuario(int id)
     {
         var usuario = await usuario_repositorie.GetusuarioById(id);
-        return usuario == null ? NotFound() : Ok(Sanitizar(usuario));
+        if (usuario is null) return NotFound();
+        var callerId = 0;
+        if (!User.IsInRole("Admin") &&
+            !int.TryParse(User.FindFirstValue("id_usuario"), out callerId))
+            return Unauthorized();
+        if (!User.IsInRole("Admin") && usuario.id_usuario != callerId &&
+            !(User.IsInRole("Psicosocial") && usuario.id_rol == 1) &&
+            !(User.IsInRole("Aprendiz") && usuario.id_rol == 2))
+            return Forbid();
+        return Ok(Sanitizar(usuario));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Crearusuario([FromBody] usuario usuario)
     {
@@ -37,6 +55,7 @@ public class UsuarioController : ControllerBase
         return CreatedAtAction(nameof(Obtenerusuario), new { id = creado.id_usuario }, Sanitizar(creado));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Actualizarusuario(int id, [FromBody] usuario usuario)
     {
@@ -46,6 +65,7 @@ public class UsuarioController : ControllerBase
         return actualizado == null ? NotFound() : Ok(Sanitizar(actualizado));
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Eliminarusuario(int id) =>
         await usuario_repositorie.Deleteusuario(id) ? NoContent() : NotFound();

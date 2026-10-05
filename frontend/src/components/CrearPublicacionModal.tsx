@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, PlusCircle, Send, Sparkles } from 'lucide-react';
-import { Usuario, Comunidad } from '../types/serena.types';
+import { X, PlusCircle, Send, ImagePlus } from 'lucide-react';
+import { Usuario, Comunidad, Publicacion } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
 
 interface CrearPublicacionModalProps {
@@ -9,7 +9,7 @@ interface CrearPublicacionModalProps {
   defaultComunidadId?: string;
   isOpen: boolean;
   onClose: () => void;
-  onPublicacionCreada: () => void;
+  onPublicacionCreada: (publicacion: Publicacion) => Promise<void> | void;
 }
 
 export const CrearPublicacionModal: React.FC<CrearPublicacionModalProps> = ({
@@ -25,30 +25,34 @@ export const CrearPublicacionModal: React.FC<CrearPublicacionModalProps> = ({
   const [contenido, setContenido] = useState<string>('');
   const [etiqueta, setEtiqueta] = useState<string>('Bienestar Emocional');
   const [guardando, setGuardando] = useState<boolean>(false);
+  const [imagenUrl, setImagenUrl] = useState<string>('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titulo.trim() || !contenido.trim()) return;
 
     setGuardando(true);
-    serenaApi.crearPublicacion(
-      titulo,
-      contenido,
-      currentUser.id_usuario,
-      comunidadId,
-      etiqueta
-    );
-
-    setTimeout(() => {
-      setGuardando(false);
+    try {
+      const publicacion = await serenaApi.crearPublicacionEnApi({
+        titulo,
+        contenido,
+        id_usuario: currentUser.id_usuario,
+        id_comunidad: comunidadId,
+        etiqueta,
+        imagen_url: imagenUrl || undefined,
+      });
       setTitulo('');
       setContenido('');
-      onPublicacionCreada();
+      setImagenUrl('');
+      await onPublicacionCreada(publicacion);
       onClose();
-      alert('¡Publicación creada exitosamente en la comunidad!');
-    }, 300);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -61,8 +65,47 @@ export const CrearPublicacionModal: React.FC<CrearPublicacionModalProps> = ({
               <span>Nueva Publicación para Aprendices</span>
             </h3>
             <p className="text-xs text-slate-500">
-              Solo funcionarios y psicólogos pueden publicar en el feed (RF-PUB-01)
+              Solo funcionarios y psicosociales pueden publicar en el feed
             </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Imagen adjunta (opcional):
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs text-slate-600 hover:border-violet-400 hover:bg-violet-50">
+              <ImagePlus className="h-4 w-4 text-violet-600" />
+              <span>{imagenUrl ? 'Imagen seleccionada' : 'Seleccionar imagen'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => setImagenUrl(typeof reader.result === 'string' ? reader.result : '');
+                  const image = new Image();
+                  image.onload = () => {
+                    const maxDimension = 1280;
+                    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, Math.round(image.width * scale));
+                    canvas.height = Math.max(1, Math.round(image.height * scale));
+                    const context = canvas.getContext('2d');
+                    if (!context) {
+                      reader.readAsDataURL(file);
+                      return;
+                    }
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                    setImagenUrl(canvas.toDataURL('image/jpeg', 0.78));
+                  };
+                  image.onerror = () => reader.readAsDataURL(file);
+                  image.src = URL.createObjectURL(file);
+                }}
+              />
+            </label>
+            {imagenUrl && <img src={imagenUrl} alt="Vista previa" className="mt-2 max-h-40 w-full rounded-xl object-cover" />}
           </div>
           <button
             onClick={onClose}

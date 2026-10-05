@@ -32,10 +32,42 @@ namespace WebApplication1.models
         [ForeignKey("rol")] 
         public int id_rol { get; set; }
 
+        [StringLength(120)]
+        public string? sede { get; set; }
+
+        [StringLength(20)]
+        public string? centro { get; set; }
+
+        [StringLength(150)]
+        public string? programa_formacion { get; set; }
+
+        [StringLength(30)]
+        public string? num_ficha { get; set; }
+
+        [StringLength(30)]
+        [Column("documento")]
+        public string? documento { get; set; }
+
+        [Column("acepta_tratamiento_datos")]
+        public bool acepta_tratamiento_datos { get; set; }
+
+        [Column("fecha_consentimiento")]
+        public DateTime? fecha_consentimiento { get; set; }
+
+        [Column("id_ficha")]
+        public int? id_ficha { get; set; }
+
+        [Column("email_verificado")]
+        public bool email_verificado { get; set; }
+
         public virtual rol? rol { get; set; }
+        [ForeignKey(nameof(id_ficha))]
+        public virtual ficha? ficha { get; set; }
 
         public virtual historial_clinico? historial_Clinico { get; set; }
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
-        public virtual ICollection<estado_de_animo> estado_de_animo { get; set; } = new List<estado_de_animo>();
+        public virtual ICollection<estado_animo_usuario> estado_animo_usuarios { get; set; } = new List<estado_animo_usuario>();
+        public virtual ICollection<disponibilidad> disponibilidades { get; set; } = new List<disponibilidad>();
+        public virtual ICollection<usuario_ficha> usuario_fichas { get; set; } = new List<usuario_ficha>();
     }
 }

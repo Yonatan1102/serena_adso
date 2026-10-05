@@ -84,13 +84,23 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPut]
-        public async Task<IActionResult> actualizar_rol([FromBody] rol rol  )
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> actualizar_rol(int id, [FromBody] rol rol  )
         {
             try
             {
+                if (rol == null)
+                {
+                    return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+                }
+
+                if (id != rol.id_rol)
+                {
+                    return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+                }
+
                 var response = await rol_repositories.Putrol(rol);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {

@@ -47,6 +47,22 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet("usuario/{id_usuario:int}")]
+        public async Task<IActionResult> ObtenerDiarioPorUsuario(int id_usuario)
+        {
+            try
+            {
+                var response = await diarioRepository.GetdiarioByUsuario(id_usuario);
+                return response == null
+                    ? NotFound(new { mensaje = "El usuario aún no tiene un diario." })
+                    : Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el diario del usuario.", detalle = ex.Message });
+            }
+        }
+
         [HttpPost("crear")]
         public async Task<IActionResult> crear_diario([FromBody] diario diario)
         {
@@ -63,8 +79,9 @@ namespace WebApplication1.Controllers
                     return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
                 }
 
-                var response = await diarioRepository.Postdiario(diario);
-                return CreatedAtAction(nameof(ObtenerDiario), new { id = response.id_diario }, response);
+                // Un aprendiz tiene UN SOLO diario: si ya existe, esta llamada agrega una actualización.
+                var response = await diarioRepository.UpsertDiario(diario);
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -77,7 +94,12 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await diarioRepository.Postdiario(diario);
+                if (diario == null || string.IsNullOrWhiteSpace(diario.contenido))
+                {
+                    return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
+                }
+
+                var response = await diarioRepository.UpsertDiario(diario);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -85,13 +107,23 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, new { mensaje = "Ocurrió un error interno al crear el diario.", detalle = ex.Message });
             }
         }
-        [HttpPut]
-        public async Task<IActionResult> ActualizarDiario([FromBody] diario diario)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> ActualizarDiario(int id, [FromBody] diario diario)
         { 
             try
         {
+            if (diario == null)
+            {
+                return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+            }
+
+            if (id != diario.id_diario)
+            {
+                return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+            }
+
             var response = await diarioRepository.Putdiario(diario);
-            return Ok(response);
+            return response == null ? NotFound() : Ok(response);
         }
             catch (Exception ex)
             {

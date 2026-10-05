@@ -106,6 +106,48 @@ namespace WebApplication1.Migrations
                     b.ToTable("diario", (string)null);
                 });
 
+            modelBuilder.Entity("WebApplication1.models.disponibilidad", b =>
+                {
+                    b.Property<int>("id_disponibilidad")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_disponibilidad");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_disponibilidad"));
+
+                    b.Property<byte>("dia_semana")
+                        .HasColumnType("tinyint")
+                        .HasColumnName("dia_semana");
+
+                    b.Property<bool>("estado")
+                        .HasColumnType("bit")
+                        .HasColumnName("estado");
+
+                    b.Property<TimeSpan>("hora_fin")
+                        .HasColumnType("time")
+                        .HasColumnName("hora_fin");
+
+                    b.Property<TimeSpan>("hora_inicio")
+                        .HasColumnType("time")
+                        .HasColumnName("hora_inicio");
+
+                    b.Property<int>("id_rol")
+                        .HasColumnType("int")
+                        .HasColumnName("id_rol");
+
+                    b.Property<int>("id_usuario")
+                        .HasColumnType("int")
+                        .HasColumnName("id_usuario");
+
+                    b.HasKey("id_disponibilidad");
+
+                    b.HasIndex("id_rol");
+
+                    b.HasIndex("id_usuario");
+
+                    b.ToTable("disponibilidad", (string)null);
+                });
+
             modelBuilder.Entity("WebApplication1.models.emergencia", b =>
                 {
                     b.Property<int>("id_emergencia")
@@ -134,6 +176,42 @@ namespace WebApplication1.Migrations
                     b.ToTable("emergencia", (string)null);
                 });
 
+            modelBuilder.Entity("WebApplication1.models.estado_animo_usuario", b =>
+                {
+                    b.Property<int>("id_estado_usuario")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_estado_usuario");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_estado_usuario"));
+
+                    b.Property<DateTime>("fecha_estado")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_estado");
+
+                    b.Property<int>("id_estado")
+                        .HasColumnType("int")
+                        .HasColumnName("id_estado");
+
+                    b.Property<int>("id_usuario")
+                        .HasColumnType("int")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<string>("motivo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("motivo");
+
+                    b.HasKey("id_estado_usuario");
+
+                    b.HasIndex("id_estado");
+
+                    b.HasIndex("id_usuario");
+
+                    b.ToTable("estado_animo_usuario", (string)null);
+                });
+
             modelBuilder.Entity("WebApplication1.models.estado_de_animo", b =>
                 {
                     b.Property<int>("id_estado")
@@ -143,14 +221,6 @@ namespace WebApplication1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_estado"));
 
-                    b.Property<DateTime>("fecha_estado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("fecha_estado");
-
-                    b.Property<int>("id_usuario")
-                        .HasColumnType("int")
-                        .HasColumnName("id_usuario");
-
                     b.Property<string>("nombre_estado")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -159,9 +229,51 @@ namespace WebApplication1.Migrations
 
                     b.HasKey("id_estado");
 
-                    b.HasIndex("id_usuario");
-
                     b.ToTable("estado_de_animo", (string)null);
+                });
+
+            modelBuilder.Entity("WebApplication1.models.ficha", b =>
+                {
+                    b.Property<int>("id_ficha")
+                        .HasColumnType("int")
+                        .HasColumnName("id_ficha");
+
+                    b.Property<string>("centro")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("centro");
+
+                    b.Property<string>("codigo_ficha")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("codigo_ficha");
+
+                    b.Property<bool>("estado")
+                        .HasColumnType("bit")
+                        .HasColumnName("estado");
+
+                    b.Property<int>("id_programa")
+                        .HasColumnType("int")
+                        .HasColumnName("id_programa");
+
+                    b.Property<string>("jornada")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("jornada");
+
+                    b.Property<string>("programa")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("programa");
+
+                    b.HasKey("id_ficha");
+
+                    b.HasIndex("id_programa");
+
+                    b.ToTable("ficha", (string)null);
                 });
 
             modelBuilder.Entity("WebApplication1.models.formulario", b =>
@@ -202,14 +314,26 @@ namespace WebApplication1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_h_cita"));
 
+                    b.Property<string>("estado_anterior")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("estado_anterior");
+
+                    b.Property<string>("estado_nuevo")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("estado_nuevo");
+
                     b.Property<DateTime>("fecha_cambio")
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_cambio");
 
                     b.Property<int>("id_cita")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("id_cita");
+
+                    b.Property<string>("motivo_cambio")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("motivo_cambio");
 
                     b.Property<string>("observaciones_historial")
                         .HasColumnType("nvarchar(max)")
@@ -308,6 +432,29 @@ namespace WebApplication1.Migrations
                     b.ToTable("menu_rol", (string)null);
                 });
 
+            modelBuilder.Entity("WebApplication1.models.programa", b =>
+                {
+                    b.Property<int>("id_programa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_programa");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_programa"));
+
+                    b.Property<string>("nombre_programa")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("nombre_programa");
+
+                    b.HasKey("id_programa");
+
+                    b.HasIndex("nombre_programa")
+                        .IsUnique();
+
+                    b.ToTable("programa", (string)null);
+                });
+
             modelBuilder.Entity("WebApplication1.models.publicaciones", b =>
                 {
                     b.Property<int>("id_publicaciones")
@@ -317,23 +464,45 @@ namespace WebApplication1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_publicaciones"));
 
+                    b.Property<int>("comentarios_count")
+                        .HasColumnType("int")
+                        .HasColumnName("comentarios_count");
+
                     b.Property<string>("contenido")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("contenido");
+
+                    b.Property<string>("etiqueta")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)")
+                        .HasColumnName("etiqueta");
 
                     b.Property<DateTime>("fecha_publicacion")
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_publicacion");
 
+                    b.Property<string>("id_comunidad")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("id_comunidad");
+
                     b.Property<int>("id_usuario")
                         .HasColumnType("int")
                         .HasColumnName("id_usuario");
+
+                    b.Property<string>("imagen_url")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("imagen_url");
 
                     b.Property<string>("titulo")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("titulo");
+
+                    b.Property<int>("votos")
+                        .HasColumnType("int")
+                        .HasColumnName("votos");
 
                     b.HasKey("id_publicaciones");
 
@@ -369,17 +538,42 @@ namespace WebApplication1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_usuario"));
 
+                    b.Property<bool>("acepta_tratamiento_datos")
+                        .HasColumnType("bit")
+                        .HasColumnName("acepta_tratamiento_datos");
+
+                    b.Property<string>("centro")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("contrasena")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("contrasena");
 
+                    b.Property<string>("documento")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("documento");
+
                     b.Property<string>("email")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)")
                         .HasColumnName("email");
+
+                    b.Property<bool>("email_verificado")
+                        .HasColumnType("bit")
+                        .HasColumnName("email_verificado");
+
+                    b.Property<DateTime?>("fecha_consentimiento")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_consentimiento");
+
+                    b.Property<int?>("id_ficha")
+                        .HasColumnType("int")
+                        .HasColumnName("id_ficha");
 
                     b.Property<int>("id_rol")
                         .HasColumnType("int")
@@ -392,11 +586,98 @@ namespace WebApplication1.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("nombre_usuario");
 
+                    b.Property<string>("num_ficha")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("programa_formacion")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("sede")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.HasKey("id_usuario");
+
+                    b.HasIndex("id_ficha");
 
                     b.HasIndex("id_rol");
 
                     b.ToTable("usuario", (string)null);
+                });
+
+            modelBuilder.Entity("WebApplication1.models.usuario_ficha", b =>
+                {
+                    b.Property<int>("id_usuario_ficha")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_usuario_ficha");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_usuario_ficha"));
+
+                    b.Property<bool>("estado")
+                        .HasColumnType("bit")
+                        .HasColumnName("estado");
+
+                    b.Property<DateTime?>("fecha_asignacion")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_asignacion");
+
+                    b.Property<int>("id_ficha")
+                        .HasColumnType("int")
+                        .HasColumnName("id_ficha");
+
+                    b.Property<int>("id_usuario")
+                        .HasColumnType("int")
+                        .HasColumnName("id_usuario");
+
+                    b.HasKey("id_usuario_ficha");
+
+                    b.HasIndex("id_ficha");
+
+                    b.HasIndex("id_usuario");
+
+                    b.ToTable("usuario_ficha", (string)null);
+                });
+
+            modelBuilder.Entity("WebApplication1.models.verificacion_correo", b =>
+                {
+                    b.Property<int>("id_verificacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_verificacion");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_verificacion"));
+
+                    b.Property<string>("codigo_hash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("codigo_hash");
+
+                    b.Property<DateTimeOffset>("enviado_en")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("enviado_en");
+
+                    b.Property<DateTimeOffset>("expira_en")
+                        .HasColumnType("datetimeoffset")
+                        .HasColumnName("expira_en");
+
+                    b.Property<int>("id_usuario")
+                        .HasColumnType("int")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<int>("intentos")
+                        .HasColumnType("int")
+                        .HasColumnName("intentos");
+
+                    b.HasKey("id_verificacion");
+
+                    b.HasIndex("id_usuario")
+                        .IsUnique();
+
+                    b.ToTable("verificacion_correo", (string)null);
                 });
 
             modelBuilder.Entity("WebApplication1.models.cita", b =>
@@ -437,15 +718,53 @@ namespace WebApplication1.Migrations
                     b.Navigation("usuario");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.estado_de_animo", b =>
+            modelBuilder.Entity("WebApplication1.models.disponibilidad", b =>
                 {
+                    b.HasOne("WebApplication1.models.rol", "rol")
+                        .WithMany("disponibilidades")
+                        .HasForeignKey("id_rol")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("WebApplication1.models.usuario", "usuario")
-                        .WithMany("estado_de_animo")
+                        .WithMany("disponibilidades")
+                        .HasForeignKey("id_usuario")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("rol");
+
+                    b.Navigation("usuario");
+                });
+
+            modelBuilder.Entity("WebApplication1.models.estado_animo_usuario", b =>
+                {
+                    b.HasOne("WebApplication1.models.estado_de_animo", "estado_de_animo")
+                        .WithMany("estado_animo_usuarios")
+                        .HasForeignKey("id_estado")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("WebApplication1.models.usuario", "usuario")
+                        .WithMany("estado_animo_usuarios")
                         .HasForeignKey("id_usuario")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("estado_de_animo");
+
                     b.Navigation("usuario");
+                });
+
+            modelBuilder.Entity("WebApplication1.models.ficha", b =>
+                {
+                    b.HasOne("WebApplication1.models.programa", "programa_navegacion")
+                        .WithMany("fichas")
+                        .HasForeignKey("id_programa")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("programa_navegacion");
                 });
 
             modelBuilder.Entity("WebApplication1.models.formulario", b =>
@@ -498,13 +817,50 @@ namespace WebApplication1.Migrations
 
             modelBuilder.Entity("WebApplication1.models.usuario", b =>
                 {
+                    b.HasOne("WebApplication1.models.ficha", "ficha")
+                        .WithMany()
+                        .HasForeignKey("id_ficha")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("WebApplication1.models.rol", "rol")
                         .WithMany("usuario")
                         .HasForeignKey("id_rol")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("ficha");
+
                     b.Navigation("rol");
+                });
+
+            modelBuilder.Entity("WebApplication1.models.usuario_ficha", b =>
+                {
+                    b.HasOne("WebApplication1.models.ficha", "ficha")
+                        .WithMany("usuario_fichas")
+                        .HasForeignKey("id_ficha")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebApplication1.models.usuario", "usuario")
+                        .WithMany("usuario_fichas")
+                        .HasForeignKey("id_usuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ficha");
+
+                    b.Navigation("usuario");
+                });
+
+            modelBuilder.Entity("WebApplication1.models.verificacion_correo", b =>
+                {
+                    b.HasOne("WebApplication1.models.usuario", "usuario")
+                        .WithMany()
+                        .HasForeignKey("id_usuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("usuario");
                 });
 
             modelBuilder.Entity("WebApplication1.models.cita", b =>
@@ -512,13 +868,30 @@ namespace WebApplication1.Migrations
                     b.Navigation("historial_citas");
                 });
 
+            modelBuilder.Entity("WebApplication1.models.estado_de_animo", b =>
+                {
+                    b.Navigation("estado_animo_usuarios");
+                });
+
+            modelBuilder.Entity("WebApplication1.models.ficha", b =>
+                {
+                    b.Navigation("usuario_fichas");
+                });
+
             modelBuilder.Entity("WebApplication1.models.menu", b =>
                 {
                     b.Navigation("menu_rol");
                 });
 
+            modelBuilder.Entity("WebApplication1.models.programa", b =>
+                {
+                    b.Navigation("fichas");
+                });
+
             modelBuilder.Entity("WebApplication1.models.rol", b =>
                 {
+                    b.Navigation("disponibilidades");
+
                     b.Navigation("menu_rol");
 
                     b.Navigation("usuario");
@@ -526,11 +899,15 @@ namespace WebApplication1.Migrations
 
             modelBuilder.Entity("WebApplication1.models.usuario", b =>
                 {
-                    b.Navigation("estado_de_animo");
+                    b.Navigation("disponibilidades");
+
+                    b.Navigation("estado_animo_usuarios");
 
                     b.Navigation("formularios");
 
                     b.Navigation("historial_Clinico");
+
+                    b.Navigation("usuario_fichas");
                 });
 #pragma warning restore 612, 618
         }

@@ -18,7 +18,7 @@ namespace WebApplication1.models
 
         public virtual ICollection<usuario> usuario { get; set; } = new List<usuario>();
         public virtual ICollection<menu_rol> menu_rol { get; set; } = new List<menu_rol>();
-
+        public virtual ICollection<disponibilidad> disponibilidades { get; set; } = new List<disponibilidad>();
 
     }
 }

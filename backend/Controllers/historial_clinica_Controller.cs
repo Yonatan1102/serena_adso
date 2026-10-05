@@ -38,7 +38,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var response = await historial_clinico_repositories.Gethistorial_clinicoById(id);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var response = await historial_clinico_repositories.Posthistorial_clinico(historialClinico);
-                return Ok(response);
+                return CreatedAtAction(nameof(ObtenerHistorialClinico), new { id = response.id_h_clinico }, response);
             }
             catch (Exception ex)
             {
@@ -86,14 +86,24 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPut]
-        public async Task<IActionResult> ActualizarHistorialClinico([FromBody] historial_clinico historialClinico)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> ActualizarHistorialClinico(int id, [FromBody] historial_clinico historialClinico)
         {
             try
 
             {
+                if (historialClinico == null)
+                {
+                    return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
+                }
+
+                if (id != historialClinico.id_h_clinico)
+                {
+                    return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
+                }
+
                 var response = await historial_clinico_repositories.Puthistorial_clinico(historialClinico);
-                return Ok(response);
+                return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
             {

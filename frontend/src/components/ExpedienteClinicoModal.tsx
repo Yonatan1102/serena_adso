@@ -62,9 +62,9 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="font-bold text-slate-900 text-base">Acceso Restringido (RN-01)</h2>
+          <h2 className="font-bold text-slate-900 text-base">Acceso restringido</h2>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Solo profesionales de psicología y bienestar autorizados por el SENA tienen permiso para consultar expedientes clínicos e historiales de aprendices.
+            Solo profesionales psicosociales y de bienestar autorizados por el SENA tienen permiso para consultar expedientes e historiales de aprendices.
           </p>
           <button
             onClick={onClose}
@@ -196,7 +196,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
   const handleGuardarSoporte = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoSoporte.nombre_documento.trim() || !nuevoSoporte.entidad.trim()) {
-      alert('Por favor indica el nombre del documento y la entidad emisora.');
+      setAlertaExito('Por favor indica el nombre del documento y la entidad emisora.');
       return;
     }
 
@@ -236,7 +236,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
     setComentarioCitaInputs((prev) => ({ ...prev, [idCita]: '' }));
     setCitaActivaComentario(null);
     if (onRefreshCitas) onRefreshCitas();
-    mostrarMensaje('Comentario registrado en la cita.');
+    mostrarMensaje('Comentario registrado en la orientación.');
   };
 
   return (
@@ -251,7 +251,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
             className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 -ml-3 rounded-xl hover:bg-slate-200/50 transition-colors cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:-translate-x-0.5 transition-transform" />
-            <span>Volver a Psicología</span>
+            <span>Volver al acompañamiento psicosocial</span>
           </button>
 
           <span className="h-4 w-px bg-slate-200" />
@@ -338,7 +338,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex items-center gap-6 text-xs text-slate-500 self-start md:self-auto">
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">
-                    Citas en Centro
+                    Orientaciones en Centro
                   </span>
                   <span className="text-lg font-bold text-slate-900">
                     {citasAprendiz.length}
@@ -806,7 +806,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
                 <div>
                   <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                    Historial de Citas
+                    Historial de Orientaciones
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Sesiones de acompañamiento psicológico agendadas en el CMTC
@@ -821,7 +821,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex flex-col divide-y divide-slate-200/60 max-h-[700px] overflow-y-auto discreet-scroll pr-2">
                 {citasAprendiz.length === 0 ? (
                   <div className="py-8 text-center text-slate-400 text-xs">
-                    El aprendiz no tiene citas previas registradas con los psicólogos del centro.
+                    El aprendiz no tiene orientaciones previas registradas con los psicosociales del centro.
                   </div>
                 ) : (
                   citasAprendiz.map((cita) => {
@@ -841,7 +841,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                         ? 'Dra. Laura Martínez'
                         : cita.id_usuario_psicologo === 5
                         ? 'Dr. Carlos Pardo'
-                        : 'Psicología CMTC');
+                        : 'Bienestar psicosocial CMTC');
 
                     const badgeColor =
                       cita.estado_cita === 'Realizada'
@@ -867,7 +867,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                                 {psicologoAtendio}
                               </span>
                               <span className="text-[11px] text-slate-400">
-                                • Psicología CMTC
+                                • Bienestar psicosocial CMTC
                               </span>
                             </div>
                             <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
@@ -1046,7 +1046,6 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                             Total votos: {pub.votos}
                           </span>
                           <span>•</span>
-                          <span>{pub.comentarios || pub.comentarios_count || 0} comentarios</span>
                         </div>
                       </div>
                     </div>
@@ -1088,7 +1087,6 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                           Total votos: {pub.votos}
                         </span>
                         <span>•</span>
-                        <span>{pub.comentarios || pub.comentarios_count || 0} comentarios</span>
                       </div>
                     </div>
                   </div>

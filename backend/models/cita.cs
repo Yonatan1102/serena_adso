@@ -24,7 +24,7 @@ namespace WebApplication1.models
         public string? motivo { get; set; }
 
         [Required]
-        [AllowedValues("pendiente", "confirmada", "cancelada", "pospuesta")]
+        [AllowedValues("Pendiente", "Confirmada", "Realizada", "Cancelada", "Rechazada")]
         public string estado_cita { get; set; } = null!;
 
         [Column("id_usuario_aprendiz")]
@@ -32,6 +32,13 @@ namespace WebApplication1.models
 
         [Column("id_usuario_psicologo")]
         public int id_usuario_psicologo { get; set; }
+
+        [NotMapped]
+        public string? motivo_cambio { get; set; }
+
+        [NotMapped]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? recaptchaToken { get; set; }
 
         [ForeignKey(nameof(id_usuario_aprendiz))]
         [JsonIgnore]

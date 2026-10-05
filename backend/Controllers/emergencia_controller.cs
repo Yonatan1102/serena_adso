@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 namespace WebApplication1.Controllers;
+
+[Route("api/emergencia")]
 [ApiController]
-[Route("api/[controller]")]
 public class EmergenciaController : ControllerBase
 {
     private readonly Iemergencia repository;

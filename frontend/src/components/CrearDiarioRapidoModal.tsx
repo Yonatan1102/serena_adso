@@ -18,33 +18,34 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
   onSaved,
   idioma = 'es',
 }) => {
-  const [titulo, setTitulo] = useState('');
   const [contenido, setContenido] = useState('');
   const [compartirSp, setCompartirSp] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contenido.trim()) return;
 
     setGuardando(true);
-    serenaApi.guardarEntradaDiario(
-      currentUser.id_usuario,
-      titulo.trim() || (idioma === 'es' ? 'Reflexión diaria' : 'Daily Reflection'),
-      contenido.trim(),
-      compartirSp ? 1 : 0
-    );
-
-    setTimeout(() => {
+    setError(null);
+    try {
+      await serenaApi.actualizarDiarioEnApi({
+        id_usuario: currentUser.id_usuario,
+        contenido: contenido.trim(),
+        compartir_sp: compartirSp,
+      });
       setGuardando(false);
-      setTitulo('');
       setContenido('');
       setCompartirSp(false);
       if (onSaved) onSaved();
       onClose();
-    }, 300);
+    } catch (error) {
+      setGuardando(false);
+      setError(error instanceof Error ? error.message : 'No se pudo guardar la actualización.');
+    }
   };
 
   return (
@@ -58,7 +59,7 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base text-slate-900">
-                {idioma === 'es' ? 'Nuevo Diario Rápido' : 'New Quick Journal'}
+                {idioma === 'es' ? 'Actualizar mi Diario' : 'Update My Journal'}
               </h3>
               <p className="text-xs text-slate-500 flex items-center gap-1">
                 <Lock className="w-3 h-3 text-indigo-500" />
@@ -78,20 +79,7 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              {idioma === 'es' ? 'Título (opcional):' : 'Title (optional):'}
-            </label>
-            <input
-              type="text"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder={idioma === 'es' ? '¿Sobre qué quieres reflexionar hoy?' : 'What do you want to reflect on today?'}
-              className="w-full text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-[#63C976] focus:outline-none focus:ring-2 focus:ring-[#63C976]/20 transition-all placeholder:text-slate-400"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              {idioma === 'es' ? 'Tus pensamientos y desahogo personal:' : 'Your thoughts and personal notes:'}
+              {idioma === 'es' ? 'Actualización de tu diario:' : 'Journal update:'}
             </label>
             <textarea
               required
@@ -118,16 +106,17 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
             />
             <label htmlFor="compartir_sp_check" className="text-xs text-slate-700 cursor-pointer">
               <span className="font-bold text-slate-900 block">
-                {idioma === 'es' ? 'Compartir con mi psicólogo asignado' : 'Share with assigned counselor'}
+                {idioma === 'es' ? 'Compartir con mi psicosocial asignado' : 'Share with assigned counselor'}
               </span>
               <span className="text-slate-500">
                 {idioma === 'es'
-                  ? 'Si lo desmarcas, solo tú podrás leer esta entrada. Cumple con la regla RN-02 de privacidad.'
-                  : 'If unchecked, only you can read this entry. Enforces RN-02 privacy rule.'}
+                  ? 'Si lo desmarcas, solo tú podrás leer tu diario.'
+                  : 'If unchecked, only you can read your journal.'}
               </span>
             </label>
           </div>
 
+          {error && <p className="text-xs text-rose-600">{error}</p>}
           {/* Footer botones */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button

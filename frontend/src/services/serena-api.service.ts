@@ -1,7 +1,7 @@
 /**
  * SERENA API Service
  * Arquitectura Clean Service compatible 1:1 con HttpClient de Angular y Entity Framework Core en C#
- * Simula persistencia en localStorage para previsualización interactiva y expone puente directo a la API .NET.
+ * Mantiene datos de previsualización únicamente en memoria y expone el puente a la API .NET.
  */
 
 import {
@@ -21,7 +21,17 @@ import {
   Menu,
   MenuRol,
   CustomFeed,
+  Disponibilidad,
+  Ficha,
+  UsuarioFicha,
+  AdminPsicosocial,
+  AdminPsicosocialDetail,
+  Programa,
+  FichaRegistro,
+  ReporteOrientacion,
 } from '../types/serena.types';
+import { gcm } from '@noble/ciphers/aes.js';
+import { bytesToHex, hexToBytes, randomBytes } from '@noble/ciphers/utils.js';
 
 const STORAGE_KEYS = {
   USUARIOS: 'serena_usuarios',
@@ -40,8 +50,53 @@ const STORAGE_KEYS = {
   MENUS: 'serena_menus',
   MENU_ROL: 'serena_menu_rol',
   CUSTOM_FEEDS: 'serena_custom_feeds',
+  DISPONIBILIDAD: 'serena_disponibilidad',
+  FICHAS: 'serena_fichas',
+  USUARIO_FICHA: 'serena_usuario_ficha',
   CONFIG: 'serena_config',
 };
+
+const sessionData = new Map<string, string>();
+let sessionEncryptionKey = randomBytes(32);
+const encoder = new TextEncoder();
+const decoder = new TextDecoder('utf-8', { fatal: true });
+
+function encryptSessionValue(value: string): string {
+  const nonce = randomBytes(12);
+  const ciphertext = gcm(sessionEncryptionKey, nonce).encrypt(encoder.encode(value));
+  return `${bytesToHex(nonce)}.${bytesToHex(ciphertext)}`;
+}
+
+function decryptSessionValue(value: string): string {
+  const [nonceHex, ciphertextHex, extra] = value.split('.');
+  if (!nonceHex || !ciphertextHex || extra !== undefined)
+    throw new Error('El caché de sesión cifrado está dañado.');
+
+  const plaintext = gcm(sessionEncryptionKey, hexToBytes(nonceHex)).decrypt(hexToBytes(ciphertextHex));
+  return decoder.decode(plaintext);
+}
+
+// Adaptador síncrono cifrado con una clave efímera; nunca usa Web Storage.
+const localStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+  getItem: (key) => {
+    const value = sessionData.get(key);
+    return value === undefined ? null : decryptSessionValue(value);
+  },
+  setItem: (key, value) => { sessionData.set(key, encryptSessionValue(value)); },
+  removeItem: (key) => { sessionData.delete(key); },
+};
+
+function clearLegacySensitiveStorage() {
+  if (typeof window === 'undefined') return;
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (key?.startsWith('serena_') && key !== 'serena_theme') {
+        storage.removeItem(key);
+      }
+    }
+  }
+}
 
 // Datos semilla acordes al SRS IEEE 830 y centro CMTC
 const USUARIOS_SEMILLA: Usuario[] = [
@@ -96,7 +151,7 @@ const USUARIOS_SEMILLA: Usuario[] = [
     email: 'lmartinez@sena.edu.co',
     id_rol: 2, // Psicóloga
     centro: 'CMTC',
-    especialidad: 'Psicología Clínica y Bienestar Integral',
+    especialidad: 'Acompañamiento psicosocial y bienestar integral',
     telefono: '+57 310 876 5432',
     horario_atencion: 'Lunes a Viernes 8:00 AM - 1:00 PM',
     disponibilidad: [
@@ -198,7 +253,7 @@ const PUBLICACIONES_SEMILLA: Publicacion[] = [
     id_publicaciones: 1,
     titulo: 'Estrategias efectivas para el manejo del estrés en etapa lectiva y entregas de proyecto',
     contenido:
-      'Estimados aprendices: recuerden que la fatiga mental prolongada disminuye la concentración. La técnica Pomodoro combinada con pausas activas de respiración diafragmática ayuda a regular los niveles de cortisol. Si sienten sobrecarga, nuestro consultorio de Bienestar está abierto para agendar su cita individual.',
+      'Estimados aprendices: recuerden que la fatiga mental prolongada disminuye la concentración. La técnica Pomodoro combinada con pausas activas de respiración diafragmática ayuda a regular los niveles de cortisol. Si sienten sobrecarga, nuestro consultorio de Bienestar está abierto para agendar su orientación individual.',
     fecha_publicacion: new Date(Date.now() - 3600000 * 4).toISOString(),
     id_usuario: 4,
     id_comunidad: 's/CMTC',
@@ -294,13 +349,13 @@ const CITAS_SEMILLA: Cita[] = [
     id_usuario_aprendiz: 2, // Josué
     id_usuario_psicologo: 4,
     comentarios_sesion: [
-      'Dra. Laura Martínez: Cita agendada para revisión de contrato de aprendizaje y perfil laboral.',
+      'Dra. Laura Martínez: Orientación agendada para revisión de contrato de aprendizaje y perfil laboral.',
     ],
   },
   {
     id_cita: 104,
     fecha_hora: new Date(Date.now() + 86400000 * 1).toISOString(),
-    motivo: 'Seguimiento solicitado por psicólogo para acordar horario conveniente',
+    motivo: 'Seguimiento solicitado por psicosocial para acordar horario conveniente',
     estado_cita: 'Pendiente',
     id_usuario_aprendiz: 3,
     id_usuario_psicologo: 5,
@@ -315,7 +370,7 @@ const HISTORIAL_CITAS_SEMILLA: HistorialCita[] = [
   {
     id_h_cita: 1,
     id_cita: 101,
-    observaciones_historial: 'Cita solicitada inicialmente por el aprendiz en horario diurno.',
+    observaciones_historial: 'Orientación solicitada inicialmente por el aprendiz en horario diurno.',
     fecha_cambio: new Date(Date.now() - 86400000 * 1).toISOString(),
     estado_anterior: 'Pendiente',
     estado_nuevo: 'Confirmada',
@@ -338,7 +393,7 @@ const DIARIOS_SEMILLA: Diario[] = [
     contenido:
       'Hoy logramos terminar la arquitectura del microservicio. Al principio me sentí abrumado por las fechas de entrega, pero dividir las tareas con mi compañero me devolvió la calma. Me siento enfocado.',
     fecha_apertura: new Date(Date.now() - 86400000 * 1).toISOString(),
-    compartir_sp: 1, // Compartido con Dra. Laura
+    compartir_sp: true, // Compartido con Dra. Laura
   },
   {
     id_diario: 2,
@@ -347,7 +402,7 @@ const DIARIOS_SEMILLA: Diario[] = [
     contenido:
       'Nota privada: Recordar no tomar café después de las 6:00 PM. Anoche me costó dormir por estar revisando código hasta tarde.',
     fecha_apertura: new Date(Date.now() - 86400000 * 3).toISOString(),
-    compartir_sp: 0, // PRIVADO - No visible para psicólogo
+    compartir_sp: false, // PRIVADO - No visible para psicólogo
   },
 ];
 
@@ -437,6 +492,81 @@ const FORMULARIOS_SEMILLA: Formulario[] = [
   },
 ];
 
+const FICHAS_SEMILLA: Ficha[] = [
+  {
+    id_ficha: 1,
+    id_programa: 1,
+    codigo_ficha: '3288046',
+    programa: 'ADSO',
+    centro: 'CMTC',
+    jornada: 'Diurna',
+    estado: true,
+  },
+  {
+    id_ficha: 2,
+    id_programa: 2,
+    codigo_ficha: '2025001',
+    programa: 'Textil',
+    centro: 'CMTC',
+    jornada: 'Diurna',
+    estado: true,
+  },
+];
+
+const DISPONIBILIDAD_SEMILLA: Disponibilidad[] = [
+  {
+    id_disponibilidad: 1,
+    id_usuario: 4,
+    id_rol: 2,
+    dia_semana: 1,
+    hora_inicio: '09:00:00',
+    hora_fin: '11:00:00',
+    estado: true,
+  },
+  {
+    id_disponibilidad: 2,
+    id_usuario: 4,
+    id_rol: 2,
+    dia_semana: 3,
+    hora_inicio: '10:00:00',
+    hora_fin: '12:00:00',
+    estado: true,
+  },
+  {
+    id_disponibilidad: 3,
+    id_usuario: 5,
+    id_rol: 2,
+    dia_semana: 2,
+    hora_inicio: '14:00:00',
+    hora_fin: '16:00:00',
+    estado: true,
+  },
+];
+
+const USUARIO_FICHA_SEMILLA: UsuarioFicha[] = [
+  {
+    id_usuario_ficha: 1,
+    id_usuario: 1,
+    id_ficha: 1,
+    fecha_asignacion: new Date().toISOString(),
+    estado: true,
+  },
+  {
+    id_usuario_ficha: 2,
+    id_usuario: 2,
+    id_ficha: 1,
+    fecha_asignacion: new Date().toISOString(),
+    estado: true,
+  },
+  {
+    id_usuario_ficha: 3,
+    id_usuario: 3,
+    id_ficha: 2,
+    fecha_asignacion: new Date().toISOString(),
+    estado: true,
+  },
+];
+
 const HISTORIAL_CLINICO_SEMILLA: HistorialClinico[] = [
   {
     id_hl_clinico: 1,
@@ -471,7 +601,7 @@ const HISTORIAL_CLINICO_SEMILLA: HistorialClinico[] = [
     fecha_apertura: '2026-02-10T14:30:00.000Z',
     condiciones: 'Monitoreo de estado de ánimo y adherencia terapéutica externa.',
     condiciones_lista: ['Episodio depresivo leve en remisión', 'Acompañamiento en aula'],
-    antecedentes: 'Seguimiento por psicología clínica de EPS Compensar.',
+    antecedentes: 'Seguimiento de bienestar psicosocial de EPS Compensar.',
     condicion_actual: 'Activa en comunidad SENA, reporte de asistencia regular.',
     evolucion_clinica: 'Participativa en talleres de bienestar.',
   },
@@ -496,7 +626,7 @@ const SOPORTES_CLINICOS_SEMILLA: CertificadoSoporte[] = [
     nombre_documento: 'Concepto de Acompañamiento Psicológico Externo',
     entidad: 'Compensar EPS - Sede Calle 26',
     fecha_emision: '2026-02-10',
-    medico_especialista: 'Dr. Fernando Salazar (Psicología Clínica TP 108422)',
+    medico_especialista: 'Profesional especialista en bienestar psicosocial (TP 108422)',
     tipo_archivo: 'PDF',
     tamano: '840 KB',
     observaciones: 'Se sugiere flexibilidad en tiempos de evaluación formativa y pausas activas.',
@@ -637,7 +767,7 @@ const MENUS_SEMILLA: Menu[] = [
   { id_menu: 2, nombre_menu: 'Diario', nombre_menu_en: 'Journal', icono: 'BookOpen', ruta: 'diario', seccion: 1, orden: 2 },
   { id_menu: 3, nombre_menu: 'Formulario', nombre_menu_en: 'Forms', icono: 'ClipboardList', ruta: 'formularios', seccion: 1, orden: 3 },
   { id_menu: 4, nombre_menu: 'Explorar', nombre_menu_en: 'Explore', icono: 'Compass', ruta: 'explorar', seccion: 1, orden: 4 },
-  { id_menu: 5, nombre_menu: 'Cita', nombre_menu_en: 'Appointment', icono: 'CalendarPlus', ruta: 'citas', seccion: 1, orden: 5, es_accion: true },
+  { id_menu: 5, nombre_menu: 'Orientación', nombre_menu_en: 'Orientation', icono: 'CalendarPlus', ruta: 'orientaciones', seccion: 1, orden: 5, es_accion: true },
 
   // SECCION 1 (Psicólogo)
   { id_menu: 6, nombre_menu: 'Crear Publicación', nombre_menu_en: 'New Post', icono: 'PlusCircle', ruta: 'crear_publicacion', seccion: 1, orden: 3, es_accion: true },
@@ -714,17 +844,141 @@ const CUSTOM_FEEDS_SEMILLA: CustomFeed[] = [
 
 class SerenaApiService {
   private isConfiguredForRealBackend: boolean = false;
-  private backendBaseUrl: string = 'http://localhost:5000/api';
+  private backendBaseUrl: string = '/api';
+  private accessToken: string | null = null;
+  private sessionGeneration = 0;
 
   constructor() {
+    clearLegacySensitiveStorage();
     this.initStorage();
+  }
+
+  public setAccessToken(token: string | null): void {
+    this.accessToken = token;
+  }
+
+  public clearSessionData(): void {
+    this.sessionGeneration += 1;
+    this.accessToken = null;
+    sessionData.clear();
+    sessionEncryptionKey = randomBytes(32);
+  }
+
+  public getSessionGeneration(): number {
+    return this.sessionGeneration;
+  }
+
+  private getAuthorizationHeaders(): HeadersInit {
+    return this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {};
+  }
+
+  private fetchApi(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    if (this.accessToken) headers.set('Authorization', `Bearer ${this.accessToken}`);
+    return fetch(input, { ...init, headers });
+  }
+
+  public async getProgramasDesdeApi(): Promise<Programa[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/programas`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getFichasDeProgramaDesdeApi(idPrograma: number): Promise<FichaRegistro[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/programas/${idPrograma}/fichas`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getReporteOrientacionesDesdeApi(desde: Date, hasta: Date): Promise<ReporteOrientacion[]> {
+    const query = new URLSearchParams({ desde: desde.toISOString(), hasta: hasta.toISOString() });
+    const response = await this.fetchApi(`${this.backendBaseUrl}/psicosocial/reportes/orientaciones?${query}`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getAdminPsicosociales(search = ''): Promise<AdminPsicosocial[]> {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales${query}`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json() as Promise<AdminPsicosocial[]>;
+  }
+
+  public async getAdminPsicosocialDetail(id: number): Promise<AdminPsicosocialDetail> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales/${id}`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json() as Promise<AdminPsicosocialDetail>;
+  }
+
+  public async getMisDisponibilidadesDesdeApi(): Promise<Disponibilidad[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad/mis-disponibilidades`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async crearDisponibilidadEnApi(disponibilidad: Omit<Disponibilidad, 'id_disponibilidad' | 'id_usuario' | 'id_rol'>): Promise<Disponibilidad> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
+      body: JSON.stringify(disponibilidad),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async cambiarContrasenaEnApi(request: {
+    correo: string;
+    contrasenaActual: string;
+    nuevaContrasena: string;
+  }): Promise<{ mensaje: string }> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Login/cambiar-contrasena`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
   }
 
   private initStorage() {
     if (typeof window === 'undefined') return;
-    if (!localStorage.getItem(STORAGE_KEYS.USUARIOS)) {
-      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(USUARIOS_SEMILLA));
+
+    const legacyUsuarios = localStorage.getItem(STORAGE_KEYS.USUARIOS);
+    const legacyCurrentUser = localStorage.getItem('serena_current_user');
+
+    if (legacyUsuarios && legacyUsuarios !== '[]') {
+      try {
+        const parsed = JSON.parse(legacyUsuarios) as Usuario[];
+        const hasMockData = Array.isArray(parsed) && parsed.some((u) => u.email?.includes('@soy.sena.edu.co') || u.email?.includes('@sena.edu.co'));
+        if (hasMockData) {
+          localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+        }
+      } catch {
+        localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+      }
     }
+
+    if (!localStorage.getItem(STORAGE_KEYS.USUARIOS)) {
+      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+    }
+
+    if (legacyCurrentUser && legacyCurrentUser !== '[]') {
+      try {
+        const parsed = JSON.parse(legacyCurrentUser) as Usuario;
+        if (parsed && parsed.email && (parsed.email.includes('@soy.sena.edu.co') || parsed.email.includes('@sena.edu.co'))) {
+          localStorage.removeItem('serena_current_user');
+        }
+      } catch {
+        localStorage.removeItem('serena_current_user');
+      }
+    }
+
     if (!localStorage.getItem(STORAGE_KEYS.COMUNIDADES)) {
       localStorage.setItem(STORAGE_KEYS.COMUNIDADES, JSON.stringify(COMUNIDADES_SEMILLA));
     }
@@ -761,12 +1015,71 @@ class SerenaApiService {
     if (!localStorage.getItem(STORAGE_KEYS.CUSTOM_FEEDS)) {
       localStorage.setItem(STORAGE_KEYS.CUSTOM_FEEDS, JSON.stringify(CUSTOM_FEEDS_SEMILLA));
     }
+    if (!localStorage.getItem(STORAGE_KEYS.FICHAS)) {
+      localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(FICHAS_SEMILLA));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD)) {
+      localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(DISPONIBILIDAD_SEMILLA));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.USUARIO_FICHA)) {
+      localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(USUARIO_FICHA_SEMILLA));
+    }
   }
 
   // --- Usuarios & Autenticación ---
+  public async getUsuariosDesdeApi(): Promise<Usuario[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Usuario`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data = await response.json();
+    const usuarios = Array.isArray(data) ? data : [];
+    localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(usuarios));
+    return usuarios;
+  }
+
+  public async getFichasDesdeApi(): Promise<Ficha[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/ficha`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Ficha[] = await response.json();
+    localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(data));
+    return data;
+  }
+
+  public async getUsuarioFichaDesdeApi(): Promise<UsuarioFicha[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/usuario-ficha`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: UsuarioFicha[] = await response.json();
+    localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(data));
+    return data;
+  }
+
+  public async getDisponibilidadDesdeApi(): Promise<Disponibilidad[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Disponibilidad[] = await response.json();
+    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    return data;
+  }
+
+  public async getDisponibilidadPorUsuarioDesdeApi(id_usuario: number): Promise<Disponibilidad[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad/disponibles/${id_usuario}`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Disponibilidad[] = await response.json();
+    const lista = data.filter((d) => d.estado !== false);
+    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    return lista;
+  }
+
   public getUsuarios(): Usuario[] {
     const data = localStorage.getItem(STORAGE_KEYS.USUARIOS);
-    return data ? JSON.parse(data) : USUARIOS_SEMILLA;
+    const usuarios = data ? JSON.parse(data) : [];
+    return Array.isArray(usuarios) ? usuarios : [];
+  }
+
+  public clearMockUserData(): void {
+    const storedUsuarios = localStorage.getItem(STORAGE_KEYS.USUARIOS);
+    if (storedUsuarios && storedUsuarios !== '[]') {
+      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+    }
   }
 
   public getCurrentUser(): Usuario {
@@ -774,11 +1087,18 @@ class SerenaApiService {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {
+      } catch {
         // fallback
       }
     }
-    return this.getUsuarios()[0]; // Default: Yonatan Acuña (Aprendiz CMTC)
+
+    return {
+      id_usuario: 0,
+      nombre_usuario: 'Usuario',
+      email: '',
+      id_rol: 1,
+      centro: 'CMTC',
+    } as Usuario;
   }
 
   public setCurrentUser(user: Usuario): void {
@@ -791,6 +1111,44 @@ class SerenaApiService {
 
   public getPsicologosPorCentro(centro: string): Usuario[] {
     return this.getUsuarios().filter((u) => u.id_rol === 2 && u.centro === centro);
+  }
+
+  public getFichas(): Ficha[] {
+    const data = localStorage.getItem(STORAGE_KEYS.FICHAS);
+    return data ? JSON.parse(data) : FICHAS_SEMILLA;
+  }
+
+  public getFichaById(id_ficha: number): Ficha | undefined {
+    return this.getFichas().find((f) => f.id_ficha === id_ficha);
+  }
+
+  public getDisponibilidadPorUsuario(id_usuario: number): Disponibilidad[] {
+    const data = localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD);
+    const lista: Disponibilidad[] = data ? JSON.parse(data) : DISPONIBILIDAD_SEMILLA;
+    return lista.filter((d) => d.id_usuario === id_usuario);
+  }
+
+  public getUsuariosPorFicha(id_ficha: number): Usuario[] {
+    const data = localStorage.getItem(STORAGE_KEYS.USUARIO_FICHA);
+    const relaciones: UsuarioFicha[] = data ? JSON.parse(data) : USUARIO_FICHA_SEMILLA;
+    const idsUsuarios = relaciones.filter((uf) => uf.id_ficha === id_ficha).map((uf) => uf.id_usuario);
+    return this.getUsuarios().filter((u) => idsUsuarios.includes(u.id_usuario));
+  }
+
+  public crearDisponibilidad(id_usuario: number, id_rol: number, dia_semana: number, hora_inicio: string, hora_fin: string): Disponibilidad {
+    const data: Disponibilidad[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD) || '[]');
+    const nueva: Disponibilidad = {
+      id_disponibilidad: Date.now(),
+      id_usuario,
+      id_rol,
+      dia_semana,
+      hora_inicio,
+      hora_fin,
+      estado: true,
+    };
+    data.push(nueva);
+    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    return nueva;
   }
 
   // --- Comunidades ---
@@ -830,6 +1188,24 @@ class SerenaApiService {
   }
 
   // --- Publicaciones (Feed) ---
+  public async getPublicacionesDesdeApi(comunidadId?: string): Promise<Publicacion[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/publicaciones`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Publicacion[] = await response.json();
+    const publicaciones = data.map((p) => ({
+      ...p,
+      autor: this.getUsuarioById(p.id_usuario),
+    }));
+
+    const filtradas = comunidadId
+      ? publicaciones.filter((p) => !p.id_comunidad || p.id_comunidad === comunidadId)
+      : publicaciones;
+
+    return filtradas.sort(
+      (a, b) => new Date(b.fecha_publicacion).getTime() - new Date(a.fecha_publicacion).getTime()
+    );
+  }
+
   public getPublicaciones(comunidadId?: string): Publicacion[] {
     const data = localStorage.getItem(STORAGE_KEYS.PUBLICACIONES);
     const lista: Publicacion[] = data ? JSON.parse(data) : PUBLICACIONES_SEMILLA;
@@ -850,6 +1226,40 @@ class SerenaApiService {
     return this.getPublicaciones().filter((p) => p.id_usuario === id_usuario);
   }
 
+  public async crearPublicacionEnApi(payload: {
+    titulo: string;
+    contenido: string;
+    id_usuario: number;
+    id_comunidad?: string;
+    etiqueta?: string;
+    imagen_url?: string;
+    fecha_publicacion?: string;
+  }): Promise<Publicacion> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/publicaciones/crear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        id_comunidad: payload.id_comunidad || 's/CMTC',
+        fecha_publicacion: payload.fecha_publicacion ?? new Date().toISOString(),
+        votos: 0,
+        comentarios_count: 0,
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async votarPublicacionEnApi(publicacion: Publicacion, delta: number): Promise<Publicacion> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/publicaciones`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...publicacion, votos: (publicacion.votos || 0) + delta }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
   public crearPublicacion(titulo: string, contenido: string, id_usuario: number, id_comunidad: string, etiqueta?: string): Publicacion {
     const lista = this.getPublicaciones();
     const nueva: Publicacion = {
@@ -859,7 +1269,7 @@ class SerenaApiService {
       fecha_publicacion: new Date().toISOString(),
       id_usuario,
       id_comunidad,
-      votos: 1,
+      votos: 0,
       comentarios_count: 0,
       etiqueta: etiqueta || 'Bienestar',
     };
@@ -958,8 +1368,65 @@ class SerenaApiService {
     localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
 
     // Auditoría inmutable en historial_cita (RN-04)
-    this.registrarHistorialCita(nuevaCita.id_cita, 'Creación de cita por el aprendiz en estado Pendiente.');
+    this.registrarHistorialCita(nuevaCita.id_cita, 'Creación de orientación por el aprendiz en estado Pendiente.');
     return nuevaCita;
+  }
+
+  public async getCitasDesdeApi(): Promise<Cita[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data: Cita[] = await response.json();
+    return data.map((c) => ({
+      ...c,
+      estado_cita: this.normalizarEstadoCita(c.estado_cita),
+    }));
+  }
+
+  private normalizarEstadoCita(estado?: string): Cita['estado_cita'] {
+    if (!estado) return 'Pendiente';
+    const capitalizado = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
+    if (['Pendiente', 'Confirmada', 'Realizada', 'Cancelada', 'Rechazada'].includes(capitalizado)) {
+      return capitalizado as Cita['estado_cita'];
+    }
+    return 'Pendiente';
+  }
+
+  public async agendarCitaEnApi(cita: Omit<Cita, 'id_cita'>): Promise<Cita> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita/agendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
+      body: JSON.stringify(cita),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async actualizarCitaEnApi(cita: Cita): Promise<Cita> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita/${cita.id_cita}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
+      body: JSON.stringify(cita),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async eliminarCitaEnApi(id_cita: number): Promise<void> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita/${id_cita}`, {
+      method: 'DELETE',
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+  }
+
+  public async cambiarEstadoCitaEnApi(
+    cita: Cita,
+    estado_cita: Cita['estado_cita'],
+    motivo_cambio?: string,
+  ): Promise<Cita> {
+    return this.actualizarCitaEnApi({ ...cita, estado_cita, motivo_cambio });
   }
 
   public solicitarCitaSinAgendar(id_psicologo: number, id_aprendiz: number, motivo: string): Cita {
@@ -967,7 +1434,7 @@ class SerenaApiService {
     const nueva: Cita = {
       id_cita: Date.now(),
       fecha_hora: new Date(Date.now() + 86400000 * 2).toISOString(),
-      motivo: motivo || 'Solicitud de acompañamiento psicológico enviada por tu psicólogo asignado.',
+      motivo: motivo || 'Solicitud de acompañamiento psicológico enviada por tu psicosocial asignado.',
       estado_cita: 'Pendiente',
       id_usuario_aprendiz: id_aprendiz,
       id_usuario_psicologo: id_psicologo,
@@ -975,7 +1442,7 @@ class SerenaApiService {
     };
     lista.unshift(nueva);
     localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
-    this.registrarHistorialCita(nueva.id_cita, 'Solicitud de cita emitida por psicólogo sin franja fija.');
+    this.registrarHistorialCita(nueva.id_cita, 'Solicitud de orientación emitida por psicosocial sin franja fija.');
     return nueva;
   }
 
@@ -1183,20 +1650,20 @@ class SerenaApiService {
     }
   }
 
-  // --- Diario Personal con Cifrado AES (RF-DIA-01 a 03, RN-02) ---
+  // --- Diario Personal (un diario por aprendiz; las entradas son actualizaciones) ---
   public getDiario(id_usuario_aprendiz: number, rol_solicitante: number, id_usuario_solicitante: number): Diario[] {
     const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
     if (rol_solicitante === 1) {
       // El aprendiz solo ve su propio diario (RN-03)
       return data.filter((d) => d.id_usuario === id_usuario_solicitante);
     } else if (rol_solicitante === 2) {
-      // RN-02: El psicólogo SOLO recibe registros donde compartir_sp === 1
-      return data.filter((d) => d.id_usuario === id_usuario_aprendiz && d.compartir_sp === 1);
+      // RN-02: El psicólogo SOLO recibe registros donde compartir_sp === true
+      return data.filter((d) => d.id_usuario === id_usuario_aprendiz && d.compartir_sp);
     }
     return [];
   }
 
-  public guardarEntradaDiario(id_usuario: number, titulo: string, contenido: string, compartir_sp: number): Diario {
+  public guardarEntradaDiario(id_usuario: number, titulo: string, contenido: string, compartir_sp: boolean): Diario {
     const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
     const nuevaEntrada: Diario = {
       id_diario: Date.now(),
@@ -1211,13 +1678,40 @@ class SerenaApiService {
     return nuevaEntrada;
   }
 
-  public cambiarPermisoCompartirDiario(id_diario: number, nuevoCompartir: number): void {
-    const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
-    const entrada = data.find((d) => d.id_diario === id_diario);
-    if (entrada) {
-      entrada.compartir_sp = nuevoCompartir;
-      localStorage.setItem(STORAGE_KEYS.DIARIO, JSON.stringify(data));
-    }
+  public async getDiarioDesdeApi(id_usuario: number): Promise<Diario | null> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/diario/usuario/${id_usuario}`);
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async actualizarDiarioEnApi(entrada: {
+    id_usuario: number;
+    contenido: string;
+    compartir_sp: boolean;
+  }): Promise<Diario> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/diario/crear`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_usuario: entrada.id_usuario,
+        contenido: entrada.contenido,
+        compartir_sp: entrada.compartir_sp,
+        fecha_apertura: new Date().toISOString(),
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async cambiarPermisoCompartirDiarioEnApi(diario: Diario, compartir_sp: boolean): Promise<Diario> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/diario/${diario.id_diario}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...diario, compartir_sp }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
   }
 
   // --- Estado de Ánimo (RF-EA-01, RF-EA-02) ---
@@ -1230,6 +1724,32 @@ class SerenaApiService {
 
   public getHistorialEstados(id_usuario: number): EstadoDeAnimo[] {
     return this.getEstadosDeAnimo(id_usuario);
+  }
+
+  public async getHistorialEstadosDesdeApi(id_usuario: number): Promise<EstadoDeAnimo[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/estado-animo-usuario/usuario/${id_usuario}`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  public async registrarEstadoDeAnimoEnApi(payload: {
+    id_usuario: number;
+    id_estado: number;
+    fecha_estado?: string;
+    motivo?: string;
+  }): Promise<EstadoDeAnimo> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/estado-animo-usuario`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        fecha_estado: payload.fecha_estado ?? new Date().toISOString(),
+        motivo: payload.motivo ?? 'Sin motivo específico',
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return await response.json();
   }
 
   public registrarEstadoDeAnimo(
@@ -1282,9 +1802,39 @@ class SerenaApiService {
   }
 
   // --- Formularios (RF-FOR-01) ---
+  public async getFormulariosDesdeApi(): Promise<Formulario[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Formulario`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
   public getFormularios(): Formulario[] {
     const data = localStorage.getItem(STORAGE_KEYS.FORMULARIOS);
     return data ? JSON.parse(data) : FORMULARIOS_SEMILLA;
+  }
+
+  public async crearFormularioEnApi(payload: {
+    nombre_formulario: string;
+    descripcion: string;
+    id_usuario: number;
+    preguntas_count?: number;
+    tiempo_estimado?: string;
+    id_comunidad?: string;
+    respondido?: boolean;
+  }): Promise<Formulario> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Formulario`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        preguntas_count: payload.preguntas_count ?? 5,
+        tiempo_estimado: payload.tiempo_estimado ?? '3 minutos',
+        id_comunidad: payload.id_comunidad ?? 's/CMTC',
+        respondido: payload.respondido ?? false,
+      }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
   }
 
   public crearFormulario(nombre: string, descripcion: string, id_usuario: number, preguntasCount: number = 5, comunidadId?: string): Formulario {
@@ -1360,6 +1910,17 @@ class SerenaApiService {
   public setBackendConfig(isLive: boolean, baseUrl: string) {
     this.isConfiguredForRealBackend = isLive;
     this.backendBaseUrl = baseUrl;
+  }
+
+  private async getApiError(response: Response): Promise<string> {
+    const body = await response.text();
+    if (!body) return `La API respondió ${response.status}.`;
+    try {
+      const json = JSON.parse(body);
+      return json.mensaje || json.title || body;
+    } catch {
+      return body;
+    }
   }
 }
 

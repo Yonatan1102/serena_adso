@@ -28,7 +28,6 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // RF-EM-01 y RN-05: Se registra automáticamente en la tabla de emergencias como evidencia inmutable
       serenaApi.registrarEmergencia(
         currentUser.id_usuario,
         'Activación de auxilio inmediato desde el botón de pánico en la plataforma.'
@@ -45,9 +44,6 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
       currentUser.id_usuario,
       `Detalle adicional del aprendiz: ${detalle || 'Solicita contacto telefónico urgente.'}`
     );
-    setTimeout(() => {
-      alert('Tu psicólogo asignado y el equipo de Bienestar al Aprendiz han sido alertados.');
-    }, 200);
   };
 
   return (
@@ -67,7 +63,7 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
           </div>
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-              Protocolo Institucional SENA • RF-EM-01
+              Atención inmediata
             </span>
             <h3 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
               Activación de Auxilio & Emergencia
@@ -82,7 +78,7 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
             No estás solo(a). Tu bienestar es lo más importante.
           </p>
           <p>
-            Hemos registrado la alerta en nuestro sistema de auditoría <strong>(RN-05)</strong>. A continuación tienes acceso directo a las líneas de atención psicológica gratuitas 24/7 y al equipo de Bienestar del Centro CMTC.
+            Hemos registrado tu solicitud. A continuación tienes acceso directo a las líneas de atención psicológica gratuitas 24/7 y al equipo de Bienestar del Centro CMTC.
           </p>
         </div>
 
@@ -126,7 +122,7 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
               <PhoneCall className="w-4 h-4 text-emerald-200" />
               <div className="text-left">
                 <p className="font-bold">Consultorio Bienestar CMTC</p>
-                <p className="text-[10px] text-emerald-200">Dra. Laura Martínez • Psicóloga</p>
+                <p className="text-[10px] text-emerald-200">Dra. Laura Martínez • Psicosocial</p>
               </div>
             </div>
             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-lg">Llamar CMTC</span>
@@ -136,7 +132,7 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
         {/* Notificar por escrito a Psicólogo */}
         <div className="border-t border-slate-100 pt-4">
           <p className="text-xs font-bold text-slate-800 mb-2">
-            ¿Deseas enviar un mensaje directo a tu psicólogo asignado?
+            ¿Deseas enviar un mensaje directo a tu psicosocial asignado?
           </p>
           {notificado ? (
             <div className="p-3 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-200 text-xs flex items-center gap-2">

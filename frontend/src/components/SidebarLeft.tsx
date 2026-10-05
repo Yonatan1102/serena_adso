@@ -15,14 +15,7 @@ import { motion } from 'motion/react';
 import { Usuario, Comunidad, Menu, CustomFeed } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
 
-/* ========================================================================
-   ICONOS IDÉNTICOS A REDDIT (SEGÚN IMAGEN DE REFERENCIA ADJUNTA image.png)
-   1. Home: Silueta sólida de casa con puerta
-   2. Popular: Flecha diagonal hacia arriba a la derecha dentro de un círculo
-   3. News: Periódico con doblado y líneas de texto
-   4. Explore: 3 círculos (1 arriba, 2 abajo)
-   5. Plus: Signo más fino y limpio (+ Start a community / + Cita)
-   ======================================================================== */
+
 
 export const RedditHomeIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
   <svg viewBox="0 0 20 20" fill="currentColor" className={className}>
@@ -96,7 +89,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
   onOpenRecursoModal,
   idioma = 'es',
 }) => {
-  const isPsicologo = currentUser.id_rol === 2;
+  const isPsicologo = currentUser.id_rol === 2 || currentUser.id_rol === 3;
 
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>(() =>
     serenaApi.getCustomFeeds()
@@ -133,7 +126,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
     <motion.aside
       initial={false}
       animate={{
-        width: isCollapsed ? 68 : 256,
+        width: isCollapsed ? 48 : 224,
       }}
       transition={{
         duration: 0.2,
@@ -223,8 +216,8 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setActiveView('citas')}
-                  title="Agendar Cita"
+                  onClick={() => setActiveView('orientaciones')}
+                  title="Agendar Orientación"
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <RedditPlusIcon className="w-5 h-5" />
@@ -356,11 +349,11 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
 
                   {/* 7. Cita: EXACTAMENTE IGUAL a "+ Start a community" en image.png pero con icono + y texto limpio */}
                   <button
-                    onClick={() => setActiveView('citas')}
+                    onClick={() => setActiveView('orientaciones')}
                     className="w-full text-left px-3 py-2 rounded-xl text-sm font-normal text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-3 cursor-pointer"
                   >
                     <RedditPlusIcon className="w-5 h-5 text-slate-800" />
-                    <span>Cita (Orientación)</span>
+                    <span>Orientación (Orientación)</span>
                   </button>
                 </div>
 

@@ -17,14 +17,6 @@ namespace WebApplication1.models
         [Column("nombre_estado")]
         public string nombre_estado { get; set; } = string.Empty;
 
-        [Column("fecha_estado")]
-        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}")]
-        public DateTime fecha_estado { get; set; }
-
-        [Column("id_usuario")]
-        public int id_usuario { get; set; }
-
-        [ForeignKey(nameof(id_usuario))]
-        public virtual usuario? usuario { get; set; }
+        public virtual ICollection<estado_animo_usuario> estado_animo_usuarios { get; set; } = new List<estado_animo_usuario>();
     }
 }

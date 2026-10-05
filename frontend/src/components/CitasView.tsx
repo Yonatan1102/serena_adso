@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CalendarCheck,
   Clock,
@@ -12,8 +12,9 @@ import {
   Send,
   History,
 } from 'lucide-react';
-import { Usuario, Cita } from '../types/serena.types';
+import { Usuario, Cita, Disponibilidad } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
+import { RecaptchaV2 } from './RecaptchaV2';
 
 interface CitasViewProps {
   currentUser: Usuario;
@@ -34,40 +35,95 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
   // Formulario de agendamiento para aprendiz
   const defaultPsico = (psicologosDisponibles || [])[0];
-  const [psicologoSeleccionadoId, setPsicologoSeleccionadoId] = useState<number>(defaultPsico?.id_usuario || 4);
+  const [psicologoSeleccionadoId, setPsicologoSeleccionadoId] = useState<number>(0);
+
+  // Sincroniza el profesional con los datos reales que llegan de la API (evita IDs mock como 4)
+  useEffect(() => {
+    if (psicologoSeleccionadoId === 0 && psicologosDisponibles.length > 0) {
+      setPsicologoSeleccionadoId(psicologosDisponibles[0].id_usuario);
+    }
+  }, [psicologosDisponibles, psicologoSeleccionadoId]);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('');
   const [franjaSeleccionada, setFranjaSeleccionada] = useState<string>('');
   const [motivo, setMotivo] = useState<string>('');
   const [agendando, setAgendando] = useState<boolean>(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+  const [captchaVersion, setCaptchaVersion] = useState(0);
+  const [disponibilidadesPsico, setDisponibilidadesPsico] = useState<Disponibilidad[]>([]);
+  const diaSeleccionado = fechaSeleccionada
+    ? (new Date(`${fechaSeleccionada}T12:00:00`).getDay() + 6) % 7 + 1
+    : null;
+  const franjasDisponiblesPsico = disponibilidadesPsico
+    .filter((slot) => slot.estado !== false && slot.dia_semana === diaSeleccionado)
+    .map((slot) => slot.hora_inicio.slice(0, 5));
 
   // Psicólogo seleccionado para ver su disponibilidad
   const psicoActivo = (psicologosDisponibles || []).find((p) => p.id_usuario === psicologoSeleccionadoId) || defaultPsico;
 
-  const handleAgendarAprendiz = (e: React.FormEvent) => {
+  useEffect(() => {
+    const cargarFranjas = async () => {
+      if (!psicoActivo?.id_usuario) {
+        setDisponibilidadesPsico([]);
+        return;
+      }
+
+      try {
+        const disponibilidad: Disponibilidad[] = await serenaApi.getDisponibilidadPorUsuarioDesdeApi(psicoActivo.id_usuario);
+        setDisponibilidadesPsico(disponibilidad);
+      } catch {
+        setDisponibilidadesPsico([]);
+      }
+    };
+
+    void cargarFranjas();
+  }, [psicoActivo]);
+
+  const handleAgendarAprendiz = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fechaSeleccionada || !motivo.trim()) {
-      alert('Por favor selecciona una fecha y redacta el motivo de la consulta.');
+    if (!psicologoSeleccionadoId) {
+      setMensaje('No hay profesionales psicosociales registrados para solicitar una orientación.');
+      return;
+    }
+    if (!fechaSeleccionada || !franjaSeleccionada || !motivo.trim()) {
+      setMensaje('Selecciona una fecha, una franja disponible y describe brevemente el motivo.');
+      return;
+    }
+    if (!recaptchaToken) {
+      setMensaje('Completa la verificación reCAPTCHA para enviar la solicitud.');
+      return;
+    }
+    if (!franjasDisponiblesPsico.includes(franjaSeleccionada)) {
+      setMensaje('La franja seleccionada ya no está disponible. Actualiza la disponibilidad e inténtalo nuevamente.');
       return;
     }
 
+    setMensaje(null);
     setAgendando(true);
-    const fechaHoraCompleta = `${fechaSeleccionada}T${franjaSeleccionada || '09:00'}:00.000Z`;
+    const fechaHoraCompleta = `${fechaSeleccionada}T${franjaSeleccionada}:00.000Z`;
 
-    serenaApi.agendarCita(
-      currentUser.id_usuario,
-      psicologoSeleccionadoId,
-      fechaHoraCompleta,
-      motivo
-    );
-
-    setTimeout(() => {
+    try {
+      await serenaApi.agendarCitaEnApi({
+        fecha_hora: fechaHoraCompleta,
+        motivo: motivo.trim(),
+        estado_cita: 'Pendiente',
+        id_usuario_aprendiz: currentUser.id_usuario,
+        id_usuario_psicologo: psicologoSeleccionadoId,
+        recaptchaToken,
+      });
       setAgendando(false);
       setMotivo('');
       setFechaSeleccionada('');
       setFranjaSeleccionada('');
-      onRefreshCitas();
-      alert('¡Cita solicitada exitosamente! Tu psicólogo asignado la confirmará en breve.');
-    }, 400);
+      await onRefreshCitas();
+      setMensaje('Orientación solicitada. El profesional psicosocial asignado la confirmará en breve.');
+    } catch (error) {
+      setAgendando(false);
+      setMensaje(error instanceof Error ? error.message : 'No se pudo guardar la orientación.');
+    } finally {
+      setRecaptchaToken('');
+      setCaptchaVersion((current) => current + 1);
+    }
   };
 
   const misCitas = isPsicologo
@@ -79,19 +135,18 @@ export const CitasView: React.FC<CitasViewProps> = ({
       {/* Cabecera del Módulo de Citas */}
       <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#7E22CE]/10 text-[#581C87] font-semibold text-xs">
-              Módulo de Citas y Trazabilidad
-            </span>
-            <span className="text-xs text-slate-400">• RF-CIT-01 & RF-CIT-02</span>
-          </div>
+          {mensaje && (
+            <div className="rounded-xl border border-violet-100 bg-violet-50 px-4 py-3 text-xs text-violet-800">
+              {mensaje}
+            </div>
+          )}
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {isPsicologo ? 'Gestión de Citas y Agenda Psicológica' : 'Agendamiento de Citas de Bienestar'}
+            {isPsicologo ? 'Gestión de orientaciones psicosociales' : 'Solicitud de orientaciones de bienestar'}
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
             {isPsicologo
-              ? 'Controla las solicitudes de orientación, actualiza estados con auditoría inmutable y envía citas a aprendices.'
-              : 'Selecciona la franja de disponibilidad de tu psicólogo asignado en el Centro CMTC para programar tu sesión de acompañamiento.'}
+              ? 'Controla las solicitudes de orientación, actualiza estados con auditoría inmutable y envía orientaciones a aprendices.'
+              : 'Selecciona la franja de disponibilidad de tu psicosocial asignado en el Centro CMTC para programar tu sesión de acompañamiento.'}
           </p>
         </div>
       </div>
@@ -103,7 +158,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
           <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col justify-between gap-3">
             <div>
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
-                Psicólogo(a) Asignado(a)
+                Profesional psicosocial asignado
               </h3>
 
               {psicoActivo && (
@@ -135,12 +190,12 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
                   <div className="mt-1">
                     <p className="text-xs font-semibold text-slate-700 mb-1.5">
-                      Franjas habituales disponibles:
+                      Franjas disponibles:
                     </p>
                     <div className="flex flex-wrap gap-1">
-                      {psicoActivo.disponibilidad?.map((franja) => (
+                      {(franjasDisponiblesPsico.length > 0 ? franjasDisponiblesPsico : ['Selecciona una fecha con disponibilidad']).map((franja) => (
                         <span
-                          key={franja}
+                          key={`${psicoActivo.id_usuario}-${franja}`}
                           className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-medium"
                         >
                           {franja}
@@ -162,7 +217,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
             <div>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 mb-0.5 flex items-center gap-2">
                 <CalendarPlus className="w-4 h-4 text-[#7E22CE]" />
-                <span>Programar Nueva Sesión</span>
+                <span>Solicitar una orientación</span>
               </h3>
               <p className="text-xs text-slate-400">
                 Diligencia la fecha y el motivo. Tu solicitud quedará en estado "Pendiente" hasta confirmación del profesional.
@@ -173,18 +228,23 @@ export const CitasView: React.FC<CitasViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Seleccionar Profesional:
+                    Profesional psicosocial:
                   </label>
                   <select
                     value={psicologoSeleccionadoId}
                     onChange={(e) => setPsicologoSeleccionadoId(Number(e.target.value))}
-                    className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white font-normal"
+                    disabled={psicologosDisponibles.length === 0}
+                    className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white font-normal disabled:opacity-60"
                   >
-                    {psicologosDisponibles.map((p) => (
-                      <option key={p.id_usuario} value={p.id_usuario}>
-                        {p.nombre_usuario} - {p.especialidad}
-                      </option>
-                    ))}
+                    {psicologosDisponibles.length === 0 ? (
+                      <option value={0}>No hay profesionales disponibles</option>
+                    ) : (
+                      psicologosDisponibles.map((p) => (
+                        <option key={p.id_usuario} value={p.id_usuario}>
+                          {p.nombre_usuario} - {p.especialidad || 'Bienestar'}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -196,7 +256,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
                     type="date"
                     required
                     value={fechaSeleccionada}
-                    onChange={(e) => setFechaSeleccionada(e.target.value)}
+                    onChange={(e) => { setFechaSeleccionada(e.target.value); setFranjaSeleccionada(''); }}
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full text-xs p-2 rounded-xl border border-slate-200 bg-white"
                   />
@@ -205,12 +265,12 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Franja horaria preferida:
+                  Franja horaria disponible:
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                  {['08:30', '10:00', '11:30', '14:00', '15:30', '16:30'].map((hora) => (
+                  {franjasDisponiblesPsico.map((hora) => (
                     <button
-                      key={hora}
+                      key={`${psicoActivo?.id_usuario ?? 'psico'}-${hora}`}
                       type="button"
                       onClick={() => setFranjaSeleccionada(hora)}
                       className={`py-1.5 px-2 rounded-xl text-xs font-medium transition-colors border cursor-pointer ${
@@ -222,12 +282,17 @@ export const CitasView: React.FC<CitasViewProps> = ({
                       {hora}
                     </button>
                   ))}
+                  {franjasDisponiblesPsico.length === 0 && (
+                    <p className="col-span-full text-xs text-slate-500">
+                      {fechaSeleccionada ? 'No hay franjas disponibles para este día.' : 'Selecciona una fecha para consultar las franjas disponibles.'}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Motivo de la consulta (Confidencial):
+                  Motivo de la orientación (Confidencial):
                 </label>
                 <textarea
                   rows={2}
@@ -238,6 +303,8 @@ export const CitasView: React.FC<CitasViewProps> = ({
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white/70 focus:bg-white focus:outline-none focus:border-[#7E22CE]"
                 />
               </div>
+
+              <RecaptchaV2 key={captchaVersion} onToken={setRecaptchaToken} />
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-slate-400 flex items-center gap-1.5">
@@ -251,7 +318,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
                   className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <CalendarCheck className="w-3.5 h-3.5" />
-                  <span>{agendando ? 'Enviando...' : 'Solicitar Cita'}</span>
+                  <span>{agendando ? 'Enviando...' : 'Solicitar orientación'}</span>
                 </button>
               </div>
             </form>
@@ -264,20 +331,20 @@ export const CitasView: React.FC<CitasViewProps> = ({
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <div>
             <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-              Historial de Citas y Sesiones Registradas
+              Historial de orientaciones registradas
             </h3>
             <p className="text-xs text-slate-400">
-              Registro auditado de estados: Pendiente, Confirmada, Realizada o Cancelada (RN-04)
+              Estados disponibles: Pendiente, Confirmada, Realizada o Cancelada
             </p>
           </div>
           <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg">
-            {misCitas.length} citas
+            {misCitas.length} orientaciones
           </span>
         </div>
 
         {misCitas.length === 0 ? (
           <div className="p-8 text-center text-xs text-slate-400">
-            No tienes citas agendadas en este momento.
+            No tienes orientaciones agendadas en este momento.
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -302,7 +369,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
                       <span className="text-xs font-bold text-slate-900">
                         {isPsicologo
                           ? `Aprendiz: ${cita.aprendiz?.nombre_usuario || 'Aprendiz CMTC'}`
-                          : `Con: ${cita.psicologo?.nombre_usuario || 'Psicólogo Bienestar'}`}
+                          : `Con: ${cita.psicologo?.nombre_usuario || 'Psicosocial Bienestar'}`}
                       </span>
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeColor}`}>
                         {cita.estado_cita}
@@ -328,20 +395,37 @@ export const CitasView: React.FC<CitasViewProps> = ({
                     </div>
                   </div>
 
-                  {isPsicologo && cita.estado_cita === 'Pendiente' && (
+                  {isPsicologo && (cita.estado_cita === 'Pendiente' || cita.estado_cita === 'Confirmada') && (
                     <div className="flex items-center gap-2 shrink-0">
+                      {cita.estado_cita === 'Pendiente' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await serenaApi.cambiarEstadoCitaEnApi(cita, 'Confirmada');
+                              await onRefreshCitas();
+                            } catch (error) {
+                              setMensaje(error instanceof Error ? error.message : 'No se pudo actualizar la orientación.');
+                            }
+                          }}
+                          className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium cursor-pointer"
+                        >
+                          Confirmar
+                        </button>
+                      )}
                       <button
-                        onClick={() => {
-                          serenaApi.actualizarEstadoCita(
-                            cita.id_cita,
-                            'Confirmada',
-                            'Confirmado por el psicólogo.'
-                          );
-                          onRefreshCitas();
+                        onClick={async () => {
+                          const motivo = window.prompt('Indica el motivo de cancelación de la orientación:')?.trim();
+                          if (!motivo) return;
+                          try {
+                            await serenaApi.cambiarEstadoCitaEnApi(cita, 'Cancelada', motivo);
+                            await onRefreshCitas();
+                          } catch (error) {
+                            setMensaje(error instanceof Error ? error.message : 'No se pudo cancelar la orientación.');
+                          }
                         }}
-                        className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium cursor-pointer"
+                        className="px-3 py-1 border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-xl text-xs font-medium cursor-pointer"
                       >
-                        Confirmar
+                        Cancelar
                       </button>
                     </div>
                   )}

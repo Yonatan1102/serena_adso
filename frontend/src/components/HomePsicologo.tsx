@@ -12,7 +12,6 @@ import {
   Sparkles,
   ArrowBigUp,
   ArrowBigDown,
-  MessageSquare,
   Share2,
   Bookmark,
   MoreHorizontal,
@@ -20,6 +19,8 @@ import {
 } from 'lucide-react';
 import { Cita, Usuario, Publicacion } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
+import { DisponibilidadCard } from './DisponibilidadCard';
+import { OrientacionesPdfReport } from './OrientacionesPdfReport';
 
 interface HomePsicologoProps {
   currentUser: Usuario;
@@ -81,9 +82,20 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
   const countCanceladas = citas.filter((c) => c.estado_cita === 'Cancelada').length;
   const totalCitas = citas.length || 1;
 
-  const handleCambiarEstado = (idCita: number, nuevoEstado: 'Confirmada' | 'Cancelada' | 'Realizada') => {
-    serenaApi.actualizarEstadoCita(idCita, nuevoEstado, 'Actualización de estado desde panel clínico del psicólogo.');
-    onRefreshCitas();
+  const handleCambiarEstado = async (
+    cita: Cita,
+    nuevoEstado: 'Confirmada' | 'Cancelada' | 'Realizada' | 'Rechazada'
+  ) => {
+    const motivo = nuevoEstado === 'Cancelada' || nuevoEstado === 'Rechazada'
+      ? window.prompt(`Indica el motivo de ${nuevoEstado === 'Rechazada' ? 'rechazo' : 'cancelación'} de la orientación:`)?.trim()
+      : undefined;
+    if ((nuevoEstado === 'Cancelada' || nuevoEstado === 'Rechazada') && !motivo) return;
+    try {
+      await serenaApi.cambiarEstadoCitaEnApi(cita, nuevoEstado, motivo);
+      await onRefreshCitas();
+    } catch (error) {
+      console.error('Error actualizando el estado de la orientación:', error);
+    }
   };
 
   const handleEnviarSolicitud = (e: React.FormEvent) => {
@@ -120,10 +132,11 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
   };
 
   const totalUpvotes = misPublicaciones.reduce((acc, p) => acc + (p.votos || 0), 0);
-  const totalComentarios = misPublicaciones.reduce((acc, p) => acc + (p.comentarios || 0), 0);
 
   return (
     <div className="flex-1 flex flex-col gap-6 max-w-6xl mx-auto w-full">
+      <DisponibilidadCard />
+      <OrientacionesPdfReport />
       {/* =========================================================================
           BLOQUE SUPERIOR:
           - Izquierda (2 cols): Citas Programadas con Gráfica Minimalista de Estados
@@ -140,11 +153,11 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900">
-                  {idioma === 'es' ? 'Agenda Clínica & Citas' : 'Scheduled Appointments'}
+                  {idioma === 'es' ? 'Agenda de orientaciones' : 'Orientation schedule'}
                 </h2>
                 <p className="text-xs text-slate-500">
                   {idioma === 'es'
-                    ? 'Orientación psicológica y seguimiento individual'
+                    ? 'Orientación psicosocial y seguimiento individual'
                     : 'Clinical sessions and follow-up'}
                 </p>
               </div>
@@ -155,7 +168,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Send className="w-3 h-3 text-slate-600" />
-              <span>{idioma === 'es' ? 'Solicitar Cita' : 'Request Appt'}</span>
+              <span>{idioma === 'es' ? 'Solicitar orientación' : 'Request orientation'}</span>
             </button>
           </div>
 
@@ -164,7 +177,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-slate-700 flex items-center gap-1.5">
                 <BarChart2 className="w-3.5 h-3.5 text-[#7E22CE]" />
-                Distribución Cuantitativa de Citas
+                Distribución Cuantitativa de Orientaciones
               </span>
               <span className="text-[11px] text-slate-400">Total: {citas.length} registradas</span>
             </div>
@@ -216,7 +229,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
           {/* Filtros minimalistas de estados de cita */}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-1">
-            {['Todas', 'Pendiente', 'Confirmada', 'Realizada', 'Cancelada'].map((estado) => {
+            {['Todas', 'Pendiente', 'Confirmada', 'Realizada', 'Cancelada', 'Rechazada'].map((estado) => {
               const isActive = tabEstadoCita === estado;
               return (
                 <button
@@ -239,8 +252,8 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
             {citasFiltradas.length === 0 ? (
               <div className="text-center py-8 text-slate-400 text-xs">
                 {idioma === 'es'
-                  ? 'No hay citas registradas con este filtro.'
-                  : 'No appointments found.'}
+                  ? 'No hay orientaciones registradas con este filtro.'
+                  : 'No orientations found.'}
               </div>
             ) : (
               citasFiltradas.map((cita) => {
@@ -300,7 +313,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                     <div className="flex items-center gap-1.5 shrink-0">
                       {cita.estado_cita === 'Pendiente' && (
                         <button
-                          onClick={() => handleCambiarEstado(cita.id_cita, 'Confirmada')}
+                          onClick={() => void handleCambiarEstado(cita, 'Confirmada')}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#2E8500] hover:bg-[#39A900]/10 transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -308,9 +321,18 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                         </button>
                       )}
 
+                      {cita.estado_cita === 'Pendiente' && (
+                        <button
+                          onClick={() => void handleCambiarEstado(cita, 'Rechazada')}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          Rechazar
+                        </button>
+                      )}
+
                       {cita.estado_cita === 'Confirmada' && (
                         <button
-                          onClick={() => handleCambiarEstado(cita.id_cita, 'Realizada')}
+                          onClick={() => void handleCambiarEstado(cita, 'Realizada')}
                           className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#581C87] hover:bg-[#7E22CE]/10 transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
@@ -320,7 +342,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
                       {cita.estado_cita !== 'Cancelada' && cita.estado_cita !== 'Realizada' && (
                         <button
-                          onClick={() => handleCambiarEstado(cita.id_cita, 'Cancelada')}
+                          onClick={() => void handleCambiarEstado(cita, 'Cancelada')}
                           className="px-2 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                         >
                           <XCircle className="w-3.5 h-3.5" />
@@ -431,7 +453,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                         }}
                         className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-medium text-[10px] hover:bg-slate-200 cursor-pointer"
                       >
-                        Priorizar Cita
+                        Priorizar Orientación
                       </button>
                     </div>
                   </div>
@@ -479,7 +501,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
             ) : (
               misPublicaciones.map((pub) => {
                 const userVote = userVotes[pub.id_publicaciones] || 0;
-                const votosTotales = (pub.votos || 0) + userVote;
+                const votosTotales = pub.votos || 0;
                 const isSaved = savedPosts.includes(pub.id_publicaciones);
 
                 return (
@@ -555,11 +577,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                         </button>
                       </div>
 
-                      <button className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors cursor-pointer">
-                        <MessageSquare className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{pub.comentarios || pub.comentarios_count || 0}</span>
-                      </button>
-
                       <button
                         onClick={() => handleShare(pub)}
                         className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors cursor-pointer"
@@ -596,7 +613,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
               </div>
 
               {/* Estadísticas cuantitativas en grid sobrio */}
-              <div className="grid grid-cols-3 gap-2 text-center p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="grid grid-cols-2 gap-2 text-center p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                 <div>
                   <p className="text-base font-bold text-slate-900">{misPublicaciones.length}</p>
                   <p className="text-[10px] text-slate-400 font-medium uppercase">Posts</p>
@@ -604,10 +621,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                 <div>
                   <p className="text-base font-bold text-[#7E22CE]">{totalUpvotes}</p>
                   <p className="text-[10px] text-slate-400 font-medium uppercase">Votos</p>
-                </div>
-                <div>
-                  <p className="text-base font-bold text-[#2E8500]">{totalComentarios}</p>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase">Respuestas</p>
                 </div>
               </div>
 
@@ -628,7 +641,6 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                       <span className="text-[#7E22CE] font-medium">
                         ▲ {p.votos || 0} votos
                       </span>
-                      <span>💬 {p.comentarios || p.comentarios_count || 0}</span>
                       <span className="text-[#2E8500] font-medium">96% positivo</span>
                     </div>
                   </div>
@@ -645,7 +657,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
               <h3 className="font-bold text-sm text-slate-900">
-                Solicitar Cita a Aprendiz
+                Solicitar Orientación a Aprendiz
               </h3>
               <button
                 onClick={() => setModalSolicitarCita(false)}
