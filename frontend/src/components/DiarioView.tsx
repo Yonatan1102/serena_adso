@@ -131,7 +131,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
             <p className="text-slate-500 text-[11px]">
               {isPsicologo
                 ? 'Si el diario no está compartido, ningún profesional puede acceder a él.'
-                : 'Tú decides si tu diario es privado o si deseas que lo lea tu psicólogo asignado.'}
+                : 'Tú decides si tu diario es privado o si deseas que lo lea tu psicosocial asignado.'}
             </p>
           </div>
         </div>
@@ -172,7 +172,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
               />
             </div>
 
-            {/* Toggle de permiso para compartir con el psicólogo */}
+            {/* Toggle de permiso para compartir con el profesional psicosocial */}
             <div className="p-3 rounded-xl border border-slate-100 bg-white/60 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2.5">
                 {compartirSp ? (
@@ -182,11 +182,11 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
                 )}
                 <div>
                   <p className="text-xs font-semibold text-slate-800">
-                    Compartir mi diario con mi psicólogo asignado
+                    Compartir mi diario con mi psicosocial asignado
                   </p>
                   <p className="text-[11px] text-slate-500">
                     {compartirSp
-                      ? 'Visible para tu psicólogo para enriquecer tus sesiones.'
+                      ? 'Visible para tu psicosocial para enriquecer tus sesiones.'
                       : 'Privado absoluto: nadie más podrá leerlo.'}
                   </p>
                 </div>
@@ -227,7 +227,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
             <button
               onClick={handleToggleCompartir}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors"
-              title={diario.compartir_sp ? 'Hacer privado' : 'Compartir con psicólogo'}
+              title={diario.compartir_sp ? 'Hacer privado' : 'Compartir con psicosocial'}
             >
               <Share2 className="w-3.5 h-3.5" />
               {diario.compartir_sp ? 'Compartido' : 'Privado'}
@@ -266,7 +266,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
                 {diario.compartir_sp ? (
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EBF7E6] text-[#2E8500] flex items-center gap-1">
                     <Eye className="w-3 h-3" />
-                    Compartido con Psicólogo
+                    Compartido con Psicosocial
                   </span>
                 ) : (
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 flex items-center gap-1">

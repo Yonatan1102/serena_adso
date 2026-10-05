@@ -20,27 +20,18 @@ import { CrearDiarioRapidoModal } from './components/CrearDiarioRapidoModal';
 import { SitioEnConstruccionModal } from './components/SitioEnConstruccionModal';
 import { CrearCustomFeedModal } from './components/CrearCustomFeedModal';
 import { CrearReporteModal } from './components/CrearReporteModal';
+import { AdminDashboard } from './components/AdminDashboard';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return Boolean(localStorage.getItem('serena_access_token'));
+    return false;
   });
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
   const [fichasDisponibles, setFichasDisponibles] = useState<Ficha[]>([]);
   const [relacionesUsuarioFicha, setRelacionesUsuarioFicha] = useState<UsuarioFicha[]>([]);
-  const [currentUser, setCurrentUser] = useState<Usuario>(() => {
-    const storedUser = localStorage.getItem('serena_current_user');
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser) as Usuario;
-      } catch (_error) {
-        // fall back to local default user
-      }
-    }
-    return serenaApi.getCurrentUser();
-  });
+  const [currentUser, setCurrentUser] = useState<Usuario>(() => serenaApi.getCurrentUser());
 
   // Configuración de interfaz
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -72,6 +63,15 @@ export default function App() {
   const [aprendizSeleccionado, setAprendizSeleccionado] = useState<Usuario | undefined>(undefined);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setUsuariosDisponibles([]);
+      setFichasDisponibles([]);
+      setRelacionesUsuarioFicha([]);
+      return;
+    }
+
+    let active = true;
+    const sessionGeneration = serenaApi.getSessionGeneration();
     const loadUsuarios = async () => {
       try {
         const [usuarios, fichas, relaciones] = await Promise.all([
@@ -79,10 +79,12 @@ export default function App() {
           serenaApi.getFichasDesdeApi(),
           serenaApi.getUsuarioFichaDesdeApi(),
         ]);
+        if (!active || sessionGeneration !== serenaApi.getSessionGeneration()) return;
         setUsuariosDisponibles(usuarios);
         setFichasDisponibles(fichas);
         setRelacionesUsuarioFicha(relaciones);
       } catch {
+        if (!active || sessionGeneration !== serenaApi.getSessionGeneration()) return;
         setUsuariosDisponibles([]);
         setFichasDisponibles([]);
         setRelacionesUsuarioFicha([]);
@@ -90,24 +92,36 @@ export default function App() {
     };
 
     void loadUsuarios();
-  }, []);
+    return () => { active = false; };
+  }, [isAuthenticated]);
 
   // Actualizar historial al cambiar usuario
   useEffect(() => {
+    if (!isAuthenticated) {
+      setHistorialEstados([]);
+      return;
+    }
+
+    let active = true;
+    const sessionGeneration = serenaApi.getSessionGeneration();
     const loadHistorialEstados = async () => {
       try {
         const estados = await serenaApi.getHistorialEstadosDesdeApi(currentUser.id_usuario);
+        if (!active || sessionGeneration !== serenaApi.getSessionGeneration()) return;
         setHistorialEstados(estados);
       } catch {
+        if (!active || sessionGeneration !== serenaApi.getSessionGeneration()) return;
         setHistorialEstados([]);
       }
     };
 
     void loadHistorialEstados();
-  }, [currentUser]);
+    return () => { active = false; };
+  }, [currentUser.id_usuario, isAuthenticated]);
 
   const handleLoginSuccess = (usuario: Usuario, token: string) => {
-    localStorage.setItem('serena_access_token', token);
+    setSessionToken(token);
+    serenaApi.setAccessToken(token);
     serenaApi.setCurrentUser(usuario);
     setCurrentUser(usuario);
     setIsAuthenticated(true);
@@ -115,10 +129,51 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('serena_access_token');
-    localStorage.removeItem('serena_current_user');
+    serenaApi.clearSessionData();
+    setSessionToken(null);
+    setCurrentUser(serenaApi.getCurrentUser());
+    setUsuariosDisponibles([]);
+    setFichasDisponibles([]);
+    setRelacionesUsuarioFicha([]);
+    setPublicaciones([]);
+    setHistorialEstados([]);
+    setCitas([]);
+    setFormularios([]);
+    setAprendizSeleccionado(undefined);
+    setIsEmergenciaOpen(false);
+    setIsCrearPubOpen(false);
+    setIsCrearSubComunidadOpen(false);
+    setIsExpedienteOpen(false);
+    setIsBackendGuideOpen(false);
+    setIsCrearDiarioRapidoOpen(false);
+    setIsCrearCustomFeedOpen(false);
+    setIsCrearReporteOpen(false);
+    setRecursoModalType(null);
     setIsAuthenticated(false);
   };
+
+  useEffect(() => {
+    if (!sessionToken) return;
+    const payload = sessionToken.split('.')[1];
+    if (!payload) {
+      handleLogout();
+      return;
+    }
+    try {
+      const base64Payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const normalizedPayload = base64Payload.padEnd(Math.ceil(base64Payload.length / 4) * 4, '=');
+      const expiration = (JSON.parse(window.atob(normalizedPayload)) as { exp?: number }).exp;
+      if (!expiration) {
+        handleLogout();
+        return;
+      }
+      const timeout = Math.max(0, expiration * 1000 - Date.now());
+      const timer = window.setTimeout(handleLogout, timeout);
+      return () => window.clearTimeout(timer);
+    } catch {
+      handleLogout();
+    }
+  }, [sessionToken]);
 
   const handleSelectComunidad = (comunidadId: string) => {
     setSelectedComunidadId(comunidadId);
@@ -137,25 +192,37 @@ export default function App() {
   };
 
   const handleRefreshPublicaciones = async () => {
-    try {
-      setPublicaciones(await serenaApi.getPublicacionesDesdeApi(selectedComunidadId));
-    } catch {
+    if (!isAuthenticated) {
       setPublicaciones([]);
+      return;
+    }
+    const sessionGeneration = serenaApi.getSessionGeneration();
+    try {
+      const data = await serenaApi.getPublicacionesDesdeApi(selectedComunidadId);
+      if (sessionGeneration === serenaApi.getSessionGeneration()) setPublicaciones(data);
+    } catch {
+      if (sessionGeneration === serenaApi.getSessionGeneration()) setPublicaciones([]);
     }
   };
 
   const handleRefreshCitas = async () => {
-    try {
-      setCitas(await serenaApi.getCitasDesdeApi());
-    } catch {
+    if (!isAuthenticated) {
       setCitas([]);
+      return;
+    }
+    const sessionGeneration = serenaApi.getSessionGeneration();
+    try {
+      const data = await serenaApi.getCitasDesdeApi();
+      if (sessionGeneration === serenaApi.getSessionGeneration()) setCitas(data);
+    } catch {
+      if (sessionGeneration === serenaApi.getSessionGeneration()) setCitas([]);
     }
   };
 
   useEffect(() => {
     void handleRefreshCitas();
     void handleRefreshPublicaciones();
-  }, [selectedComunidadId]);
+  }, [selectedComunidadId, isAuthenticated]);
 
   const handleRefreshFormularios = async () => {
     try {
@@ -176,7 +243,7 @@ export default function App() {
   };
 
   const handleAgendarConPsicologo = (_psicologo: Usuario) => {
-    setActiveView('citas');
+    setActiveView('orientaciones');
   };
 
   const handleToggleIdioma = () => {
@@ -190,6 +257,13 @@ export default function App() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (currentUser.id_rol === 3 && activeView === 'home' &&
+      !/^\/admin\/psicosocial\/\d+$/.test(window.location.pathname)) {
+      window.history.replaceState({}, '', '/admin/dashboard');
+    }
+  }, [activeView, currentUser.id_rol]);
 
   const obtenerFichaUsuario = (usuario: Usuario) => {
     const relacion = relacionesUsuarioFicha.find((r) => r.id_usuario === usuario.id_usuario && r.estado !== false);
@@ -221,7 +295,15 @@ export default function App() {
 
   return (
     <div className={isDarkMode ? 'dark h-screen overflow-hidden flex flex-col font-sans antialiased selection:bg-violet-900 selection:text-violet-100' : 'h-screen overflow-hidden bg-[#FAF9FF] text-slate-900 flex flex-col font-sans antialiased selection:bg-violet-100 selection:text-violet-900'}>
-      {/* Header Superior Estilo Reddit */}
+      {currentUser.id_rol === 3 ? (
+        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5">
+          <strong className="font-bold tracking-wide text-violet-800">SERENA · Administración</strong>
+          <div className="flex items-center gap-3 text-sm">
+            <span className="hidden text-slate-600 sm:inline">{currentUser.nombre_usuario}</span>
+            <button onClick={handleLogout} className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-50">Cerrar sesión</button>
+          </div>
+        </header>
+      ) : (
       <Header
         currentUser={currentUser}
         usuariosDisponibles={usuariosDisponibles}
@@ -238,11 +320,12 @@ export default function App() {
         idioma={idioma}
         onToggleIdioma={handleToggleIdioma}
       />
+      )}
 
       {/* Contenedor Principal: Sidebar Izquierdo Pinned Independiente + Feed Scroll */}
       <div className="flex-1 flex w-full overflow-hidden relative">
         {/* Sidebar Izquierdo con Movimiento Independiente */}
-        <SidebarLeft
+        {currentUser.id_rol !== 3 && <SidebarLeft
           currentUser={currentUser}
           activeView={activeView}
           setActiveView={setActiveView}
@@ -260,10 +343,11 @@ export default function App() {
           onOpenCreateReporte={() => setIsCrearReporteOpen(true)}
           onOpenRecursoModal={(tipo) => setRecursoModalType(tipo)}
           idioma={idioma}
-        />
+        />}
 
         {/* ÁREA DE CONTENIDO CENTRAL INDEPENDIENTE */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[#F8F9FA] p-3 sm:p-5 lg:p-6 relative">
+          {currentUser.id_rol === 3 ? <AdminDashboard currentUser={currentUser} /> : <>
           {activeView === 'home' && (
             currentUser.id_rol === 1 ? (
               <HomeAprendiz
@@ -275,7 +359,7 @@ export default function App() {
                 onVote={handleVote}
                 onOpenEmergencia={() => setIsEmergenciaOpen(true)}
                 onOpenEstadoAnimo={() => setActiveView('estado_de_animo')}
-                onOpenAgendarCita={() => setActiveView('citas')}
+                onOpenAgendarCita={() => setActiveView('orientaciones')}
                 onOpenFormularios={() => setActiveView('formularios')}
                 onSelectComunidad={handleSelectComunidad}
                 idioma={idioma}
@@ -286,13 +370,9 @@ export default function App() {
                 citas={citas}
                 publicaciones={publicaciones}
                 aprendicesSeguimiento={aprendicesDisponibles}
-                emergencias={serenaApi.getEmergencias()}
                 onOpenCreatePublicacion={() => setIsCrearPubOpen(true)}
-                onOpenCreateFormulario={() => setActiveView('formularios')}
                 onRefreshCitas={handleRefreshCitas}
-                onSelectAprendizDiario={handleAbrirDiarioAprendiz}
                 onSelectAprendizHistoria={handleAbrirExpediente}
-                onVote={handleVote}
                 idioma={idioma}
               />
             )
@@ -337,7 +417,7 @@ export default function App() {
             />
           )}
 
-          {activeView === 'citas' && (
+          {activeView === 'orientaciones' && (
             <CitasView
               currentUser={currentUser}
               citas={citas}
@@ -406,7 +486,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-2xl font-black text-[#47A95B]">{citas.length}</p>
-                  <p className="text-xs font-bold text-slate-500 uppercase mt-1">Citas Registradas</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase mt-1">Orientaciones registradas</p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-2xl font-black text-[#B95FE0]">{formularios.length}</p>
@@ -421,15 +501,17 @@ export default function App() {
               <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100 text-xs text-slate-600">
                 <p className="font-bold text-[#47A95B] mb-1">Registro Inmutable de Auditoría:</p>
                 <p>
-                  Toda consulta o modificación realizada en la historia clínica y estados de cita queda almacenada con sello de tiempo e identificación del psicólogo actuante conforme a la Ley 1090 de 2006.
+                  Toda consulta o modificación realizada en la historia clínica y estados de orientación queda almacenada con sello de tiempo e identificación del profesional psicosocial actuante conforme a la Ley 1090 de 2006.
                 </p>
               </div>
             </div>
           )}
+          </>}
         </main>
       </div>
 
       {/* MODALES DEL SISTEMA */}
+      {currentUser.id_rol !== 3 && <>
       <EmergenciaModal
         currentUser={currentUser}
         isOpen={isEmergenciaOpen}
@@ -533,6 +615,7 @@ export default function App() {
           Línea 106
         </span>
       </button>
+      </>}
     </div>
   );
 }

@@ -7,6 +7,7 @@ namespace WebApplication1.models
     public class ficha
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
         [Column("id_ficha")]
         public int id_ficha { get; set; }
 
@@ -19,6 +20,9 @@ namespace WebApplication1.models
         [StringLength(150)]
         [Column("programa")]
         public string programa { get; set; } = string.Empty;
+
+        [Column("id_programa")]
+        public int id_programa { get; set; }
 
         [Required]
         [StringLength(50)]
@@ -33,5 +37,7 @@ namespace WebApplication1.models
         public bool estado { get; set; } = true;
 
         public virtual ICollection<usuario_ficha> usuario_fichas { get; set; } = new List<usuario_ficha>();
+        [ForeignKey(nameof(id_programa))]
+        public virtual programa? programa_navegacion { get; set; }
     }
 }

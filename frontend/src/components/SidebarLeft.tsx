@@ -89,7 +89,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
   onOpenRecursoModal,
   idioma = 'es',
 }) => {
-  const isPsicologo = currentUser.id_rol === 2;
+  const isPsicologo = currentUser.id_rol === 2 || currentUser.id_rol === 3;
 
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>(() =>
     serenaApi.getCustomFeeds()
@@ -216,8 +216,8 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                 </button>
 
                 <button
-                  onClick={() => setActiveView('citas')}
-                  title="Agendar Cita"
+                  onClick={() => setActiveView('orientaciones')}
+                  title="Agendar Orientación"
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <RedditPlusIcon className="w-5 h-5" />
@@ -349,11 +349,11 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
 
                   {/* 7. Cita: EXACTAMENTE IGUAL a "+ Start a community" en image.png pero con icono + y texto limpio */}
                   <button
-                    onClick={() => setActiveView('citas')}
+                    onClick={() => setActiveView('orientaciones')}
                     className="w-full text-left px-3 py-2 rounded-xl text-sm font-normal text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-3 cursor-pointer"
                   >
                     <RedditPlusIcon className="w-5 h-5 text-slate-800" />
-                    <span>Cita (Orientación)</span>
+                    <span>Orientación (Orientación)</span>
                   </button>
                 </div>
 

@@ -65,7 +65,7 @@ export const CrearPublicacionModal: React.FC<CrearPublicacionModalProps> = ({
               <span>Nueva Publicación para Aprendices</span>
             </h3>
             <p className="text-xs text-slate-500">
-              Solo funcionarios y psicólogos pueden publicar en el feed
+              Solo funcionarios y psicosociales pueden publicar en el feed
             </p>
           </div>
 

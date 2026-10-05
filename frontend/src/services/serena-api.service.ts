@@ -1,7 +1,7 @@
 /**
  * SERENA API Service
  * Arquitectura Clean Service compatible 1:1 con HttpClient de Angular y Entity Framework Core en C#
- * Simula persistencia en localStorage para previsualización interactiva y expone puente directo a la API .NET.
+ * Mantiene datos de previsualización únicamente en memoria y expone el puente a la API .NET.
  */
 
 import {
@@ -24,7 +24,14 @@ import {
   Disponibilidad,
   Ficha,
   UsuarioFicha,
+  AdminPsicosocial,
+  AdminPsicosocialDetail,
+  Programa,
+  FichaRegistro,
+  ReporteOrientacion,
 } from '../types/serena.types';
+import { gcm } from '@noble/ciphers/aes.js';
+import { bytesToHex, hexToBytes, randomBytes } from '@noble/ciphers/utils.js';
 
 const STORAGE_KEYS = {
   USUARIOS: 'serena_usuarios',
@@ -48,6 +55,48 @@ const STORAGE_KEYS = {
   USUARIO_FICHA: 'serena_usuario_ficha',
   CONFIG: 'serena_config',
 };
+
+const sessionData = new Map<string, string>();
+let sessionEncryptionKey = randomBytes(32);
+const encoder = new TextEncoder();
+const decoder = new TextDecoder('utf-8', { fatal: true });
+
+function encryptSessionValue(value: string): string {
+  const nonce = randomBytes(12);
+  const ciphertext = gcm(sessionEncryptionKey, nonce).encrypt(encoder.encode(value));
+  return `${bytesToHex(nonce)}.${bytesToHex(ciphertext)}`;
+}
+
+function decryptSessionValue(value: string): string {
+  const [nonceHex, ciphertextHex, extra] = value.split('.');
+  if (!nonceHex || !ciphertextHex || extra !== undefined)
+    throw new Error('El caché de sesión cifrado está dañado.');
+
+  const plaintext = gcm(sessionEncryptionKey, hexToBytes(nonceHex)).decrypt(hexToBytes(ciphertextHex));
+  return decoder.decode(plaintext);
+}
+
+// Adaptador síncrono cifrado con una clave efímera; nunca usa Web Storage.
+const localStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+  getItem: (key) => {
+    const value = sessionData.get(key);
+    return value === undefined ? null : decryptSessionValue(value);
+  },
+  setItem: (key, value) => { sessionData.set(key, encryptSessionValue(value)); },
+  removeItem: (key) => { sessionData.delete(key); },
+};
+
+function clearLegacySensitiveStorage() {
+  if (typeof window === 'undefined') return;
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (key?.startsWith('serena_') && key !== 'serena_theme') {
+        storage.removeItem(key);
+      }
+    }
+  }
+}
 
 // Datos semilla acordes al SRS IEEE 830 y centro CMTC
 const USUARIOS_SEMILLA: Usuario[] = [
@@ -102,7 +151,7 @@ const USUARIOS_SEMILLA: Usuario[] = [
     email: 'lmartinez@sena.edu.co',
     id_rol: 2, // Psicóloga
     centro: 'CMTC',
-    especialidad: 'Psicología Clínica y Bienestar Integral',
+    especialidad: 'Acompañamiento psicosocial y bienestar integral',
     telefono: '+57 310 876 5432',
     horario_atencion: 'Lunes a Viernes 8:00 AM - 1:00 PM',
     disponibilidad: [
@@ -204,7 +253,7 @@ const PUBLICACIONES_SEMILLA: Publicacion[] = [
     id_publicaciones: 1,
     titulo: 'Estrategias efectivas para el manejo del estrés en etapa lectiva y entregas de proyecto',
     contenido:
-      'Estimados aprendices: recuerden que la fatiga mental prolongada disminuye la concentración. La técnica Pomodoro combinada con pausas activas de respiración diafragmática ayuda a regular los niveles de cortisol. Si sienten sobrecarga, nuestro consultorio de Bienestar está abierto para agendar su cita individual.',
+      'Estimados aprendices: recuerden que la fatiga mental prolongada disminuye la concentración. La técnica Pomodoro combinada con pausas activas de respiración diafragmática ayuda a regular los niveles de cortisol. Si sienten sobrecarga, nuestro consultorio de Bienestar está abierto para agendar su orientación individual.',
     fecha_publicacion: new Date(Date.now() - 3600000 * 4).toISOString(),
     id_usuario: 4,
     id_comunidad: 's/CMTC',
@@ -300,13 +349,13 @@ const CITAS_SEMILLA: Cita[] = [
     id_usuario_aprendiz: 2, // Josué
     id_usuario_psicologo: 4,
     comentarios_sesion: [
-      'Dra. Laura Martínez: Cita agendada para revisión de contrato de aprendizaje y perfil laboral.',
+      'Dra. Laura Martínez: Orientación agendada para revisión de contrato de aprendizaje y perfil laboral.',
     ],
   },
   {
     id_cita: 104,
     fecha_hora: new Date(Date.now() + 86400000 * 1).toISOString(),
-    motivo: 'Seguimiento solicitado por psicólogo para acordar horario conveniente',
+    motivo: 'Seguimiento solicitado por psicosocial para acordar horario conveniente',
     estado_cita: 'Pendiente',
     id_usuario_aprendiz: 3,
     id_usuario_psicologo: 5,
@@ -321,7 +370,7 @@ const HISTORIAL_CITAS_SEMILLA: HistorialCita[] = [
   {
     id_h_cita: 1,
     id_cita: 101,
-    observaciones_historial: 'Cita solicitada inicialmente por el aprendiz en horario diurno.',
+    observaciones_historial: 'Orientación solicitada inicialmente por el aprendiz en horario diurno.',
     fecha_cambio: new Date(Date.now() - 86400000 * 1).toISOString(),
     estado_anterior: 'Pendiente',
     estado_nuevo: 'Confirmada',
@@ -446,6 +495,7 @@ const FORMULARIOS_SEMILLA: Formulario[] = [
 const FICHAS_SEMILLA: Ficha[] = [
   {
     id_ficha: 1,
+    id_programa: 1,
     codigo_ficha: '3288046',
     programa: 'ADSO',
     centro: 'CMTC',
@@ -454,6 +504,7 @@ const FICHAS_SEMILLA: Ficha[] = [
   },
   {
     id_ficha: 2,
+    id_programa: 2,
     codigo_ficha: '2025001',
     programa: 'Textil',
     centro: 'CMTC',
@@ -550,7 +601,7 @@ const HISTORIAL_CLINICO_SEMILLA: HistorialClinico[] = [
     fecha_apertura: '2026-02-10T14:30:00.000Z',
     condiciones: 'Monitoreo de estado de ánimo y adherencia terapéutica externa.',
     condiciones_lista: ['Episodio depresivo leve en remisión', 'Acompañamiento en aula'],
-    antecedentes: 'Seguimiento por psicología clínica de EPS Compensar.',
+    antecedentes: 'Seguimiento de bienestar psicosocial de EPS Compensar.',
     condicion_actual: 'Activa en comunidad SENA, reporte de asistencia regular.',
     evolucion_clinica: 'Participativa en talleres de bienestar.',
   },
@@ -575,7 +626,7 @@ const SOPORTES_CLINICOS_SEMILLA: CertificadoSoporte[] = [
     nombre_documento: 'Concepto de Acompañamiento Psicológico Externo',
     entidad: 'Compensar EPS - Sede Calle 26',
     fecha_emision: '2026-02-10',
-    medico_especialista: 'Dr. Fernando Salazar (Psicología Clínica TP 108422)',
+    medico_especialista: 'Profesional especialista en bienestar psicosocial (TP 108422)',
     tipo_archivo: 'PDF',
     tamano: '840 KB',
     observaciones: 'Se sugiere flexibilidad en tiempos de evaluación formativa y pausas activas.',
@@ -716,7 +767,7 @@ const MENUS_SEMILLA: Menu[] = [
   { id_menu: 2, nombre_menu: 'Diario', nombre_menu_en: 'Journal', icono: 'BookOpen', ruta: 'diario', seccion: 1, orden: 2 },
   { id_menu: 3, nombre_menu: 'Formulario', nombre_menu_en: 'Forms', icono: 'ClipboardList', ruta: 'formularios', seccion: 1, orden: 3 },
   { id_menu: 4, nombre_menu: 'Explorar', nombre_menu_en: 'Explore', icono: 'Compass', ruta: 'explorar', seccion: 1, orden: 4 },
-  { id_menu: 5, nombre_menu: 'Cita', nombre_menu_en: 'Appointment', icono: 'CalendarPlus', ruta: 'citas', seccion: 1, orden: 5, es_accion: true },
+  { id_menu: 5, nombre_menu: 'Orientación', nombre_menu_en: 'Orientation', icono: 'CalendarPlus', ruta: 'orientaciones', seccion: 1, orden: 5, es_accion: true },
 
   // SECCION 1 (Psicólogo)
   { id_menu: 6, nombre_menu: 'Crear Publicación', nombre_menu_en: 'New Post', icono: 'PlusCircle', ruta: 'crear_publicacion', seccion: 1, orden: 3, es_accion: true },
@@ -794,9 +845,105 @@ const CUSTOM_FEEDS_SEMILLA: CustomFeed[] = [
 class SerenaApiService {
   private isConfiguredForRealBackend: boolean = false;
   private backendBaseUrl: string = '/api';
+  private accessToken: string | null = null;
+  private sessionGeneration = 0;
 
   constructor() {
+    clearLegacySensitiveStorage();
     this.initStorage();
+  }
+
+  public setAccessToken(token: string | null): void {
+    this.accessToken = token;
+  }
+
+  public clearSessionData(): void {
+    this.sessionGeneration += 1;
+    this.accessToken = null;
+    sessionData.clear();
+    sessionEncryptionKey = randomBytes(32);
+  }
+
+  public getSessionGeneration(): number {
+    return this.sessionGeneration;
+  }
+
+  private getAuthorizationHeaders(): HeadersInit {
+    return this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {};
+  }
+
+  private fetchApi(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    if (this.accessToken) headers.set('Authorization', `Bearer ${this.accessToken}`);
+    return fetch(input, { ...init, headers });
+  }
+
+  public async getProgramasDesdeApi(): Promise<Programa[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/programas`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getFichasDeProgramaDesdeApi(idPrograma: number): Promise<FichaRegistro[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/programas/${idPrograma}/fichas`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getReporteOrientacionesDesdeApi(desde: Date, hasta: Date): Promise<ReporteOrientacion[]> {
+    const query = new URLSearchParams({ desde: desde.toISOString(), hasta: hasta.toISOString() });
+    const response = await this.fetchApi(`${this.backendBaseUrl}/psicosocial/reportes/orientaciones?${query}`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getAdminPsicosociales(search = ''): Promise<AdminPsicosocial[]> {
+    const query = search ? `?search=${encodeURIComponent(search)}` : '';
+    const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales${query}`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json() as Promise<AdminPsicosocial[]>;
+  }
+
+  public async getAdminPsicosocialDetail(id: number): Promise<AdminPsicosocialDetail> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales/${id}`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json() as Promise<AdminPsicosocialDetail>;
+  }
+
+  public async getMisDisponibilidadesDesdeApi(): Promise<Disponibilidad[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad/mis-disponibilidades`, {
+      headers: this.getAuthorizationHeaders(),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async crearDisponibilidadEnApi(disponibilidad: Omit<Disponibilidad, 'id_disponibilidad' | 'id_usuario' | 'id_rol'>): Promise<Disponibilidad> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
+      body: JSON.stringify(disponibilidad),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async cambiarContrasenaEnApi(request: {
+    correo: string;
+    contrasenaActual: string;
+    nuevaContrasena: string;
+  }): Promise<{ mensaje: string }> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Login/cambiar-contrasena`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
   }
 
   private initStorage() {
@@ -881,7 +1028,7 @@ class SerenaApiService {
 
   // --- Usuarios & Autenticación ---
   public async getUsuariosDesdeApi(): Promise<Usuario[]> {
-    const response = await fetch(`${this.backendBaseUrl}/Usuario`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Usuario`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data = await response.json();
     const usuarios = Array.isArray(data) ? data : [];
@@ -890,7 +1037,7 @@ class SerenaApiService {
   }
 
   public async getFichasDesdeApi(): Promise<Ficha[]> {
-    const response = await fetch(`${this.backendBaseUrl}/ficha`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/ficha`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Ficha[] = await response.json();
     localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(data));
@@ -898,7 +1045,7 @@ class SerenaApiService {
   }
 
   public async getUsuarioFichaDesdeApi(): Promise<UsuarioFicha[]> {
-    const response = await fetch(`${this.backendBaseUrl}/usuario-ficha`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/usuario-ficha`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: UsuarioFicha[] = await response.json();
     localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(data));
@@ -906,7 +1053,7 @@ class SerenaApiService {
   }
 
   public async getDisponibilidadDesdeApi(): Promise<Disponibilidad[]> {
-    const response = await fetch(`${this.backendBaseUrl}/disponibilidad`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Disponibilidad[] = await response.json();
     localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
@@ -914,10 +1061,10 @@ class SerenaApiService {
   }
 
   public async getDisponibilidadPorUsuarioDesdeApi(id_usuario: number): Promise<Disponibilidad[]> {
-    const response = await fetch(`${this.backendBaseUrl}/disponibilidad`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad/disponibles/${id_usuario}`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Disponibilidad[] = await response.json();
-    const lista = data.filter((d) => d.id_usuario === id_usuario && d.estado !== false);
+    const lista = data.filter((d) => d.estado !== false);
     localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
     return lista;
   }
@@ -1042,7 +1189,7 @@ class SerenaApiService {
 
   // --- Publicaciones (Feed) ---
   public async getPublicacionesDesdeApi(comunidadId?: string): Promise<Publicacion[]> {
-    const response = await fetch(`${this.backendBaseUrl}/publicaciones`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/publicaciones`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Publicacion[] = await response.json();
     const publicaciones = data.map((p) => ({
@@ -1088,7 +1235,7 @@ class SerenaApiService {
     imagen_url?: string;
     fecha_publicacion?: string;
   }): Promise<Publicacion> {
-    const response = await fetch(`${this.backendBaseUrl}/publicaciones/crear`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/publicaciones/crear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1104,7 +1251,7 @@ class SerenaApiService {
   }
 
   public async votarPublicacionEnApi(publicacion: Publicacion, delta: number): Promise<Publicacion> {
-    const response = await fetch(`${this.backendBaseUrl}/publicaciones`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/publicaciones`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...publicacion, votos: (publicacion.votos || 0) + delta }),
@@ -1221,12 +1368,14 @@ class SerenaApiService {
     localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
 
     // Auditoría inmutable en historial_cita (RN-04)
-    this.registrarHistorialCita(nuevaCita.id_cita, 'Creación de cita por el aprendiz en estado Pendiente.');
+    this.registrarHistorialCita(nuevaCita.id_cita, 'Creación de orientación por el aprendiz en estado Pendiente.');
     return nuevaCita;
   }
 
   public async getCitasDesdeApi(): Promise<Cita[]> {
-    const response = await fetch(`${this.backendBaseUrl}/cita`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita`, {
+      headers: this.getAuthorizationHeaders(),
+    });
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Cita[] = await response.json();
     return data.map((c) => ({
@@ -1238,16 +1387,16 @@ class SerenaApiService {
   private normalizarEstadoCita(estado?: string): Cita['estado_cita'] {
     if (!estado) return 'Pendiente';
     const capitalizado = estado.charAt(0).toUpperCase() + estado.slice(1).toLowerCase();
-    if (['Pendiente', 'Confirmada', 'Realizada', 'Cancelada'].includes(capitalizado)) {
+    if (['Pendiente', 'Confirmada', 'Realizada', 'Cancelada', 'Rechazada'].includes(capitalizado)) {
       return capitalizado as Cita['estado_cita'];
     }
     return 'Pendiente';
   }
 
   public async agendarCitaEnApi(cita: Omit<Cita, 'id_cita'>): Promise<Cita> {
-    const response = await fetch(`${this.backendBaseUrl}/cita/agendar`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita/agendar`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
       body: JSON.stringify(cita),
     });
     if (!response.ok) throw new Error(await this.getApiError(response));
@@ -1255,9 +1404,9 @@ class SerenaApiService {
   }
 
   public async actualizarCitaEnApi(cita: Cita): Promise<Cita> {
-    const response = await fetch(`${this.backendBaseUrl}/cita/${cita.id_cita}`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita/${cita.id_cita}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...this.getAuthorizationHeaders() },
       body: JSON.stringify(cita),
     });
     if (!response.ok) throw new Error(await this.getApiError(response));
@@ -1265,12 +1414,19 @@ class SerenaApiService {
   }
 
   public async eliminarCitaEnApi(id_cita: number): Promise<void> {
-    const response = await fetch(`${this.backendBaseUrl}/cita/${id_cita}`, { method: 'DELETE' });
+    const response = await this.fetchApi(`${this.backendBaseUrl}/cita/${id_cita}`, {
+      method: 'DELETE',
+      headers: this.getAuthorizationHeaders(),
+    });
     if (!response.ok) throw new Error(await this.getApiError(response));
   }
 
-  public async cambiarEstadoCitaEnApi(cita: Cita, estado_cita: Cita['estado_cita']): Promise<Cita> {
-    return this.actualizarCitaEnApi({ ...cita, estado_cita });
+  public async cambiarEstadoCitaEnApi(
+    cita: Cita,
+    estado_cita: Cita['estado_cita'],
+    motivo_cambio?: string,
+  ): Promise<Cita> {
+    return this.actualizarCitaEnApi({ ...cita, estado_cita, motivo_cambio });
   }
 
   public solicitarCitaSinAgendar(id_psicologo: number, id_aprendiz: number, motivo: string): Cita {
@@ -1278,7 +1434,7 @@ class SerenaApiService {
     const nueva: Cita = {
       id_cita: Date.now(),
       fecha_hora: new Date(Date.now() + 86400000 * 2).toISOString(),
-      motivo: motivo || 'Solicitud de acompañamiento psicológico enviada por tu psicólogo asignado.',
+      motivo: motivo || 'Solicitud de acompañamiento psicológico enviada por tu psicosocial asignado.',
       estado_cita: 'Pendiente',
       id_usuario_aprendiz: id_aprendiz,
       id_usuario_psicologo: id_psicologo,
@@ -1286,7 +1442,7 @@ class SerenaApiService {
     };
     lista.unshift(nueva);
     localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
-    this.registrarHistorialCita(nueva.id_cita, 'Solicitud de cita emitida por psicólogo sin franja fija.');
+    this.registrarHistorialCita(nueva.id_cita, 'Solicitud de orientación emitida por psicosocial sin franja fija.');
     return nueva;
   }
 
@@ -1523,7 +1679,7 @@ class SerenaApiService {
   }
 
   public async getDiarioDesdeApi(id_usuario: number): Promise<Diario | null> {
-    const response = await fetch(`${this.backendBaseUrl}/diario/usuario/${id_usuario}`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/diario/usuario/${id_usuario}`);
     if (response.status === 404) return null;
     if (!response.ok) throw new Error(await this.getApiError(response));
     return response.json();
@@ -1534,7 +1690,7 @@ class SerenaApiService {
     contenido: string;
     compartir_sp: boolean;
   }): Promise<Diario> {
-    const response = await fetch(`${this.backendBaseUrl}/diario/crear`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/diario/crear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1549,7 +1705,7 @@ class SerenaApiService {
   }
 
   public async cambiarPermisoCompartirDiarioEnApi(diario: Diario, compartir_sp: boolean): Promise<Diario> {
-    const response = await fetch(`${this.backendBaseUrl}/diario/${diario.id_diario}`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/diario/${diario.id_diario}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...diario, compartir_sp }),
@@ -1571,7 +1727,7 @@ class SerenaApiService {
   }
 
   public async getHistorialEstadosDesdeApi(id_usuario: number): Promise<EstadoDeAnimo[]> {
-    const response = await fetch(`${this.backendBaseUrl}/estado-animo-usuario/usuario/${id_usuario}`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/estado-animo-usuario/usuario/${id_usuario}`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data = await response.json();
     return Array.isArray(data) ? data : [];
@@ -1583,7 +1739,7 @@ class SerenaApiService {
     fecha_estado?: string;
     motivo?: string;
   }): Promise<EstadoDeAnimo> {
-    const response = await fetch(`${this.backendBaseUrl}/estado-animo-usuario`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/estado-animo-usuario`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1647,7 +1803,7 @@ class SerenaApiService {
 
   // --- Formularios (RF-FOR-01) ---
   public async getFormulariosDesdeApi(): Promise<Formulario[]> {
-    const response = await fetch(`${this.backendBaseUrl}/Formulario`);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Formulario`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     return response.json();
   }
@@ -1666,7 +1822,7 @@ class SerenaApiService {
     id_comunidad?: string;
     respondido?: boolean;
   }): Promise<Formulario> {
-    const response = await fetch(`${this.backendBaseUrl}/Formulario`, {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/Formulario`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -5,7 +5,7 @@
 
 export interface Rol {
   id_rol: number;
-  nombre_rol: 'Aprendiz' | 'Psicólogo' | 'Administrador';
+  nombre_rol: 'Aprendiz' | 'Psicosocial' | 'Administrador';
 }
 
 export interface Usuario {
@@ -13,8 +13,12 @@ export interface Usuario {
   nombre_usuario: string;
   email: string;
   id_rol: number;
+  id_ficha?: number | null;
+  email_verificado?: boolean;
   centro: 'CMTC' | 'CMM' | 'CEET';
   num_ficha?: string;
+  centro_formacion?: 'CMTC' | 'CMM' | 'CEET';
+  ultimo_estado_animo?: string;
   avatar_url?: string;
   especialidad?: string; // Para psicólogos
   telefono?: string;
@@ -56,13 +60,15 @@ export interface Cita {
   id_cita: number;
   fecha_hora: string; // ISO string
   motivo: string;
-  estado_cita: 'Pendiente' | 'Confirmada' | 'Realizada' | 'Cancelada';
+  estado_cita: 'Pendiente' | 'Confirmada' | 'Realizada' | 'Cancelada' | 'Rechazada';
   id_usuario_aprendiz: number;
   id_usuario_psicologo: number;
   // Campos auxiliares para la UI
   aprendiz?: Usuario;
   psicologo?: Usuario;
   es_solicitud_sin_agendar?: boolean; // Solicitud enviada por psicólogo sin fecha fija
+  motivo_cambio?: string;
+  recaptchaToken?: string;
   comentarios_sesion?: string[]; // Anotaciones/comentarios de la cita realizadas por los psicólogos
 }
 
@@ -135,6 +141,7 @@ export interface EstadoDeAnimo {
   id_estado?: number;
   id_estado_usuario?: number;
   nombre_estado: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
+  estado?: string;
   fecha_estado: string;
   id_usuario: number;
   motivo?: string;
@@ -180,14 +187,79 @@ export interface Disponibilidad {
   rol?: Rol;
 }
 
+export interface AdminPsicosocial {
+  id_usuario: number;
+  nombre: string;
+  correo: string;
+  documento?: string;
+  aprendices_asignados: number;
+  orientaciones_realizadas: number;
+}
+
+export interface AdminAprendiz {
+  id_usuario: number;
+  nombre: string;
+  correo: string;
+  num_ficha?: string;
+  primera_orientacion?: string;
+  ultima_orientacion?: string;
+}
+
+export interface AdminOrientacion {
+  id_orientacion: number;
+  fecha_hora: string;
+  motivo: string;
+  estado: string;
+  aprendiz: string;
+  motivo_rechazo_cancelacion?: string;
+}
+
+export interface AdminPublicacion {
+  id_publicacion: number;
+  titulo: string;
+  fecha_publicacion: string;
+}
+
+export interface AdminPsicosocialDetail extends AdminPsicosocial {
+  orientaciones_rechazadas: number;
+  orientaciones_canceladas: number;
+  orientaciones_pendientes: number;
+  orientaciones: AdminOrientacion[];
+  aprendices: AdminAprendiz[];
+  publicaciones: AdminPublicacion[];
+}
+
+export interface ReporteOrientacion {
+  id_orientacion: number;
+  fecha_hora: string;
+  motivo: string;
+  estado: string;
+  id_aprendiz: number;
+  aprendiz: string;
+  motivo_cambio?: string | null;
+}
+
 export interface Ficha {
   id_ficha: number;
   codigo_ficha: string;
   programa: string;
+  id_programa: number;
   centro: 'CMTC' | 'CMM' | 'CEET';
   jornada?: 'Diurna' | 'Nocturna' | 'Mixta' | 'Fines de Semana';
   estado?: boolean;
   usuarios?: Usuario[];
+}
+
+export interface Programa {
+  id_programa: number;
+  nombre_programa: string;
+}
+
+export interface FichaRegistro {
+  id_ficha: number;
+  codigo_ficha: string;
+  programa: string;
+  jornada: string;
 }
 
 export interface UsuarioFicha {

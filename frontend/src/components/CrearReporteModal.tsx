@@ -15,7 +15,7 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
   currentUser,
   idioma = 'es',
 }) => {
-  const [tipoReporte, setTipoReporte] = useState('citas');
+  const [tipoReporte, setTipoReporte] = useState('orientaciones');
   const [rangoFechas, setRangoFechas] = useState('mes');
   const [generado, setGenerado] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -68,8 +68,8 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
               onChange={(e) => setTipoReporte(e.target.value)}
               className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:border-[#63C976] focus:outline-none"
             >
-              <option value="citas">
-                {idioma === 'es' ? 'Citas y Atenciones Psicológicas (Historial Inmutable)' : 'Appointments & Counseling (Immutable Logs)'}
+              <option value="orientaciones">
+                {idioma === 'es' ? 'Orientaciones psicosociales (historial inmutable)' : 'Psychosocial orientations (immutable history)'}
               </option>
               <option value="tamizajes">
                 {idioma === 'es' ? 'Resultados de encuestas' : 'Survey Results'}

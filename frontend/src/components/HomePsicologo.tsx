@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { Cita, Usuario, Publicacion } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
+import { DisponibilidadCard } from './DisponibilidadCard';
+import { OrientacionesPdfReport } from './OrientacionesPdfReport';
 
 interface HomePsicologoProps {
   currentUser: Usuario;
@@ -76,13 +78,17 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
   const handleCambiarEstado = async (
     cita: Cita,
-    nuevoEstado: 'Confirmada' | 'Cancelada' | 'Realizada'
+    nuevoEstado: 'Confirmada' | 'Cancelada' | 'Realizada' | 'Rechazada'
   ) => {
+    const motivo = nuevoEstado === 'Cancelada' || nuevoEstado === 'Rechazada'
+      ? window.prompt(`Indica el motivo de ${nuevoEstado === 'Rechazada' ? 'rechazo' : 'cancelación'} de la orientación:`)?.trim()
+      : undefined;
+    if ((nuevoEstado === 'Cancelada' || nuevoEstado === 'Rechazada') && !motivo) return;
     try {
-      await serenaApi.cambiarEstadoCitaEnApi(cita, nuevoEstado);
+      await serenaApi.cambiarEstadoCitaEnApi(cita, nuevoEstado, motivo);
       await onRefreshCitas();
     } catch (error) {
-      console.error('Error actualizando el estado de la cita:', error);
+      console.error('Error actualizando el estado de la orientación:', error);
     }
   };
 
@@ -123,6 +129,8 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
   return (
     <div className="flex-1 flex flex-col gap-6 max-w-6xl mx-auto w-full">
+      <DisponibilidadCard />
+      <OrientacionesPdfReport />
       {/* =========================================================================
           BLOQUE SUPERIOR:
           - Izquierda (2 cols): Citas Programadas con Gráfica Minimalista de Estados
@@ -139,11 +147,11 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-900">
-                  {idioma === 'es' ? 'Agenda Clínica & Citas' : 'Scheduled Appointments'}
+                  {idioma === 'es' ? 'Agenda de orientaciones' : 'Orientation schedule'}
                 </h2>
                 <p className="text-xs text-slate-500">
                   {idioma === 'es'
-                    ? 'Orientación psicológica y seguimiento individual'
+                    ? 'Orientación psicosocial y seguimiento individual'
                     : 'Clinical sessions and follow-up'}
                 </p>
               </div>
@@ -154,7 +162,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
               className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Send className="w-3 h-3 text-slate-600" />
-              <span>{idioma === 'es' ? 'Solicitar Cita' : 'Request Appt'}</span>
+              <span>{idioma === 'es' ? 'Solicitar orientación' : 'Request orientation'}</span>
             </button>
           </div>
 
@@ -163,7 +171,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-slate-700 flex items-center gap-1.5">
                 <BarChart2 className="w-3.5 h-3.5 text-[#7E22CE]" />
-                Distribución Cuantitativa de Citas
+                Distribución Cuantitativa de Orientaciones
               </span>
               <span className="text-[11px] text-slate-400">Total: {citas.length} registradas</span>
             </div>
@@ -215,7 +223,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
 
           {/* Filtros minimalistas de estados de cita */}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-1">
-            {['Todas', 'Pendiente', 'Confirmada', 'Realizada', 'Cancelada'].map((estado) => {
+            {['Todas', 'Pendiente', 'Confirmada', 'Realizada', 'Cancelada', 'Rechazada'].map((estado) => {
               const isActive = tabEstadoCita === estado;
               return (
                 <button
@@ -238,8 +246,8 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
             {citasFiltradas.length === 0 ? (
               <div className="text-center py-8 text-slate-400 text-xs">
                 {idioma === 'es'
-                  ? 'No hay citas registradas con este filtro.'
-                  : 'No appointments found.'}
+                  ? 'No hay orientaciones registradas con este filtro.'
+                  : 'No orientations found.'}
               </div>
             ) : (
               citasFiltradas.map((cita) => {
@@ -304,6 +312,15 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Confirmar</span>
+                        </button>
+                      )}
+
+                      {cita.estado_cita === 'Pendiente' && (
+                        <button
+                          onClick={() => void handleCambiarEstado(cita, 'Rechazada')}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          Rechazar
                         </button>
                       )}
 
@@ -430,7 +447,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
                         }}
                         className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-medium text-[10px] hover:bg-slate-200 cursor-pointer"
                       >
-                        Priorizar Cita
+                        Priorizar Orientación
                       </button>
                     </div>
                   </div>
@@ -634,7 +651,7 @@ export const HomePsicologo: React.FC<HomePsicologoProps> = ({
           <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
               <h3 className="font-bold text-sm text-slate-900">
-                Solicitar Cita a Aprendiz
+                Solicitar Orientación a Aprendiz
               </h3>
               <button
                 onClick={() => setModalSolicitarCita(false)}

@@ -1,9 +1,17 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.RateLimiting;
 using WebApplication1;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 using WebApplication1.repositories;
+using WebApplication1.services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,7 +42,56 @@ builder.Services.AddScoped<Ipublicaciones, publicaciones_repositories>();
 builder.Services.AddScoped<Irol, rol_repositories>();
 builder.Services.AddScoped<Iusuario, usuario_repositories>();
 builder.Services.AddScoped<Iloginservice, usuario_repositories>();
+builder.Services.AddScoped<IAdminRepository, admin_repository>();
+builder.Services.AddScoped<IProgramaRepository, programa_repository>();
+builder.Services.AddScoped<IOrientacionReportRepository, orientacion_report_repository>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IEmailVerificationService, EmailVerificationService>();
+builder.Services.AddHttpClient<IRecaptchaService, RecaptchaService>();
 
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32 ||
+    string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+    throw new InvalidOperationException("Configure una clave JWT de al menos 256 bits y Jwt:Issuer/Jwt:Audience antes de iniciar la API.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.Name
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("verification", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
 // 3. Controladores y Swagger
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = null);
@@ -62,16 +119,43 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<serena>();
-    db.Database.EnsureCreated();
     db.Database.Migrate();
 
     if (!db.rol.Any())
     {
         db.rol.AddRange(
             new rol { nombre_rol = "Aprendiz" },
-            new rol { nombre_rol = "Psicólogo" },
-            new rol { nombre_rol = "Administrador" }
+            new rol { nombre_rol = "Psicosocial" },
+            new rol { nombre_rol = "Admin" }
         );
+        db.SaveChanges();
+    }
+
+    var adminEmail = builder.Configuration["AdminBootstrap:Email"]?.Trim();
+    var adminPassword = builder.Configuration["AdminBootstrap:Password"];
+    if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword) &&
+        !db.usuario.Any(user => user.email == adminEmail))
+    {
+        if (adminPassword.Length < 16)
+            throw new InvalidOperationException("AdminBootstrap:Password debe tener al menos 16 caracteres.");
+
+        var adminRole = db.rol.AsEnumerable().FirstOrDefault(role =>
+            role.nombre_rol.Contains("admin", StringComparison.OrdinalIgnoreCase));
+        if (adminRole is null)
+            throw new InvalidOperationException("No existe un rol administrador para crear la cuenta inicial.");
+
+        var admin = new usuario
+        {
+            nombre_usuario = "Administrador SERENA",
+            email = adminEmail,
+            contrasena = adminPassword,
+            id_rol = adminRole.id_rol,
+            acepta_tratamiento_datos = true,
+            fecha_consentimiento = DateTime.UtcNow,
+            email_verificado = true
+        };
+        admin.contrasena = new PasswordHasher<usuario>().HashPassword(admin, adminPassword);
+        db.usuario.Add(admin);
         db.SaveChanges();
     }
 
@@ -87,86 +171,21 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    if (!db.usuario.Any())
+    if (!db.programa.Any())
     {
-        var passwordHasher = new PasswordHasher<usuario>();
-
-        var rolAprendiz = db.rol.First(r => r.nombre_rol == "Aprendiz");
-        var rolPsicologo = db.rol.First(r => r.nombre_rol == "Psicólogo");
-
-        var usuarios = new[]
-        {
-            new usuario
-            {
-                nombre_usuario = "Yonatan Acuña",
-                email = "yacuna@soy.sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolAprendiz.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "ADSO",
-            },
-            new usuario
-            {
-                nombre_usuario = "Josué Tovar",
-                email = "jtovar@soy.sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolAprendiz.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Textil",
-            },
-            new usuario
-            {
-                nombre_usuario = "Camila Restrepo",
-                email = "crestrepo@soy.sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolAprendiz.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Patronaje",
-            },
-            new usuario
-            {
-                nombre_usuario = "Dra. Laura Martínez",
-                email = "lmartinez@sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolPsicologo.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Psicología",
-            },
-            new usuario
-            {
-                nombre_usuario = "Dr. Carlos Pardo",
-                email = "cpardo@sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolPsicologo.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Orientación Vocacional",
-            }
-        };
-
-        foreach (var usuario in usuarios)
-        {
-            usuario.contrasena = passwordHasher.HashPassword(usuario, usuario.contrasena);
-        }
-
-        db.usuario.AddRange(usuarios);
+        db.programa.AddRange(
+            new programa { nombre_programa = "Análisis y Desarrollo de Software" },
+            new programa { nombre_programa = "Diseño y Confección Textil" });
         db.SaveChanges();
     }
 
     if (!db.ficha.Any())
     {
+        var programaAdso = db.programa.First(item => item.nombre_programa == "Análisis y Desarrollo de Software");
+        var programaTextil = db.programa.First(item => item.nombre_programa == "Diseño y Confección Textil");
         db.ficha.AddRange(
-            new ficha { codigo_ficha = "3288046", programa = "ADSO", centro = "CMTC", jornada = "Diurna", estado = true },
-            new ficha { codigo_ficha = "2025001", programa = "Textil", centro = "CMTC", jornada = "Diurna", estado = true }
+            new ficha { id_ficha = 3288046, codigo_ficha = "3288046", programa = programaAdso.nombre_programa, id_programa = programaAdso.id_programa, centro = "CMTC", jornada = "Diurna", estado = true },
+            new ficha { id_ficha = 2025001, codigo_ficha = "2025001", programa = programaTextil.nombre_programa, id_programa = programaTextil.id_programa, centro = "CMTC", jornada = "Diurna", estado = true }
         );
         db.SaveChanges();
     }
@@ -175,10 +194,11 @@ using (var scope = app.Services.CreateScope())
     {
         var fichaActual = db.ficha.First(f => f.codigo_ficha == "3288046");
         var aprendices = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Aprendiz").id_rol).ToList();
-        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
+        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicosocial").id_rol).ToList();
 
         foreach (var aprendiz in aprendices)
         {
+            aprendiz.id_ficha = fichaActual.id_ficha;
             db.usuario_ficha.Add(new usuario_ficha
             {
                 id_usuario = aprendiz.id_usuario,
@@ -204,7 +224,7 @@ using (var scope = app.Services.CreateScope())
 
     if (!db.disponibilidad.Any())
     {
-        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
+        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicosocial").id_rol).ToList();
         foreach (var psicologo in psicologos)
         {
             db.disponibilidad.AddRange(
@@ -243,6 +263,21 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    var isReadOnlyAdminRequest = context.User.IsInRole("Admin") &&
+        context.Request.Method is not ("GET" or "HEAD" or "OPTIONS") &&
+        !context.Request.Path.Equals("/api/Login/cambiar-contrasena", StringComparison.OrdinalIgnoreCase);
+    if (isReadOnlyAdminRequest)
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+    await next();
+});
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();

@@ -424,7 +424,7 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
                 onClick={onOpenAgendarCita}
                 className="mt-1 w-full py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-medium transition-colors cursor-pointer text-center"
               >
-                Agendar Cita de Orientación
+                Solicitar orientación psicosocial
               </button>
             </div>
           )}

@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 
 namespace WebApplication1.Controllers;
 
 [ApiController]
+[Authorize]
 [Tags("Ficha")]
 [ApiExplorerSettings(GroupName = "Ficha")]
 [Route("api/ficha")]
@@ -24,6 +26,7 @@ public class ficha_Controller : ControllerBase
         return item == null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] ficha value)
     {
@@ -34,6 +37,7 @@ public class ficha_Controller : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = item.id_ficha }, item);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Put(int id, [FromBody] ficha value)
     {
@@ -44,6 +48,7 @@ public class ficha_Controller : ControllerBase
         return item == null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id) => await repository.Deleteficha(id) ? NoContent() : NotFound();
 }

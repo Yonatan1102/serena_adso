@@ -16,6 +16,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
+import { serenaApi } from '../services/serena-api.service';
 
 interface HeaderProps {
   currentUser: Usuario;
@@ -84,22 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
     setIsChangingPassword(true);
 
     try {
-      const response = await fetch('/api/Login/cambiar-contrasena', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          correo: currentUser.email,
-          contrasenaActual: currentPassword,
-          nuevaContrasena: newPassword,
-        }),
+      const payload = await serenaApi.cambiarContrasenaEnApi({
+        correo: currentUser.email,
+        contrasenaActual: currentPassword,
+        nuevaContrasena: newPassword,
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.mensaje || 'No se pudo actualizar la contraseña.');
-      }
-
-      setPasswordMessage(payload?.mensaje || 'Contraseña actualizada correctamente.');
+      setPasswordMessage(payload.mensaje || 'Contraseña actualizada correctamente.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
@@ -261,7 +252,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex flex-col gap-2">
                 <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="font-bold text-slate-800">
-                    {idioma === 'es' ? 'Cita con Dra. Laura Martínez' : 'Appointment with Dr. Laura'}
+                    {idioma === 'es' ? 'Orientación con Laura Martínez' : 'Psychosocial guidance with Laura Martínez'}
                   </p>
                   <p className="text-[11px] text-slate-500">
                     {idioma === 'es' ? 'Lunes 09:00 AM - Consultorio Bienestar CMTC' : 'Mon 09:00 AM - Wellness Office'}
@@ -288,7 +279,7 @@ export const Header: React.FC<HeaderProps> = ({
               setShowNotifications(false);
               setShowSettings(false);
             }}
-            title={`${currentUser.nombre_usuario} (${isPsicologo ? 'Psicólogo' : 'Aprendiz'})`}
+            title={`${currentUser.nombre_usuario} (${isPsicologo ? 'Psicosocial' : 'Aprendiz'})`}
             className="flex items-center gap-1.5 p-1 hover:bg-slate-100 rounded-full border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
           >
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-violet-700 to-fuchsia-300 text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs">
@@ -314,7 +305,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <p className="font-bold text-slate-900">{currentUser.nombre_usuario}</p>
                 <p className="text-[11px] text-slate-500">{currentUser.email}</p>
                 <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
-                  {isPsicologo ? 'Psicólogo(a) Bienestar' : `Aprendiz Ficha ${currentUser.num_ficha}`}
+                  {isPsicologo ? 'Profesional psicosocial' : `Aprendiz Ficha ${currentUser.num_ficha}`}
                 </span>
               </div>
 
@@ -326,7 +317,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <p className="font-semibold text-slate-800">{currentUser.nombre_usuario}</p>
                 <p className="mt-0.5">{currentUser.email}</p>
                 <p className="mt-1 text-[10px] text-violet-700 font-bold">
-                  {currentUser.id_rol === 2 ? 'Psicólogo(a)' : currentUser.id_rol === 3 ? 'Administrador(a)' : 'Aprendiz'}
+                  {currentUser.id_rol === 2 ? 'Psicosocial' : currentUser.id_rol === 3 ? 'Administrador(a)' : 'Aprendiz'}
                 </p>
               </div>
 

@@ -48,7 +48,7 @@ namespace Serena.Api.Data
         public DbSet<Rol> Roles { get; set; }
         public DbSet<EstadoDeAnimo> EstadosDeAnimo { get; set; }
         public DbSet<Diario> Diarios { get; set; }
-        public DbSet<Cita> Citas { get; set; }
+        public DbSet<Orientación> Orientaciones { get; set; }
         public DbSet<HistorialCita> HistorialCitas { get; set; }
         public DbSet<HistoriaClinica> HistoriasClinicas { get; set; }
         public DbSet<Publicacion> Publicaciones { get; set; }
@@ -65,9 +65,9 @@ namespace Serena.Api.Data
                 .HasForeignKey<HistoriaClinica>(h => h.IdUsuarioAprendiz)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // RN-04: Trazabilidad inmutable de citas
+            // RN-04: Trazabilidad inmutable de orientaciones
             modelBuilder.Entity<HistorialCita>()
-                .HasOne(h => h.Cita)
+                .HasOne(h => h.Orientación)
                 .WithMany(c => c.Historiales)
                 .HasForeignKey(h => h.IdCita);
         }
@@ -81,7 +81,7 @@ namespace Serena.Api.Data
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Usuario, EstadoDeAnimo, Cita, Publicacion } from '../models/serena.models';
+import { Usuario, EstadoDeAnimo, Orientación, Publicacion } from '../models/serena.models';
 
 @Injectable({
   providedIn: 'root'
@@ -101,9 +101,9 @@ export class SerenaApiService {
     return this.http.get<EstadoDeAnimo[]>(\`\${this.baseUrl}/estado-animo/usuario/\${idUsuario}\`);
   }
 
-  // RF-CIT-01: Agendar cita
-  agendarCita(dto: any): Observable<Cita> {
-    return this.http.post<Cita>(\`\${this.baseUrl}/citas\`, dto);
+  // RF-CIT-01: Agendar orientación
+  agendarCita(dto: any): Observable<Orientación> {
+    return this.http.post<Orientación>(\`\${this.baseUrl}/cita/agendar\`, dto);
   }
 
   // RF-PUB-01: Publicaciones por comunidad
@@ -141,7 +141,7 @@ CREATE TABLE estado_de_animo (
     fecha_estado DATETIME DEFAULT GETDATE()
 );
 
--- Demás tablas: diario, citas, historial_cita, historia_clinica, publicaciones, comunidades, formularios, emergencias...`;
+-- Demás tablas: diario, orientaciones, historial_cita, historia_clinica, publicaciones, comunidades, formularios, emergencias...`;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -273,14 +273,14 @@ CREATE TABLE estado_de_animo (
             <div className="flex flex-col gap-3 text-xs text-slate-600">
               <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
                 <h4 className="font-bold text-emerald-900 mb-1">Confidencialidad de historia clínica</h4>
-                <p>Solo un usuario con id_rol = 2 (Psicólogo) o id_rol = 3 (Admin) puede consultar y editar historias clínicas.</p>
+                <p>Solo un usuario con id_rol = 2 (Psicosocial) o id_rol = 3 (Admin) puede consultar y editar historias clínicas.</p>
               </div>
               <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200">
                 <h4 className="font-bold text-indigo-900 mb-1">Propiedad y cifrado del diario</h4>
                 <p>El aprendiz es dueño absoluto de sus escritos. Si compartir_sp = 0, nadie más tiene acceso a sus datos.</p>
               </div>
               <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200">
-                <h4 className="font-bold text-blue-900 mb-1">Historial de citas</h4>
+                <h4 className="font-bold text-blue-900 mb-1">Historial de orientaciones</h4>
                 <p>Cada transición de estado genera un registro en historial_cita con timestamp y responsable.</p>
               </div>
               <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200">

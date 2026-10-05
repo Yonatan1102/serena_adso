@@ -51,7 +51,7 @@ public class usuario_repositories : Iusuario, Iloginservice
 
     public async Task<usuario?> ValidarCredenciales(string email, string contrasena)
     {
-        var usuario = await context.usuario.FirstOrDefaultAsync(x => x.email == email);
+        var usuario = await context.usuario.Include(x => x.rol).FirstOrDefaultAsync(x => x.email == email);
         if (usuario == null) return null;
         var resultado = new PasswordHasher<usuario>().VerifyHashedPassword(usuario, usuario.contrasena, contrasena);
         return resultado == PasswordVerificationResult.Success ? usuario : null;
