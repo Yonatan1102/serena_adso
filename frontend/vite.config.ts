@@ -4,6 +4,8 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:5185';
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -19,7 +21,7 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
       proxy: {
         '/api': {
-          target: 'http://localhost:5185',
+          target: apiProxyTarget,
           changeOrigin: true,
           secure: false,
         },
@@ -31,7 +33,7 @@ export default defineConfig(() => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: 'http://localhost:5185',
+          target: apiProxyTarget,
           changeOrigin: true,
           secure: false,
         },

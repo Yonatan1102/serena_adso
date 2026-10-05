@@ -54,10 +54,24 @@ public partial class IdentityProgramsAndEmailOtp : Migration
 
             IF EXISTS (SELECT 1 FROM [ficha] WHERE [id_programa] IS NULL)
                 THROW 51000, 'No se pudo asociar una ficha a su programa.', 1;
+            """);
 
-            ALTER TABLE [ficha] ALTER COLUMN [id_programa] int NOT NULL;
+        migrationBuilder.AlterColumn<int>(
+            name: "id_programa",
+            table: "ficha",
+            type: "int",
+            nullable: false,
+            oldClrType: typeof(int),
+            oldType: "int",
+            oldNullable: true);
 
-            ALTER TABLE [usuario] ADD [id_ficha] int NULL;
+        migrationBuilder.AddColumn<int>(
+            name: "id_ficha",
+            table: "usuario",
+            type: "int",
+            nullable: true);
+
+        migrationBuilder.Sql("""
             UPDATE [u]
             SET [u].[id_ficha] = [assignment].[id_ficha]
             FROM [usuario] AS [u]
@@ -68,10 +82,26 @@ public partial class IdentityProgramsAndEmailOtp : Migration
                 WHERE [uf].[id_usuario] = [u].[id_usuario] AND [uf].[estado] = 1
                 ORDER BY [uf].[fecha_asignacion] DESC, [uf].[id_usuario_ficha] DESC
             ) AS [assignment];
+            """);
 
-            ALTER TABLE [usuario] ADD [email_verificado] bit NULL;
-            UPDATE [usuario] SET [email_verificado] = 1;
-            ALTER TABLE [usuario] ALTER COLUMN [email_verificado] bit NOT NULL;
+        migrationBuilder.AddColumn<bool>(
+            name: "email_verificado",
+            table: "usuario",
+            type: "bit",
+            nullable: true);
+
+        migrationBuilder.Sql("UPDATE [usuario] SET [email_verificado] = 1;");
+
+        migrationBuilder.AlterColumn<bool>(
+            name: "email_verificado",
+            table: "usuario",
+            type: "bit",
+            nullable: false,
+            oldClrType: typeof(bool),
+            oldType: "bit",
+            oldNullable: true);
+
+        migrationBuilder.Sql("""
             ALTER TABLE [usuario] ADD CONSTRAINT [DF_usuario_email_verificado]
                 DEFAULT (0) FOR [email_verificado];
 

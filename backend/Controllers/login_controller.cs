@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WebApplication1.interfaces;
 using WebApplication1.models;
+using WebApplication1.services;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace WebApplication1.Controllers;
@@ -68,8 +69,8 @@ public class LoginController : ControllerBase
             return BadRequest(new { mensaje = "Selecciona un programa y una ficha activa asociada." });
         if (request.id_rol == 2 && (request.id_programa.HasValue || request.id_ficha.HasValue))
             return BadRequest(new { mensaje = "Solo los aprendices deben seleccionar un programa y una ficha." });
-        if (!await _recaptchaService.VerifyAsync(request.recaptchaToken, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken))
-            return BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
         if (await _loginService.BuscarPorCorreo(email) != null)
             return Conflict(new { mensaje = "El correo ya está registrado." });
 
@@ -109,8 +110,8 @@ public class LoginController : ControllerBase
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        if (!await _recaptchaService.VerifyAsync(request.recaptchaToken, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken))
-            return BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
 
         var usuario = await _loginService.ValidarCredenciales(request.correo, request.contrasena);
         if (usuario == null)
@@ -137,8 +138,8 @@ public class LoginController : ControllerBase
         [FromBody] VerifyEmailRequest request,
         CancellationToken cancellationToken)
     {
-        if (!await _recaptchaService.VerifyAsync(request.recaptchaToken, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken))
-            return BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
         if (await _emailVerificationService.VerifyCodeAsync(request.email, request.codigo, cancellationToken))
             return Ok(new { mensaje = "Correo verificado. Ya puedes iniciar sesión." });
         return BadRequest(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
@@ -150,8 +151,8 @@ public class LoginController : ControllerBase
         [FromBody] ResendVerificationRequest request,
         CancellationToken cancellationToken)
     {
-        if (!await _recaptchaService.VerifyAsync(request.recaptchaToken, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken))
-            return BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
         try
         {
             await _emailVerificationService.ResendCodeAsync(request.email, cancellationToken);
@@ -220,6 +221,26 @@ public class LoginController : ControllerBase
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private async Task<IActionResult?> ValidateRecaptchaAsync(string token, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _recaptchaService.VerifyAsync(
+                token,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken)
+                ? null
+                : BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
+        }
+        catch (RecaptchaUnavailableException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                mensaje = "El servicio de validación reCAPTCHA no está disponible. Inténtalo más tarde."
+            });
+        }
     }
 }
 

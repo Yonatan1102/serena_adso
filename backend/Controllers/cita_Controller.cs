@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Routing;
 using System.Security.Claims;
 using WebApplication1.interfaces;
 using WebApplication1.models;
+using WebApplication1.services;
 
 namespace WebApplication1.Controllers
 {
@@ -98,6 +99,10 @@ namespace WebApplication1.Controllers
             {
                 return Conflict(new { mensaje = ex.Message });
             }
+            catch (RecaptchaUnavailableException)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { mensaje = "El servicio de validación reCAPTCHA no está disponible." });
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error al crear una orientación.");
@@ -130,6 +135,10 @@ namespace WebApplication1.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { mensaje = ex.Message });
+            }
+            catch (RecaptchaUnavailableException)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { mensaje = "El servicio de validación reCAPTCHA no está disponible." });
             }
             catch (Exception ex)
             {

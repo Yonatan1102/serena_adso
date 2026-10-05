@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export const RECAPTCHA_SITE_KEY = '6Ldu9dstAAAAAEssV2f88pzpXf_rc7zX3O9MOgWy';
+export const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6Ldu9dstAAAAAEssV2f88pzpXf_rc7zX3O9MOgWy';
 
 interface RecaptchaApi {
   render: (
@@ -33,6 +33,9 @@ export function RecaptchaV2({ onToken }: RecaptchaV2Props) {
 
   useEffect(() => {
     let active = true;
+    let script: HTMLScriptElement | null = null;
+    let loadTimeout = 0;
+
     const renderWidget = () => {
       if (!active || !containerRef.current || !window.grecaptcha || widgetIdRef.current !== null) return;
       try {
@@ -46,33 +49,45 @@ export function RecaptchaV2({ onToken }: RecaptchaV2Props) {
           },
         });
         setError('');
+        window.clearTimeout(loadTimeout);
       } catch {
-        setError('No fue posible cargar reCAPTCHA. Recarga la página e inténtalo nuevamente.');
+        setError('No fue posible mostrar reCAPTCHA. Comprueba que el dominio esté autorizado para esta clave.');
       }
+    };
+
+    const handleScriptError = () => {
+      if (active) setError('No fue posible cargar reCAPTCHA. Verifica la conexión con Google.');
     };
 
     window.onSerenaRecaptchaReady = renderWidget;
     if (window.grecaptcha) {
       renderWidget();
     } else {
-      let script = document.getElementById('serena-recaptcha-script') as HTMLScriptElement | null;
+      script = document.getElementById('serena-recaptcha-script') as HTMLScriptElement | null;
       if (!script) {
         script = document.createElement('script');
         script.id = 'serena-recaptcha-script';
         script.src = 'https://www.google.com/recaptcha/api.js?onload=onSerenaRecaptchaReady&render=explicit';
         script.async = true;
         script.defer = true;
-        document.head.appendChild(script);
       }
-      script.addEventListener('error', () => setError('No fue posible cargar reCAPTCHA. Verifica tu conexión.'));
+      script.addEventListener('error', handleScriptError);
       script.addEventListener('load', renderWidget);
+      if (!script.isConnected) document.head.appendChild(script);
+      loadTimeout = window.setTimeout(() => {
+        if (active && !window.grecaptcha) handleScriptError();
+      }, 15000);
     }
 
     return () => {
       active = false;
+      window.clearTimeout(loadTimeout);
+      script?.removeEventListener('error', handleScriptError);
+      script?.removeEventListener('load', renderWidget);
       if (widgetIdRef.current !== null) window.grecaptcha?.reset(widgetIdRef.current);
       widgetIdRef.current = null;
-      window.onSerenaRecaptchaReady = undefined;
+      if (window.onSerenaRecaptchaReady === renderWidget) window.onSerenaRecaptchaReady = undefined;
+      containerRef.current?.replaceChildren();
       onToken('');
     };
   }, [onToken]);

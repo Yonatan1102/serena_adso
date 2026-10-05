@@ -19,6 +19,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: serena_api
+    network_mode: bridge
+    restart: unless-stopped
     ports:
       - "5185:8080"
     environment:
@@ -31,11 +33,15 @@ services:
       Email__Smtp__Password: ${SMTP_PASSWORD:-}
       Email__Smtp__From: ${SMTP_FROM:-}
       Email__Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-true}
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=serena;User Id=sa;Password=${SQL_SERVER_SA_PASSWORD:?Set SQL_SERVER_SA_PASSWORD in .env};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      ConnectionStrings__DefaultConnection: "Server=host.docker.internal,1433;Database=serena;User Id=sa;Password=${SQL_SERVER_SA_PASSWORD:?Set SQL_SERVER_SA_PASSWORD in .env};TrustServerCertificate=True;MultipleActiveResultSets=true"
       Cors__AllowedOrigins__0: http://localhost:3000
       Cors__AllowedOrigins__1: http://127.0.0.1:3000
       AdminBootstrap__Email: ${ADMIN_BOOTSTRAP_EMAIL:-}
       AdminBootstrap__Password: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -45,10 +51,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: serena_frontend
+    network_mode: bridge
     ports:
       - "3000:3000"
     environment:
       VITE_API_URL: /api
-      VITE_API_PROXY_TARGET: http://api:8080
+      VITE_API_PROXY_TARGET: http://host.docker.internal:5185
+      VITE_RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:-6Ldu9dstAAAAAEssV2f88pzpXf_rc7zX3O9MOgWy}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - api
