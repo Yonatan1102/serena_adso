@@ -11,7 +11,7 @@ docker compose up -d --build
 
 `JWT_SIGNING_KEY` debe contener al menos 32 bytes aleatorios. Los tokens son JWT firmados con HMAC-SHA256; en producción, la API y el frontend deben servirse exclusivamente sobre HTTPS. Los JWT no se cifran porque son credenciales portadoras. El frontend los conserva únicamente en memoria, nunca en `localStorage` o `sessionStorage`.
 
-La clave pública reCAPTCHA v2 se mantiene en el frontend; `RECAPTCHA_SECRET_KEY` y las credenciales SMTP son configuración privada del backend. Sin secretos válidos, la verificación CAPTCHA falla de forma cerrada y el registro no puede completar el envío del OTP.
+Configura `RECAPTCHA_SITE_KEY` con la clave pública reCAPTCHA v3 autorizada para el dominio y `RECAPTCHA_SECRET_KEY` con su clave privada correspondiente. Los tokens se generan al enviar cada formulario y la API valida la acción y el score, cuyo mínimo predeterminado es `0.5` (`RECAPTCHA_MIN_SCORE`). No uses claves v2 ni claves de ejemplo. Las credenciales SMTP son configuración privada del backend. Sin claves v3 válidas y emparejadas, la verificación falla de forma cerrada y el registro no puede completar el envío del OTP.
 
 SMTP se configura mediante `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` y `SMTP_ENABLE_SSL`. Para Gmail usa `smtp.gmail.com`, STARTTLS por el puerto 587 y una contraseña de aplicación; la contraseña normal de Google no autentica SMTP. Al registrar una cuenta se envía un OTP de seis dígitos, se persiste solo su hash con vencimiento de diez minutos y se limita la verificación a cinco intentos. El endpoint de reenvío aplica intervalo mínimo y CAPTCHA. La cuenta no inicia sesión hasta verificar el correo.
 

@@ -7,7 +7,7 @@ namespace WebApplication1.services;
 
 public sealed class SmtpEmailSender(IConfiguration configuration) : IEmailSender
 {
-    public async Task SendVerificationCodeAsync(string email, string code, CancellationToken cancellationToken)
+    public async Task SendVerificationCodeAsync(string email, string code, string purpose, CancellationToken cancellationToken)
     {
         var host = configuration["Email:Smtp:Host"];
         var from = configuration["Email:Smtp:From"];
@@ -18,8 +18,8 @@ public sealed class SmtpEmailSender(IConfiguration configuration) : IEmailSender
 
         using var message = new MailMessage(from, email)
         {
-            Subject = "Código de verificación de SERENA",
-            Body = $"Tu código de verificación es {code}. Vence en 10 minutos. Si no solicitaste esta cuenta, ignora este mensaje.",
+            Subject = "Código de seguridad de SERENA",
+            Body = $"Tu código de seguridad es {code}. Vence en 10 minutos. Si no solicitaste esta acción ({purpose}), ignora este mensaje.",
             BodyEncoding = Encoding.UTF8,
             SubjectEncoding = Encoding.UTF8,
             IsBodyHtml = false

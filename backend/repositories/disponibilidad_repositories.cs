@@ -25,7 +25,7 @@ public class disponibilidad_Repositories : Idisponibilidad
         _context.disponibilidad
             .AsNoTracking()
             .Where(x => x.id_usuario == idUsuario && x.estado)
-            .OrderBy(x => x.dia_semana)
+            .OrderBy(x => x.fecha)
             .ThenBy(x => x.hora_inicio)
             .ToListAsync();
 
@@ -33,7 +33,7 @@ public class disponibilidad_Repositories : Idisponibilidad
         _context.disponibilidad
             .AsNoTracking()
             .Where(x => x.id_usuario == idUsuario)
-            .OrderBy(x => x.dia_semana)
+            .OrderBy(x => x.fecha)
             .ThenBy(x => x.hora_inicio)
             .ToListAsync();
 
@@ -48,7 +48,7 @@ public class disponibilidad_Repositories : Idisponibilidad
     {
         var overlaps = await _context.disponibilidad.AnyAsync(item =>
             item.id_usuario == value.id_usuario &&
-            item.dia_semana == value.dia_semana &&
+            item.fecha == value.fecha &&
             item.estado &&
             item.hora_inicio < value.hora_fin &&
             item.hora_fin > value.hora_inicio);
@@ -67,7 +67,7 @@ public class disponibilidad_Repositories : Idisponibilidad
 
         item.id_usuario = value.id_usuario;
         item.id_rol = value.id_rol;
-        item.dia_semana = value.dia_semana;
+        item.fecha = value.fecha;
         item.hora_inicio = value.hora_inicio;
         item.hora_fin = value.hora_fin;
         item.estado = value.estado;

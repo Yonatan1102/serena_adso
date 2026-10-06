@@ -60,6 +60,9 @@ namespace WebApplication1.models
         [Column("email_verificado")]
         public bool email_verificado { get; set; }
 
+        [Column("ultimo_acceso")]
+        public DateTime? ultimo_acceso { get; set; }
+
         public virtual rol? rol { get; set; }
         [ForeignKey(nameof(id_ficha))]
         public virtual ficha? ficha { get; set; }

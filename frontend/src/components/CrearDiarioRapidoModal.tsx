@@ -33,7 +33,6 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
     setError(null);
     try {
       await serenaApi.actualizarDiarioEnApi({
-        id_usuario: currentUser.id_usuario,
         contenido: contenido.trim(),
         compartir_sp: compartirSp,
       });

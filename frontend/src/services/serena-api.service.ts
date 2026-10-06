@@ -26,9 +26,13 @@ import {
   UsuarioFicha,
   AdminPsicosocial,
   AdminPsicosocialDetail,
+  AdminFicha,
   Programa,
   FichaRegistro,
   ReporteOrientacion,
+  ClinicalSummary,
+  ClinicalSupportFile,
+  ClinicalNoteEntry,
 } from '../types/serena.types';
 import { gcm } from '@noble/ciphers/aes.js';
 import { bytesToHex, hexToBytes, randomBytes } from '@noble/ciphers/utils.js';
@@ -77,7 +81,7 @@ function decryptSessionValue(value: string): string {
 }
 
 // Adaptador síncrono cifrado con una clave efímera; nunca usa Web Storage.
-const localStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+const sessionCache: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
   getItem: (key) => {
     const value = sessionData.get(key);
     return value === undefined ? null : decryptSessionValue(value);
@@ -518,7 +522,7 @@ const DISPONIBILIDAD_SEMILLA: Disponibilidad[] = [
     id_disponibilidad: 1,
     id_usuario: 4,
     id_rol: 2,
-    dia_semana: 1,
+    fecha: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10),
     hora_inicio: '09:00:00',
     hora_fin: '11:00:00',
     estado: true,
@@ -527,7 +531,7 @@ const DISPONIBILIDAD_SEMILLA: Disponibilidad[] = [
     id_disponibilidad: 2,
     id_usuario: 4,
     id_rol: 2,
-    dia_semana: 3,
+    fecha: new Date(Date.now() + 172_800_000).toISOString().slice(0, 10),
     hora_inicio: '10:00:00',
     hora_fin: '12:00:00',
     estado: true,
@@ -536,7 +540,7 @@ const DISPONIBILIDAD_SEMILLA: Disponibilidad[] = [
     id_disponibilidad: 3,
     id_usuario: 5,
     id_rol: 2,
-    dia_semana: 2,
+    fecha: new Date(Date.now() + 259_200_000).toISOString().slice(0, 10),
     hora_inicio: '14:00:00',
     hora_fin: '16:00:00',
     estado: true,
@@ -648,7 +652,7 @@ const SOPORTES_CLINICOS_SEMILLA: CertificadoSoporte[] = [
     id_soporte: 4,
     id_usuario: 2, // Josué Tovar
     nombre_documento: 'Certificado Médico de Aptitud Física y Ocupacional',
-    entidad: 'SURA EPS - Sede Paloquemao',
+    entidad: 'SURA EPS',
     fecha_emision: '2026-01-15',
     medico_especialista: 'Dr. Camilo Echeverry (Salud Ocupacional)',
     tipo_archivo: 'PDF',
@@ -897,6 +901,72 @@ class SerenaApiService {
     return response.json();
   }
 
+  public async getMiResumenClinicoDesdeApi(): Promise<ClinicalSummary> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/mine`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async guardarMiResumenClinicoEnApi(condiciones: string[]): Promise<ClinicalSummary> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/mine`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ condiciones }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getResumenClinicoAprendizDesdeApi(learnerId: number): Promise<ClinicalSummary> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/learners/${learnerId}/summary`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async getSoportesClinicosDesdeApi(learnerId: number): Promise<ClinicalSupportFile[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/learners/${learnerId}/supports`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async subirSoporteClinicoEnApi(file: File, descripcion: string): Promise<ClinicalSupportFile> {
+    const body = new FormData();
+    body.append('archivo', file);
+    body.append('descripcion', descripcion);
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/mine/supports`, {
+      method: 'POST',
+      body,
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async descargarSoporteClinicoDesdeApi(supportId: number): Promise<Blob> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/supports/${supportId}/download`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.blob();
+  }
+
+  public async getAnotacionesClinicasDesdeApi(learnerId: number): Promise<ClinicalNoteEntry[]> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/learners/${learnerId}/notes`);
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
+  public async agregarAnotacionClinicaEnApi(
+    learnerId: number,
+    tipo: ClinicalNoteEntry['tipo'],
+    contenido: string,
+  ): Promise<ClinicalNoteEntry> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/clinical-records/learners/${learnerId}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, contenido }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json();
+  }
+
   public async getAdminPsicosociales(search = ''): Promise<AdminPsicosocial[]> {
     const query = search ? `?search=${encodeURIComponent(search)}` : '';
     const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales${query}`, {
@@ -912,6 +982,23 @@ class SerenaApiService {
     });
     if (!response.ok) throw new Error(await this.getApiError(response));
     return response.json() as Promise<AdminPsicosocialDetail>;
+  }
+
+  public async assignFichaToPsicosocial(psicosocialId: number, fichaId: number): Promise<AdminFicha> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales/${psicosocialId}/fichas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_ficha: fichaId }),
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
+    return response.json() as Promise<AdminFicha>;
+  }
+
+  public async unassignFichaFromPsicosocial(psicosocialId: number, fichaId: number): Promise<void> {
+    const response = await this.fetchApi(`${this.backendBaseUrl}/admin/psicosociales/${psicosocialId}/fichas/${fichaId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error(await this.getApiError(response));
   }
 
   public async getMisDisponibilidadesDesdeApi(): Promise<Disponibilidad[]> {
@@ -949,80 +1036,80 @@ class SerenaApiService {
   private initStorage() {
     if (typeof window === 'undefined') return;
 
-    const legacyUsuarios = localStorage.getItem(STORAGE_KEYS.USUARIOS);
-    const legacyCurrentUser = localStorage.getItem('serena_current_user');
+    const legacyUsuarios = sessionCache.getItem(STORAGE_KEYS.USUARIOS);
+    const legacyCurrentUser = sessionCache.getItem('serena_current_user');
 
     if (legacyUsuarios && legacyUsuarios !== '[]') {
       try {
         const parsed = JSON.parse(legacyUsuarios) as Usuario[];
         const hasMockData = Array.isArray(parsed) && parsed.some((u) => u.email?.includes('@soy.sena.edu.co') || u.email?.includes('@sena.edu.co'));
         if (hasMockData) {
-          localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+          sessionCache.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
         }
       } catch {
-        localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+        sessionCache.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
       }
     }
 
-    if (!localStorage.getItem(STORAGE_KEYS.USUARIOS)) {
-      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+    if (!sessionCache.getItem(STORAGE_KEYS.USUARIOS)) {
+      sessionCache.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
     }
 
     if (legacyCurrentUser && legacyCurrentUser !== '[]') {
       try {
         const parsed = JSON.parse(legacyCurrentUser) as Usuario;
         if (parsed && parsed.email && (parsed.email.includes('@soy.sena.edu.co') || parsed.email.includes('@sena.edu.co'))) {
-          localStorage.removeItem('serena_current_user');
+          sessionCache.removeItem('serena_current_user');
         }
       } catch {
-        localStorage.removeItem('serena_current_user');
+        sessionCache.removeItem('serena_current_user');
       }
     }
 
-    if (!localStorage.getItem(STORAGE_KEYS.COMUNIDADES)) {
-      localStorage.setItem(STORAGE_KEYS.COMUNIDADES, JSON.stringify(COMUNIDADES_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.COMUNIDADES)) {
+      sessionCache.setItem(STORAGE_KEYS.COMUNIDADES, JSON.stringify(COMUNIDADES_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.PUBLICACIONES)) {
-      localStorage.setItem(STORAGE_KEYS.PUBLICACIONES, JSON.stringify(PUBLICACIONES_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.PUBLICACIONES)) {
+      sessionCache.setItem(STORAGE_KEYS.PUBLICACIONES, JSON.stringify(PUBLICACIONES_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.CITAS)) {
-      localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(CITAS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.CITAS)) {
+      sessionCache.setItem(STORAGE_KEYS.CITAS, JSON.stringify(CITAS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.HISTORIAL_CITAS)) {
-      localStorage.setItem(STORAGE_KEYS.HISTORIAL_CITAS, JSON.stringify(HISTORIAL_CITAS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CITAS)) {
+      sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CITAS, JSON.stringify(HISTORIAL_CITAS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.DIARIO)) {
-      localStorage.setItem(STORAGE_KEYS.DIARIO, JSON.stringify(DIARIOS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.DIARIO)) {
+      sessionCache.setItem(STORAGE_KEYS.DIARIO, JSON.stringify(DIARIOS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.ESTADO_ANIMO)) {
-      localStorage.setItem(STORAGE_KEYS.ESTADO_ANIMO, JSON.stringify(ESTADOS_ANIMO_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.ESTADO_ANIMO)) {
+      sessionCache.setItem(STORAGE_KEYS.ESTADO_ANIMO, JSON.stringify(ESTADOS_ANIMO_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.FORMULARIOS)) {
-      localStorage.setItem(STORAGE_KEYS.FORMULARIOS, JSON.stringify(FORMULARIOS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.FORMULARIOS)) {
+      sessionCache.setItem(STORAGE_KEYS.FORMULARIOS, JSON.stringify(FORMULARIOS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.HISTORIAL_CLINICO)) {
-      localStorage.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(HISTORIAL_CLINICO_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CLINICO)) {
+      sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(HISTORIAL_CLINICO_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.EMERGENCIAS)) {
-      localStorage.setItem(STORAGE_KEYS.EMERGENCIAS, JSON.stringify(EMERGENCIAS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.EMERGENCIAS)) {
+      sessionCache.setItem(STORAGE_KEYS.EMERGENCIAS, JSON.stringify(EMERGENCIAS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.MENUS)) {
-      localStorage.setItem(STORAGE_KEYS.MENUS, JSON.stringify(MENUS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.MENUS)) {
+      sessionCache.setItem(STORAGE_KEYS.MENUS, JSON.stringify(MENUS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.MENU_ROL)) {
-      localStorage.setItem(STORAGE_KEYS.MENU_ROL, JSON.stringify(MENU_ROL_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.MENU_ROL)) {
+      sessionCache.setItem(STORAGE_KEYS.MENU_ROL, JSON.stringify(MENU_ROL_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.CUSTOM_FEEDS)) {
-      localStorage.setItem(STORAGE_KEYS.CUSTOM_FEEDS, JSON.stringify(CUSTOM_FEEDS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.CUSTOM_FEEDS)) {
+      sessionCache.setItem(STORAGE_KEYS.CUSTOM_FEEDS, JSON.stringify(CUSTOM_FEEDS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.FICHAS)) {
-      localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(FICHAS_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.FICHAS)) {
+      sessionCache.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(FICHAS_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD)) {
-      localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(DISPONIBILIDAD_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.DISPONIBILIDAD)) {
+      sessionCache.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(DISPONIBILIDAD_SEMILLA));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.USUARIO_FICHA)) {
-      localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(USUARIO_FICHA_SEMILLA));
+    if (!sessionCache.getItem(STORAGE_KEYS.USUARIO_FICHA)) {
+      sessionCache.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(USUARIO_FICHA_SEMILLA));
     }
   }
 
@@ -1032,7 +1119,7 @@ class SerenaApiService {
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data = await response.json();
     const usuarios = Array.isArray(data) ? data : [];
-    localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(usuarios));
+    sessionCache.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify(usuarios));
     return usuarios;
   }
 
@@ -1040,7 +1127,7 @@ class SerenaApiService {
     const response = await this.fetchApi(`${this.backendBaseUrl}/ficha`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Ficha[] = await response.json();
-    localStorage.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.FICHAS, JSON.stringify(data));
     return data;
   }
 
@@ -1048,7 +1135,7 @@ class SerenaApiService {
     const response = await this.fetchApi(`${this.backendBaseUrl}/usuario-ficha`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: UsuarioFicha[] = await response.json();
-    localStorage.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.USUARIO_FICHA, JSON.stringify(data));
     return data;
   }
 
@@ -1056,7 +1143,7 @@ class SerenaApiService {
     const response = await this.fetchApi(`${this.backendBaseUrl}/disponibilidad`);
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Disponibilidad[] = await response.json();
-    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
     return data;
   }
 
@@ -1065,25 +1152,25 @@ class SerenaApiService {
     if (!response.ok) throw new Error(await this.getApiError(response));
     const data: Disponibilidad[] = await response.json();
     const lista = data.filter((d) => d.estado !== false);
-    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
     return lista;
   }
 
   public getUsuarios(): Usuario[] {
-    const data = localStorage.getItem(STORAGE_KEYS.USUARIOS);
+    const data = sessionCache.getItem(STORAGE_KEYS.USUARIOS);
     const usuarios = data ? JSON.parse(data) : [];
     return Array.isArray(usuarios) ? usuarios : [];
   }
 
   public clearMockUserData(): void {
-    const storedUsuarios = localStorage.getItem(STORAGE_KEYS.USUARIOS);
+    const storedUsuarios = sessionCache.getItem(STORAGE_KEYS.USUARIOS);
     if (storedUsuarios && storedUsuarios !== '[]') {
-      localStorage.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
+      sessionCache.setItem(STORAGE_KEYS.USUARIOS, JSON.stringify([]));
     }
   }
 
   public getCurrentUser(): Usuario {
-    const saved = localStorage.getItem('serena_current_user');
+    const saved = sessionCache.getItem('serena_current_user');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -1102,7 +1189,7 @@ class SerenaApiService {
   }
 
   public setCurrentUser(user: Usuario): void {
-    localStorage.setItem('serena_current_user', JSON.stringify(user));
+    sessionCache.setItem('serena_current_user', JSON.stringify(user));
   }
 
   public getUsuarioById(id: number): Usuario | undefined {
@@ -1114,7 +1201,7 @@ class SerenaApiService {
   }
 
   public getFichas(): Ficha[] {
-    const data = localStorage.getItem(STORAGE_KEYS.FICHAS);
+    const data = sessionCache.getItem(STORAGE_KEYS.FICHAS);
     return data ? JSON.parse(data) : FICHAS_SEMILLA;
   }
 
@@ -1123,37 +1210,37 @@ class SerenaApiService {
   }
 
   public getDisponibilidadPorUsuario(id_usuario: number): Disponibilidad[] {
-    const data = localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD);
+    const data = sessionCache.getItem(STORAGE_KEYS.DISPONIBILIDAD);
     const lista: Disponibilidad[] = data ? JSON.parse(data) : DISPONIBILIDAD_SEMILLA;
     return lista.filter((d) => d.id_usuario === id_usuario);
   }
 
   public getUsuariosPorFicha(id_ficha: number): Usuario[] {
-    const data = localStorage.getItem(STORAGE_KEYS.USUARIO_FICHA);
+    const data = sessionCache.getItem(STORAGE_KEYS.USUARIO_FICHA);
     const relaciones: UsuarioFicha[] = data ? JSON.parse(data) : USUARIO_FICHA_SEMILLA;
     const idsUsuarios = relaciones.filter((uf) => uf.id_ficha === id_ficha).map((uf) => uf.id_usuario);
     return this.getUsuarios().filter((u) => idsUsuarios.includes(u.id_usuario));
   }
 
-  public crearDisponibilidad(id_usuario: number, id_rol: number, dia_semana: number, hora_inicio: string, hora_fin: string): Disponibilidad {
-    const data: Disponibilidad[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DISPONIBILIDAD) || '[]');
+  public crearDisponibilidad(id_usuario: number, id_rol: number, fecha: string, hora_inicio: string, hora_fin: string): Disponibilidad {
+    const data: Disponibilidad[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.DISPONIBILIDAD) || '[]');
     const nueva: Disponibilidad = {
       id_disponibilidad: Date.now(),
       id_usuario,
       id_rol,
-      dia_semana,
+      fecha,
       hora_inicio,
       hora_fin,
       estado: true,
     };
     data.push(nueva);
-    localStorage.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.DISPONIBILIDAD, JSON.stringify(data));
     return nueva;
   }
 
   // --- Comunidades ---
   public getComunidades(): Comunidad[] {
-    const data = localStorage.getItem(STORAGE_KEYS.COMUNIDADES);
+    const data = sessionCache.getItem(STORAGE_KEYS.COMUNIDADES);
     return data ? JSON.parse(data) : COMUNIDADES_SEMILLA;
   }
 
@@ -1176,7 +1263,7 @@ class SerenaApiService {
     };
     const lista = this.getComunidades();
     lista.push(nueva);
-    localStorage.setItem(STORAGE_KEYS.COMUNIDADES, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.COMUNIDADES, JSON.stringify(lista));
     return nueva;
   }
 
@@ -1207,7 +1294,7 @@ class SerenaApiService {
   }
 
   public getPublicaciones(comunidadId?: string): Publicacion[] {
-    const data = localStorage.getItem(STORAGE_KEYS.PUBLICACIONES);
+    const data = sessionCache.getItem(STORAGE_KEYS.PUBLICACIONES);
     const lista: Publicacion[] = data ? JSON.parse(data) : PUBLICACIONES_SEMILLA;
     const usuarios = this.getUsuarios();
 
@@ -1274,7 +1361,7 @@ class SerenaApiService {
       etiqueta: etiqueta || 'Bienestar',
     };
     lista.unshift(nueva);
-    localStorage.setItem(STORAGE_KEYS.PUBLICACIONES, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.PUBLICACIONES, JSON.stringify(lista));
     return nueva;
   }
 
@@ -1283,11 +1370,11 @@ class SerenaApiService {
     const p = lista.find((item) => item.id_publicaciones === id_publicacion);
     if (p) {
       p.votos = (p.votos || 0) + delta;
-      localStorage.setItem(STORAGE_KEYS.PUBLICACIONES, JSON.stringify(lista));
+      sessionCache.setItem(STORAGE_KEYS.PUBLICACIONES, JSON.stringify(lista));
     }
 
     if (id_usuario) {
-      const votosRaw = localStorage.getItem(STORAGE_KEYS.VOTOS_USUARIOS);
+      const votosRaw = sessionCache.getItem(STORAGE_KEYS.VOTOS_USUARIOS);
       const listaVotos: VotoUsuario[] = votosRaw ? JSON.parse(votosRaw) : VOTOS_USUARIOS_SEMILLA;
       const idx = listaVotos.findIndex(
         (v) => v.id_usuario === id_usuario && v.id_publicacion === id_publicacion
@@ -1311,12 +1398,12 @@ class SerenaApiService {
           fecha: new Date().toISOString(),
         });
       }
-      localStorage.setItem(STORAGE_KEYS.VOTOS_USUARIOS, JSON.stringify(listaVotos));
+      sessionCache.setItem(STORAGE_KEYS.VOTOS_USUARIOS, JSON.stringify(listaVotos));
     }
   }
 
   public getVotosUsuario(id_usuario: number): { upvotes: Publicacion[]; downvotes: Publicacion[] } {
-    const votosRaw = localStorage.getItem(STORAGE_KEYS.VOTOS_USUARIOS);
+    const votosRaw = sessionCache.getItem(STORAGE_KEYS.VOTOS_USUARIOS);
     const listaVotos: VotoUsuario[] = votosRaw ? JSON.parse(votosRaw) : VOTOS_USUARIOS_SEMILLA;
     const publicaciones = this.getPublicaciones();
 
@@ -1332,7 +1419,7 @@ class SerenaApiService {
 
   // --- Citas (Módulo de Citas y Trazabilidad) ---
   public getCitas(usuario?: Usuario): Cita[] {
-    const data = localStorage.getItem(STORAGE_KEYS.CITAS);
+    const data = sessionCache.getItem(STORAGE_KEYS.CITAS);
     const lista: Cita[] = data ? JSON.parse(data) : CITAS_SEMILLA;
     const usuarios = this.getUsuarios();
 
@@ -1355,7 +1442,7 @@ class SerenaApiService {
   }
 
   public agendarCita(id_aprendiz: number, id_psicologo: number, fecha_hora: string, motivo: string): Cita {
-    const lista: Cita[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.CITAS) || '[]');
+    const lista: Cita[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.CITAS) || '[]');
     const nuevaCita: Cita = {
       id_cita: Date.now(),
       fecha_hora,
@@ -1365,7 +1452,7 @@ class SerenaApiService {
       id_usuario_psicologo: id_psicologo,
     };
     lista.unshift(nuevaCita);
-    localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
 
     // Auditoría inmutable en historial_cita (RN-04)
     this.registrarHistorialCita(nuevaCita.id_cita, 'Creación de orientación por el aprendiz en estado Pendiente.');
@@ -1430,7 +1517,7 @@ class SerenaApiService {
   }
 
   public solicitarCitaSinAgendar(id_psicologo: number, id_aprendiz: number, motivo: string): Cita {
-    const lista: Cita[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.CITAS) || '[]');
+    const lista: Cita[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.CITAS) || '[]');
     const nueva: Cita = {
       id_cita: Date.now(),
       fecha_hora: new Date(Date.now() + 86400000 * 2).toISOString(),
@@ -1441,7 +1528,7 @@ class SerenaApiService {
       es_solicitud_sin_agendar: true,
     };
     lista.unshift(nueva);
-    localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
     this.registrarHistorialCita(nueva.id_cita, 'Solicitud de orientación emitida por psicosocial sin franja fija.');
     return nueva;
   }
@@ -1451,13 +1538,13 @@ class SerenaApiService {
     nuevoEstado: 'Pendiente' | 'Confirmada' | 'Realizada' | 'Cancelada',
     observacion: string
   ): void {
-    const lista: Cita[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.CITAS) || '[]');
+    const lista: Cita[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.CITAS) || '[]');
     const cita = lista.find((c) => c.id_cita === id_cita);
     if (cita) {
       const estadoAnterior = cita.estado_cita;
       cita.estado_cita = nuevoEstado;
       cita.es_solicitud_sin_agendar = false;
-      localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
+      sessionCache.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
 
       // Disparador de auditoría inmutable en historial_cita (RF-CIT-02 y RN-04)
       this.registrarHistorialCita(
@@ -1468,18 +1555,18 @@ class SerenaApiService {
   }
 
   private registrarHistorialCita(id_cita: number, observacion: string) {
-    const historial: HistorialCita[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CITAS) || '[]');
+    const historial: HistorialCita[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CITAS) || '[]');
     historial.push({
       id_h_cita: Date.now() + Math.floor(Math.random() * 1000),
       id_cita,
       observaciones_historial: observacion,
       fecha_cambio: new Date().toISOString(),
     });
-    localStorage.setItem(STORAGE_KEYS.HISTORIAL_CITAS, JSON.stringify(historial));
+    sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CITAS, JSON.stringify(historial));
   }
 
   public getHistorialCita(id_cita: number): HistorialCita[] {
-    const historial: HistorialCita[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CITAS) || '[]');
+    const historial: HistorialCita[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CITAS) || '[]');
     return historial.filter((h) => h.id_cita === id_cita);
   }
 
@@ -1489,7 +1576,7 @@ class SerenaApiService {
       // RN-01: Prohibido para rol Aprendiz (403 Forbidden)
       throw new Error('403 Forbidden: Los aprendices no tienen acceso a expedientes clínicos.');
     }
-    const lista: HistorialClinico[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
+    const lista: HistorialClinico[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
     return lista.find((h) => h.id_usuario === id_usuario_aprendiz);
   }
 
@@ -1501,18 +1588,18 @@ class SerenaApiService {
     if (rol_solicitante !== 2 && rol_solicitante !== 3) {
       throw new Error('403 Forbidden');
     }
-    const lista: HistorialClinico[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
+    const lista: HistorialClinico[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
     const idx = lista.findIndex((h) => h.id_usuario === expediente.id_usuario);
     if (idx >= 0) {
       lista[idx] = expediente;
     } else {
       lista.push(expediente);
     }
-    localStorage.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
   }
 
   public actualizarHistoriaClinica(id_usuario: number, condicion: string, evolucion: string): HistorialClinico {
-    const lista: HistorialClinico[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
+    const lista: HistorialClinico[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
     let item = lista.find((h) => h.id_usuario === id_usuario);
     if (!item) {
       item = {
@@ -1531,32 +1618,32 @@ class SerenaApiService {
       item.condicion_actual = condicion;
       item.evolucion_clinica = evolucion;
     }
-    localStorage.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
     return item;
   }
 
   // --- Soportes Clínicos y Certificados Médicos Externos ---
   public getSoportesClinicos(id_usuario: number): CertificadoSoporte[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.SOPORTES_CLINICOS);
+    const raw = sessionCache.getItem(STORAGE_KEYS.SOPORTES_CLINICOS);
     const lista: CertificadoSoporte[] = raw ? JSON.parse(raw) : SOPORTES_CLINICOS_SEMILLA;
     return lista.filter((s) => s.id_usuario === id_usuario);
   }
 
   public agregarSoporteClinico(soporte: Omit<CertificadoSoporte, 'id_soporte'>): CertificadoSoporte {
-    const raw = localStorage.getItem(STORAGE_KEYS.SOPORTES_CLINICOS);
+    const raw = sessionCache.getItem(STORAGE_KEYS.SOPORTES_CLINICOS);
     const lista: CertificadoSoporte[] = raw ? JSON.parse(raw) : [...SOPORTES_CLINICOS_SEMILLA];
     const nuevo: CertificadoSoporte = {
       ...soporte,
       id_soporte: Date.now(),
     };
     lista.unshift(nuevo);
-    localStorage.setItem(STORAGE_KEYS.SOPORTES_CLINICOS, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.SOPORTES_CLINICOS, JSON.stringify(lista));
     return nuevo;
   }
 
   // --- Anotaciones Clínicas y Comentarios del Psicólogo ---
   public getAnotacionesClinicas(id_usuario: number): AnotacionClinica[] {
-    const raw = localStorage.getItem(STORAGE_KEYS.ANOTACIONES_CLINICAS);
+    const raw = sessionCache.getItem(STORAGE_KEYS.ANOTACIONES_CLINICAS);
     const lista: AnotacionClinica[] = raw ? JSON.parse(raw) : ANOTACIONES_CLINICAS_SEMILLA;
     return lista
       .filter((a) => a.id_usuario_aprendiz === id_usuario)
@@ -1570,7 +1657,7 @@ class SerenaApiService {
     tipo: 'Evolución' | 'Comentario' | 'Condición' | 'Acuerdo',
     contenido: string
   ): AnotacionClinica {
-    const raw = localStorage.getItem(STORAGE_KEYS.ANOTACIONES_CLINICAS);
+    const raw = sessionCache.getItem(STORAGE_KEYS.ANOTACIONES_CLINICAS);
     const lista: AnotacionClinica[] = raw ? JSON.parse(raw) : [...ANOTACIONES_CLINICAS_SEMILLA];
     const nueva: AnotacionClinica = {
       id_anotacion: Date.now(),
@@ -1582,12 +1669,12 @@ class SerenaApiService {
       contenido,
     };
     lista.unshift(nueva);
-    localStorage.setItem(STORAGE_KEYS.ANOTACIONES_CLINICAS, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.ANOTACIONES_CLINICAS, JSON.stringify(lista));
     return nueva;
   }
 
   public agregarCondicion(id_usuario: number, condicion: string): string[] {
-    const lista: HistorialClinico[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
+    const lista: HistorialClinico[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
     let item = lista.find((h) => h.id_usuario === id_usuario);
     if (!item) {
       item = {
@@ -1609,24 +1696,24 @@ class SerenaApiService {
         item.condiciones = item.condiciones_lista.join(', ');
       }
     }
-    localStorage.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
+    sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
     return item.condiciones_lista || [];
   }
 
   public eliminarCondicion(id_usuario: number, condicion: string): string[] {
-    const lista: HistorialClinico[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
+    const lista: HistorialClinico[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.HISTORIAL_CLINICO) || '[]');
     const item = lista.find((h) => h.id_usuario === id_usuario);
     if (item && item.condiciones_lista) {
       item.condiciones_lista = item.condiciones_lista.filter((c) => c !== condicion);
       item.condiciones = item.condiciones_lista.join(', ');
-      localStorage.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
+      sessionCache.setItem(STORAGE_KEYS.HISTORIAL_CLINICO, JSON.stringify(lista));
       return item.condiciones_lista;
     }
     return [];
   }
 
   public agregarComentarioCita(id_cita: number, comentario: string, nombre_psicologo: string): void {
-    const data = localStorage.getItem(STORAGE_KEYS.CITAS);
+    const data = sessionCache.getItem(STORAGE_KEYS.CITAS);
     const lista: Cita[] = data ? JSON.parse(data) : [...CITAS_SEMILLA];
     const cita = lista.find((c) => c.id_cita === id_cita);
     if (cita) {
@@ -1640,7 +1727,7 @@ class SerenaApiService {
         minute: '2-digit',
       });
       cita.comentarios_sesion.push(`${nombre_psicologo} (${fechaCorta}): ${comentario}`);
-      localStorage.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
+      sessionCache.setItem(STORAGE_KEYS.CITAS, JSON.stringify(lista));
 
       // Registrar auditoría en el historial
       this.registrarHistorialCita(
@@ -1652,7 +1739,7 @@ class SerenaApiService {
 
   // --- Diario Personal (un diario por aprendiz; las entradas son actualizaciones) ---
   public getDiario(id_usuario_aprendiz: number, rol_solicitante: number, id_usuario_solicitante: number): Diario[] {
-    const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
+    const data: Diario[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.DIARIO) || '[]');
     if (rol_solicitante === 1) {
       // El aprendiz solo ve su propio diario (RN-03)
       return data.filter((d) => d.id_usuario === id_usuario_solicitante);
@@ -1664,7 +1751,7 @@ class SerenaApiService {
   }
 
   public guardarEntradaDiario(id_usuario: number, titulo: string, contenido: string, compartir_sp: boolean): Diario {
-    const data: Diario[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.DIARIO) || '[]');
+    const data: Diario[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.DIARIO) || '[]');
     const nuevaEntrada: Diario = {
       id_diario: Date.now(),
       id_usuario,
@@ -1674,31 +1761,24 @@ class SerenaApiService {
       compartir_sp,
     };
     data.unshift(nuevaEntrada);
-    localStorage.setItem(STORAGE_KEYS.DIARIO, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.DIARIO, JSON.stringify(data));
     return nuevaEntrada;
   }
 
-  public async getDiarioDesdeApi(id_usuario: number): Promise<Diario | null> {
+  public async getDiarioDesdeApi(id_usuario: number): Promise<Diario[]> {
     const response = await this.fetchApi(`${this.backendBaseUrl}/diario/usuario/${id_usuario}`);
-    if (response.status === 404) return null;
     if (!response.ok) throw new Error(await this.getApiError(response));
-    return response.json();
+    return response.json() as Promise<Diario[]>;
   }
 
   public async actualizarDiarioEnApi(entrada: {
-    id_usuario: number;
     contenido: string;
     compartir_sp: boolean;
   }): Promise<Diario> {
     const response = await this.fetchApi(`${this.backendBaseUrl}/diario/crear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id_usuario: entrada.id_usuario,
-        contenido: entrada.contenido,
-        compartir_sp: entrada.compartir_sp,
-        fecha_apertura: new Date().toISOString(),
-      }),
+      body: JSON.stringify(entrada),
     });
     if (!response.ok) throw new Error(await this.getApiError(response));
     return response.json();
@@ -1716,7 +1796,7 @@ class SerenaApiService {
 
   // --- Estado de Ánimo (RF-EA-01, RF-EA-02) ---
   public getEstadosDeAnimo(id_usuario: number): EstadoDeAnimo[] {
-    const data: EstadoDeAnimo[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.ESTADO_ANIMO) || '[]');
+    const data: EstadoDeAnimo[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.ESTADO_ANIMO) || '[]');
     return data
       .filter((e) => e.id_usuario === id_usuario)
       .sort((a, b) => new Date(a.fecha_estado).getTime() - new Date(b.fecha_estado).getTime());
@@ -1760,7 +1840,7 @@ class SerenaApiService {
     nota?: string,
     intensidad: number = 4
   ): EstadoDeAnimo {
-    const data: EstadoDeAnimo[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.ESTADO_ANIMO) || '[]');
+    const data: EstadoDeAnimo[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.ESTADO_ANIMO) || '[]');
     const nuevo: EstadoDeAnimo = {
       id_estado: Date.now(),
       id_usuario,
@@ -1772,13 +1852,13 @@ class SerenaApiService {
       intensidad,
     };
     data.push(nuevo);
-    localStorage.setItem(STORAGE_KEYS.ESTADO_ANIMO, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.ESTADO_ANIMO, JSON.stringify(data));
     return nuevo;
   }
 
   // --- Emergencias (RF-EM-01, RN-05) ---
   public registrarEmergencia(id_usuario: number, descripcion?: string): Emergencia {
-    const data: Emergencia[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMERGENCIAS) || '[]');
+    const data: Emergencia[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.EMERGENCIAS) || '[]');
     const nueva: Emergencia = {
       id_emergencia: Date.now(),
       id_usuario,
@@ -1788,12 +1868,12 @@ class SerenaApiService {
     };
     // RN-05: Inmutable, sirve como evidencia auditada de apoyo
     data.unshift(nueva);
-    localStorage.setItem(STORAGE_KEYS.EMERGENCIAS, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.EMERGENCIAS, JSON.stringify(data));
     return nueva;
   }
 
   public getEmergencias(): Emergencia[] {
-    const data: Emergencia[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMERGENCIAS) || '[]');
+    const data: Emergencia[] = JSON.parse(sessionCache.getItem(STORAGE_KEYS.EMERGENCIAS) || '[]');
     const usuarios = this.getUsuarios();
     return data.map((e) => ({
       ...e,
@@ -1809,7 +1889,7 @@ class SerenaApiService {
   }
 
   public getFormularios(): Formulario[] {
-    const data = localStorage.getItem(STORAGE_KEYS.FORMULARIOS);
+    const data = sessionCache.getItem(STORAGE_KEYS.FORMULARIOS);
     return data ? JSON.parse(data) : FORMULARIOS_SEMILLA;
   }
 
@@ -1850,7 +1930,7 @@ class SerenaApiService {
       respondido: false,
     };
     data.unshift(nuevo);
-    localStorage.setItem(STORAGE_KEYS.FORMULARIOS, JSON.stringify(data));
+    sessionCache.setItem(STORAGE_KEYS.FORMULARIOS, JSON.stringify(data));
     return nuevo;
   }
 
@@ -1859,14 +1939,14 @@ class SerenaApiService {
     const item = data.find((f) => f.id_formulario === id_formulario);
     if (item) {
       item.respondido = true;
-      localStorage.setItem(STORAGE_KEYS.FORMULARIOS, JSON.stringify(data));
+      sessionCache.setItem(STORAGE_KEYS.FORMULARIOS, JSON.stringify(data));
     }
   }
 
   // --- Menús y Roles (SRS IEEE 830 - Tablas Menu y Menu_Rol) ---
   public getMenusPorRol(id_rol: number): Menu[] {
-    const rawMenus = localStorage.getItem(STORAGE_KEYS.MENUS);
-    const rawMenuRol = localStorage.getItem(STORAGE_KEYS.MENU_ROL);
+    const rawMenus = sessionCache.getItem(STORAGE_KEYS.MENUS);
+    const rawMenuRol = sessionCache.getItem(STORAGE_KEYS.MENU_ROL);
 
     const menus: Menu[] = rawMenus ? JSON.parse(rawMenus) : MENUS_SEMILLA;
     const menuRoles: MenuRol[] = rawMenuRol ? JSON.parse(rawMenuRol) : MENU_ROL_SEMILLA;
@@ -1882,7 +1962,7 @@ class SerenaApiService {
 
   // --- Custom Feeds ---
   public getCustomFeeds(): CustomFeed[] {
-    const data = localStorage.getItem(STORAGE_KEYS.CUSTOM_FEEDS);
+    const data = sessionCache.getItem(STORAGE_KEYS.CUSTOM_FEEDS);
     return data ? JSON.parse(data) : CUSTOM_FEEDS_SEMILLA;
   }
 
@@ -1895,7 +1975,7 @@ class SerenaApiService {
       comunidades,
     };
     feeds.push(nuevo);
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_FEEDS, JSON.stringify(feeds));
+    sessionCache.setItem(STORAGE_KEYS.CUSTOM_FEEDS, JSON.stringify(feeds));
     return nuevo;
   }
 

@@ -20,6 +20,11 @@ public class verificacion_correo
     [Column("codigo_hash")]
     public string codigo_hash { get; set; } = string.Empty;
 
+    [Required]
+    [StringLength(30)]
+    [Column("proposito")]
+    public string proposito { get; set; } = "verificacion-correo";
+
     [Column("expira_en")]
     public DateTimeOffset expira_en { get; set; }
 

@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ShieldCheck, UserPlus } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
-import { RecaptchaV2 } from './RecaptchaV2';
+import { RecaptchaV3, RecaptchaV3Handle } from './RecaptchaV3';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 const inputClass = 'w-full rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-100';
 
-type View = 'login' | 'register' | 'verify';
+type View = 'login' | 'register' | 'verify' | 'login-code' | 'forgot' | 'reset';
 type AccountRole = 1 | 2;
 
 interface LoginViewProps {
@@ -59,8 +59,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
   const [programaId, setProgramaId] = useState('');
   const [fichaId, setFichaId] = useState('');
   const [aceptaTratamiento, setAceptaTratamiento] = useState(false);
-  const [recaptchaToken, setRecaptchaToken] = useState('');
-  const [recaptchaVersion, setRecaptchaVersion] = useState(0);
+  const recaptchaRef = useRef<RecaptchaV3Handle>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -71,11 +70,19 @@ export function LoginView({ onLogin }: LoginViewProps) {
     let active = true;
     fetch(`${API_BASE_URL}/programas`)
       .then(async (response) => {
-        if (!response.ok) throw new Error('No fue posible cargar los programas.');
+        if (!response.ok) {
+          throw new Error(response.status >= 500
+            ? 'La API de SERENA no está disponible. Comprueba que el backend y SQL Server estén iniciados.'
+            : 'No fue posible cargar los programas.');
+        }
         return response.json() as Promise<ProgramaOption[]>;
       })
       .then((items) => { if (active) setProgramas(items); })
-      .catch((cause: Error) => { if (active) setError(cause.message); });
+      .catch((cause: Error) => {
+        if (active) setError(cause instanceof TypeError
+          ? 'No se pudo conectar con la API de SERENA. Comprueba que el backend esté disponible.'
+          : cause.message);
+      });
     return () => { active = false; };
   }, [view]);
 
@@ -88,35 +95,39 @@ export function LoginView({ onLogin }: LoginViewProps) {
     let active = true;
     fetch(`${API_BASE_URL}/programas/${programaId}/fichas`)
       .then(async (response) => {
-        if (!response.ok) throw new Error('No fue posible cargar las fichas.');
+        if (!response.ok) {
+          throw new Error(response.status >= 500
+            ? 'La API de SERENA no está disponible. Comprueba que el backend y SQL Server estén iniciados.'
+            : 'No fue posible cargar las fichas.');
+        }
         return response.json() as Promise<FichaOption[]>;
       })
       .then((items) => { if (active) setFichas(items); })
-      .catch((cause: Error) => { if (active) setError(cause.message); });
+      .catch((cause: Error) => {
+        if (active) setError(cause instanceof TypeError
+          ? 'No se pudo conectar con la API de SERENA. Comprueba que el backend esté disponible.'
+          : cause.message);
+      });
     return () => { active = false; };
   }, [view, rol, programaId]);
-
-  const resetCaptcha = () => {
-    setRecaptchaToken('');
-    setRecaptchaVersion((version) => version + 1);
-  };
 
   const changeView = (nextView: View) => {
     setView(nextView);
     setError('');
     setNotice('');
-    setRecaptchaToken('');
   };
 
-  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+  const executeRecaptcha = (action: string) => {
+    if (!recaptchaRef.current) throw new Error('reCAPTCHA todavía no está listo. Inténtalo nuevamente.');
+    return recaptchaRef.current.execute(action);
+  };
+
+  const handleLoginWithPassword = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    if (!recaptchaToken) {
-      setError('Completa la verificación reCAPTCHA.');
-      return;
-    }
     setIsLoading(true);
     try {
+      const recaptchaToken = await executeRecaptcha('login');
       const response = await requestApi<{ usuario: Usuario; token: string }>('/Login', {
         correo: correo.trim(), contrasena, recaptchaToken,
       });
@@ -125,7 +136,81 @@ export function LoginView({ onLogin }: LoginViewProps) {
       setError(cause instanceof Error ? cause.message : 'No se pudo iniciar sesión.');
     } finally {
       setIsLoading(false);
-      resetCaptcha();
+    }
+  };
+
+  const handleLoginWithCode = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('login_code_verify');
+      const response = await requestApi<{ usuario: Usuario; token: string }>('/Login/iniciar-con-codigo', {
+        email: correo.trim(), codigo: codigo.trim(), recaptchaToken,
+      });
+      onLogin(response.usuario, response.token);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo iniciar sesión.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRequestLoginCode = async (event?: React.SyntheticEvent) => {
+    event?.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('login_code');
+      const response = await requestApi<{ mensaje: string }>('/Login/solicitar-codigo-acceso', {
+        email: correo.trim(), recaptchaToken,
+      });
+      setCodigo('');
+      setNotice(response.mensaje);
+      setView('login-code');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible solicitar el código.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRequestPasswordReset = async (event?: React.SyntheticEvent) => {
+    event?.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('forgot_password');
+      const response = await requestApi<{ mensaje: string }>('/Login/olvido-contrasena', {
+        email: correo.trim(), recaptchaToken,
+      });
+      setCodigo('');
+      setNotice(response.mensaje);
+      setView('reset');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible solicitar el restablecimiento.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('reset_password');
+      const response = await requestApi<{ mensaje: string }>('/Login/restablecer-contrasena', {
+        email: correo.trim(), codigo: codigo.trim(), nuevaContrasena: contrasena, recaptchaToken,
+      });
+      setContrasena('');
+      setCodigo('');
+      setNotice(response.mensaje);
+      setView('login');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible restablecer la contraseña.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -136,12 +221,9 @@ export function LoginView({ onLogin }: LoginViewProps) {
       setError('Debes aceptar el aviso de privacidad para crear la cuenta.');
       return;
     }
-    if (!recaptchaToken) {
-      setError('Completa la verificación reCAPTCHA.');
-      return;
-    }
     setIsLoading(true);
     try {
+      const recaptchaToken = await executeRecaptcha('register');
       const response = await requestApi<{ mensaje: string; correo: string }>('/Login/registrar', {
         nombre_usuario: nombre.trim(),
         email: correo.trim(),
@@ -170,19 +252,15 @@ export function LoginView({ onLogin }: LoginViewProps) {
       setError(cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.');
     } finally {
       setIsLoading(false);
-      resetCaptcha();
     }
   };
 
   const handleVerify = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    if (!recaptchaToken) {
-      setError('Completa la verificación reCAPTCHA.');
-      return;
-    }
     setIsLoading(true);
     try {
+      const recaptchaToken = await executeRecaptcha('verify_email');
       const response = await requestApi<{ mensaje: string }>('/Login/verificar-correo', {
         email: correo.trim(), codigo: codigo.trim(), recaptchaToken,
       });
@@ -193,18 +271,14 @@ export function LoginView({ onLogin }: LoginViewProps) {
       setError(cause instanceof Error ? cause.message : 'No se pudo verificar el correo.');
     } finally {
       setIsLoading(false);
-      resetCaptcha();
     }
   };
 
   const handleResendCode = async () => {
     setError('');
-    if (!recaptchaToken) {
-      setError('Completa la verificación reCAPTCHA para reenviar el código.');
-      return;
-    }
     setIsLoading(true);
     try {
+      const recaptchaToken = await executeRecaptcha('resend_email');
       const response = await requestApi<{ mensaje: string }>('/Login/reenviar-verificacion', {
         email: correo.trim(), recaptchaToken,
       });
@@ -213,7 +287,6 @@ export function LoginView({ onLogin }: LoginViewProps) {
       setError(cause instanceof Error ? cause.message : 'No se pudo reenviar el código.');
     } finally {
       setIsLoading(false);
-      resetCaptcha();
     }
   };
 
@@ -222,8 +295,8 @@ export function LoginView({ onLogin }: LoginViewProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(124,58,237,0.13),transparent_36%),radial-gradient(ellipse_at_90%_84%,rgba(192,132,252,0.18),transparent_32%)]" />
       <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:px-12">
         <section className="hidden lg:block">
-          <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-violet-100">
-            <img src="/IMG/logo.png" alt="SERENA" className="h-16 w-16 object-contain" />
+          <div className="mb-8 flex h-24 w-24 items-center justify-center">
+            <img src="/IMG/logo.png" alt="SERENA" className="h-24 w-24 object-contain" />
           </div>
           <p className="text-sm font-semibold uppercase text-violet-700">SENA · CMTC</p>
           <h1 className="mt-3 max-w-md text-4xl font-bold leading-tight text-[#2d1748]">SERENA</h1>
@@ -233,8 +306,8 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
         <section className="mx-auto w-full max-w-lg rounded-2xl border border-violet-100 bg-white p-5 shadow-[0_24px_70px_rgba(57,31,84,0.12)] sm:p-8">
           <div className="mb-7 flex items-center gap-3 lg:hidden">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50">
-              <img src="/IMG/logo.png" alt="SERENA" className="h-10 w-10 object-contain" />
+            <div className="flex h-14 w-14 items-center justify-center">
+              <img src="/IMG/logo.png" alt="SERENA" className="h-14 w-14 object-contain" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#2d1748]">SERENA</p>
@@ -242,7 +315,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
             </div>
           </div>
 
-          {view !== 'verify' && (
+          {(view === 'login' || view === 'register') && (
             <div className="mb-7 grid grid-cols-2 rounded-xl bg-violet-50 p-1" role="tablist" aria-label="Acceso a SERENA">
               <button type="button" role="tab" aria-selected={view === 'login'} onClick={() => changeView('login')} className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${view === 'login' ? 'bg-white text-violet-800 shadow-sm' : 'text-violet-600 hover:text-violet-900'}`}>
                 Iniciar sesión
@@ -258,10 +331,10 @@ export function LoginView({ onLogin }: LoginViewProps) {
               {view === 'verify' ? <ShieldCheck size={19} /> : view === 'register' ? <UserPlus size={19} /> : <ShieldCheck size={19} />}
             </div>
             <h2 className="text-2xl font-bold text-[#2d1748]">
-              {view === 'login' ? 'Bienvenido de nuevo' : view === 'register' ? 'Crear cuenta institucional' : 'Verifica tu correo'}
+              {view === 'login' ? 'Bienvenido de nuevo' : view === 'register' ? 'Crear cuenta institucional' : view === 'verify' ? 'Verifica tu correo' : view === 'login-code' ? 'Ingresa tu código' : view === 'forgot' ? 'Recupera tu acceso' : 'Restablece tu contraseña'}
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              {view === 'login' ? 'Ingresa con las credenciales registradas en SERENA.' : view === 'register' ? 'Elige el tipo de cuenta que corresponde a tu correo SENA.' : `Ingresa el código de seis dígitos enviado a ${correo}.`}
+              {view === 'login' ? 'Ingresa con tu correo institucional y contraseña.' : view === 'register' ? 'Elige el tipo de cuenta que corresponde a tu correo SENA.' : view === 'verify' || view === 'login-code' || view === 'reset' ? `Ingresa el código de seis dígitos enviado a ${correo}.` : view === 'forgot' ? 'Escribe tu correo institucional para recibir un código e iniciar sesión sin contraseña.' : 'Elige una contraseña nueva para tu cuenta.'}
             </p>
           </div>
 
@@ -269,7 +342,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
           {error && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">{error}</p>}
 
           {view === 'login' && (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLoginWithPassword} className="space-y-4">
               <div>
                 <label htmlFor="correo-login" className="mb-1.5 block text-sm font-medium text-slate-700">Correo institucional</label>
                 <input id="correo-login" className={inputClass} type="email" value={correo} onChange={(event) => setCorreo(event.target.value)} autoComplete="username" placeholder="nombre@soy.sena.edu.co" required />
@@ -278,10 +351,52 @@ export function LoginView({ onLogin }: LoginViewProps) {
                 <label htmlFor="contrasena-login" className="mb-1.5 block text-sm font-medium text-slate-700">Contraseña</label>
                 <input id="contrasena-login" className={inputClass} type="password" value={contrasena} onChange={(event) => setContrasena(event.target.value)} autoComplete="current-password" placeholder="Tu contraseña" required />
               </div>
-              <RecaptchaV2 key={recaptchaVersion} onToken={setRecaptchaToken} />
+              <RecaptchaV3 ref={recaptchaRef} />
               <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">
                 {isLoading ? 'Validando…' : 'Ingresar'}
               </button>
+              <button type="button" onClick={() => changeView('forgot')} className="w-full py-1 text-sm font-medium text-sky-700 hover:text-sky-900">¿Olvidaste tu contraseña?</button>
+            </form>
+          )}
+
+          {view === 'login-code' && (
+            <form onSubmit={handleLoginWithCode} className="space-y-4">
+              <div>
+                <label htmlFor="codigo-login" className="mb-1.5 block text-sm font-medium text-slate-700">Código de acceso</label>
+                <input id="codigo-login" className={`${inputClass} text-center text-lg tracking-[0.3em]`} value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" required minLength={6} maxLength={6} />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">{isLoading ? 'Validando…' : 'Ingresar'}</button>
+              <button type="button" disabled={isLoading} onClick={handleRequestLoginCode} className="w-full py-2 text-sm font-semibold text-violet-800 hover:text-violet-950 disabled:opacity-50">Enviar otro código</button>
+              <button type="button" onClick={() => changeView('login')} className="flex w-full items-center justify-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft size={15} /> Cambiar correo</button>
+            </form>
+          )}
+
+          {view === 'forgot' && (
+            <form onSubmit={handleRequestLoginCode} className="space-y-4">
+              <div>
+                <label htmlFor="correo-recuperacion" className="mb-1.5 block text-sm font-medium text-slate-700">Correo institucional</label>
+                <input id="correo-recuperacion" className={inputClass} type="email" value={correo} onChange={(event) => setCorreo(event.target.value)} autoComplete="email" required />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-60">{isLoading ? 'Enviando…' : 'Enviar código para iniciar sesión'}</button>
+              <button type="button" disabled={isLoading} onClick={handleRequestPasswordReset} className="w-full py-1 text-sm font-medium text-sky-700 hover:text-sky-900 disabled:opacity-50">Restablecer mi contraseña</button>
+              <button type="button" onClick={() => changeView('login')} className="flex w-full items-center justify-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft size={15} /> Volver</button>
+            </form>
+          )}
+
+          {view === 'reset' && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label htmlFor="codigo-restablecimiento" className="mb-1.5 block text-sm font-medium text-slate-700">Código de recuperación</label>
+                <input id="codigo-restablecimiento" className={`${inputClass} text-center text-lg tracking-[0.3em]`} value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" required minLength={6} maxLength={6} />
+              </div>
+              <div>
+                <label htmlFor="contrasena-nueva" className="mb-1.5 block text-sm font-medium text-slate-700">Nueva contraseña</label>
+                <input id="contrasena-nueva" className={inputClass} type="password" value={contrasena} onChange={(event) => setContrasena(event.target.value)} autoComplete="new-password" minLength={8} required />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-60">{isLoading ? 'Actualizando…' : 'Guardar contraseña nueva'}</button>
             </form>
           )}
 
@@ -334,7 +449,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
                   <span>He leído el <button type="button" onClick={() => setShowPrivacy(true)} className="font-semibold text-violet-800 underline decoration-violet-300 underline-offset-2 hover:text-violet-950">aviso de privacidad</button> y autorizo el tratamiento necesario para crear y gestionar mi cuenta.</span>
                 </label>
               </div>
-              <RecaptchaV2 key={recaptchaVersion} onToken={setRecaptchaToken} />
+              <RecaptchaV3 ref={recaptchaRef} />
               <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">
                 {isLoading ? 'Creando cuenta…' : 'Crear cuenta'}
               </button>
@@ -347,7 +462,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
                 <label htmlFor="codigo-verificacion" className="mb-1.5 block text-sm font-medium text-slate-700">Código de verificación</label>
                 <input id="codigo-verificacion" className={`${inputClass} text-center text-lg tracking-[0.3em]`} value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" required minLength={6} maxLength={6} />
               </div>
-              <RecaptchaV2 key={recaptchaVersion} onToken={setRecaptchaToken} />
+              <RecaptchaV3 ref={recaptchaRef} />
               <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">
                 {isLoading ? 'Verificando…' : 'Verificar correo'}
               </button>
@@ -356,7 +471,6 @@ export function LoginView({ onLogin }: LoginViewProps) {
             </form>
           )}
 
-          <p className="mt-6 border-t border-slate-100 pt-4 text-center text-xs leading-5 text-slate-500">Las cuentas de administrador se aprovisionan directamente en la base de datos y no se crean desde esta pantalla.</p>
         </section>
       </div>
 

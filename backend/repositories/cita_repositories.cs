@@ -77,10 +77,10 @@ public class cita_repositories : Icita
 
     private async Task<bool> TieneDisponibilidadAsync(cita value)
     {
-        var (dia, hora) = ObtenerDiaYHora(value.fecha_hora);
+        var (fecha, hora) = ObtenerFechaYHora(value.fecha_hora);
         return await context.disponibilidad.AnyAsync(slot =>
             slot.id_usuario == value.id_usuario_psicologo &&
-            slot.dia_semana == dia &&
+            slot.fecha == fecha &&
             slot.estado &&
             slot.hora_inicio <= hora &&
             slot.hora_fin > hora);
@@ -88,10 +88,10 @@ public class cita_repositories : Icita
 
     private async Task ConsumirDisponibilidadAsync(cita value)
     {
-        var (dia, hora) = ObtenerDiaYHora(value.fecha_hora);
+        var (fecha, hora) = ObtenerFechaYHora(value.fecha_hora);
         var actualizadas = await context.disponibilidad
             .Where(slot => slot.id_usuario == value.id_usuario_psicologo &&
-                slot.dia_semana == dia && slot.estado &&
+            slot.fecha == fecha && slot.estado &&
                 slot.hora_inicio <= hora && slot.hora_fin > hora)
             .ExecuteUpdateAsync(setters => setters.SetProperty(slot => slot.estado, false));
 
@@ -101,7 +101,7 @@ public class cita_repositories : Icita
 
     private async Task LiberarDisponibilidadAsync(cita value)
     {
-        var (dia, hora) = ObtenerDiaYHora(value.fecha_hora);
+        var (fecha, hora) = ObtenerFechaYHora(value.fecha_hora);
         var existeOtraOrientacionConfirmada = await context.cita.AnyAsync(other =>
             other.id_cita != value.id_cita &&
             other.id_usuario_psicologo == value.id_usuario_psicologo &&
@@ -112,12 +112,12 @@ public class cita_repositories : Icita
         {
             await context.disponibilidad
                 .Where(slot => slot.id_usuario == value.id_usuario_psicologo &&
-                    slot.dia_semana == dia && !slot.estado &&
+                    slot.fecha == fecha && !slot.estado &&
                     slot.hora_inicio <= hora && slot.hora_fin > hora)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(slot => slot.estado, true));
         }
     }
 
-    private static (byte dia, TimeSpan hora) ObtenerDiaYHora(DateTime fechaHora) =>
-        ((byte)(((int)fechaHora.DayOfWeek + 6) % 7 + 1), fechaHora.TimeOfDay);
+    private static (DateOnly fecha, TimeSpan hora) ObtenerFechaYHora(DateTime fechaHora) =>
+        (DateOnly.FromDateTime(fechaHora), fechaHora.TimeOfDay);
 }

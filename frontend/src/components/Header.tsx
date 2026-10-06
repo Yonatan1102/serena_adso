@@ -6,7 +6,6 @@ import {
   Plus,
   User as UserIcon,
   Menu as MenuIcon,
-  CheckCircle2,
   ExternalLink,
   ShieldAlert,
   Heart,
@@ -16,8 +15,6 @@ import { Usuario } from '../types/serena.types';
 
 interface HeaderProps {
   currentUser: Usuario;
-  usuariosDisponibles: Usuario[];
-  onSelectUser: (user: Usuario) => void;
   onToggleSidebar: () => void;
   isSidebarCollapsed: boolean;
   onOpenCrearDiarioRapido: () => void;
@@ -32,8 +29,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
-  usuariosDisponibles,
-  onSelectUser,
   onToggleSidebar,
   isSidebarCollapsed,
   onOpenCrearDiarioRapido,
@@ -57,12 +52,12 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Logo de SERENA: Mucho más visible y claro */}
         <div className="flex items-center gap-2.5">
-          <div className="h-9 sm:h-10 w-auto flex items-center justify-center shrink-0">
+          <div className="h-10 sm:h-12 w-auto flex items-center justify-center shrink-0">
             {!logoError ? (
               <img
                 src="/IMG/logo.png"
                 alt="SERENA Logo"
-                className="h-full w-auto max-h-10 object-contain"
+                className="h-full w-auto max-h-12 object-contain"
                 onError={() => setLogoError(true)}
               />
             ) : (
@@ -257,10 +252,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
 
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                {idioma === 'es' ? 'Cambiar Rol de Prueba:' : 'Switch Test Role:'}
-              </div>
-
               <button
                 onClick={() => {
                   onLogout?.();
@@ -271,33 +262,6 @@ export const Header: React.FC<HeaderProps> = ({
                 {idioma === 'es' ? 'Cerrar sesión' : 'Log out'}
               </button>
 
-              <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                {usuariosDisponibles.map((u) => {
-                  const isSelected = u.id_usuario === currentUser.id_usuario;
-                  return (
-                    <button
-                      key={u.id_usuario}
-                      onClick={() => {
-                        onSelectUser(u);
-                        setShowUserMenu(false);
-                      }}
-                      className={`text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between transition-colors ${
-                        isSelected
-                          ? 'bg-[#ECF9EE] text-slate-900 font-bold'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="truncate">
-                        <p className="truncate font-semibold">{u.nombre_usuario}</p>
-                        <p className="text-[10px] text-slate-400">
-                          {u.id_rol === 2 ? 'Psicólogo' : 'Aprendiz'} • {u.centro}
-                        </p>
-                      </div>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#63C976]" />}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
         </div>

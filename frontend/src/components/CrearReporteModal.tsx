@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, FileSpreadsheet, Download, CheckCircle2, BarChart2 } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
+import { serenaApi } from '../services/serena-api.service';
 
 interface CrearReporteModalProps {
   isOpen: boolean;
@@ -15,21 +16,53 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
   currentUser,
   idioma = 'es',
 }) => {
-  const [tipoReporte, setTipoReporte] = useState('orientaciones');
   const [rangoFechas, setRangoFechas] = useState('mes');
   const [generado, setGenerado] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleGenerar = (e: React.FormEvent) => {
+  const handleGenerar = async (e: React.FormEvent) => {
     e.preventDefault();
     setGenerado(true);
     setMensaje(null);
-    setTimeout(() => {
-      setMensaje(idioma === 'es' ? `Reporte de ${tipoReporte} exportado exitosamente.` : `Report of ${tipoReporte} successfully generated and exported.`);
+    setError(null);
+    try {
+      const hasta = new Date();
+      const dias = rangoFechas === 'semana' ? 7 : rangoFechas === 'trimestre' ? 90 : 30;
+      const desde = new Date(hasta.getTime() - dias * 24 * 60 * 60 * 1000);
+      const rows = await serenaApi.getReporteOrientacionesDesdeApi(desde, hasta);
+      const columns = ['Fecha', 'Aprendiz', 'Estado', 'Motivo', 'Motivo de cambio'];
+      const csvCell = (value: unknown) => {
+        const text = String(value ?? '').replace(/[\r\n]+/g, ' ').replace(/^([=+\-@])/, "'$1");
+        return `"${text.replace(/"/g, '""')}"`;
+      };
+      const csv = [
+        columns.map(csvCell).join(';'),
+        ...rows.map((row) => [
+          new Date(row.fecha_hora).toLocaleString('es-CO'),
+          row.aprendiz,
+          row.estado,
+          row.motivo,
+          row.motivo_cambio,
+        ].map(csvCell).join(';')),
+      ].join('\r\n');
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `serena-orientaciones-${desde.toISOString().slice(0, 10)}-${hasta.toISOString().slice(0, 10)}.csv`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMensaje(idioma === 'es'
+        ? `Reporte descargado con ${rows.length} orientaciones.`
+        : `Report downloaded with ${rows.length} orientations.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible generar el reporte.');
+    } finally {
       setGenerado(false);
-    }, 600);
+    }
   };
 
   return (
@@ -58,29 +91,15 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
         </div>
 
         <form onSubmit={handleGenerar} className="p-6 flex flex-col gap-4">
-          {mensaje && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{mensaje}</p>}
+          {mensaje && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{mensaje}</p>}
+          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
               {idioma === 'es' ? 'Tipo de Reporte a Generar:' : 'Report Type:'}
             </label>
-            <select
-              value={tipoReporte}
-              onChange={(e) => setTipoReporte(e.target.value)}
-              className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:border-[#63C976] focus:outline-none"
-            >
-              <option value="orientaciones">
-                {idioma === 'es' ? 'Orientaciones psicosociales (historial inmutable)' : 'Psychosocial orientations (immutable history)'}
-              </option>
-              <option value="tamizajes">
-                {idioma === 'es' ? 'Resultados de encuestas' : 'Survey Results'}
-              </option>
-              <option value="animo">
-                {idioma === 'es' ? 'Evolución de Estados de Ánimo del Centro CMTC' : 'Mood Evolution Trends for CMTC'}
-              </option>
-              <option value="emergencias">
-                {idioma === 'es' ? 'Atención de Emergencias y Activaciones de Pánico' : 'Emergency Activations & Panic Logs'}
-              </option>
-            </select>
+            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              {idioma === 'es' ? 'Orientaciones psicosociales registradas para tu cuenta.' : 'Psychosocial orientations recorded for your account.'}
+            </p>
           </div>
 
           <div>
@@ -93,8 +112,8 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
               className="w-full text-xs px-3 py-2 rounded-xl border border-slate-200 focus:border-[#63C976] focus:outline-none"
             >
               <option value="semana">{idioma === 'es' ? 'Últimos 7 días' : 'Last 7 days'}</option>
-              <option value="mes">{idioma === 'es' ? 'Último mes lectivo' : 'Last month'}</option>
-              <option value="trimestre">{idioma === 'es' ? 'Trimestre actual SENA' : 'Current quarter'}</option>
+              <option value="mes">{idioma === 'es' ? 'Últimos 30 días' : 'Last 30 days'}</option>
+              <option value="trimestre">{idioma === 'es' ? 'Últimos 90 días' : 'Last 90 days'}</option>
             </select>
           </div>
 
@@ -102,8 +121,8 @@ export const CrearReporteModal: React.FC<CrearReporteModalProps> = ({
             <BarChart2 className="w-4 h-4 text-[#63C976] shrink-0 mt-0.5" />
             <span>
               {idioma === 'es'
-                ? 'El archivo se exporta en formato consolidado CSV/Excel respetando la Ley 1581 de 2012 de protección de datos personales de aprendices.'
-                : 'Consolidated report conforming to Colombian privacy regulations (Law 1581).'}
+                ? 'Se descargará un CSV que puedes abrir en Excel. Incluye solo las orientaciones visibles para tu cuenta.'
+                : 'A CSV will be downloaded with the orientations visible to your account.'}
             </span>
           </div>
 

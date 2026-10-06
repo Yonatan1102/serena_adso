@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using WebApplication1.interfaces;
 
 namespace WebApplication1.services;
@@ -10,10 +11,10 @@ public sealed class RecaptchaService(
 {
     private const string VerifyUrl = "https://www.google.com/recaptcha/api/siteverify";
 
-    public async Task<bool> VerifyAsync(string token, string? remoteIp, CancellationToken cancellationToken)
+    public async Task<bool> VerifyAsync(string token, string expectedAction, string? remoteIp, CancellationToken cancellationToken)
     {
         var secretKey = configuration["RecaptchaSettings:SecretKey"];
-        if (string.IsNullOrWhiteSpace(secretKey) || string.IsNullOrWhiteSpace(token))
+        if (string.IsNullOrWhiteSpace(secretKey) || string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(expectedAction))
             return false;
 
         var values = new Dictionary<string, string>
@@ -46,15 +47,30 @@ public sealed class RecaptchaService(
             throw new RecaptchaUnavailableException();
         }
 
-        if (result?.error_codes?.Contains("invalid-input-secret", StringComparer.Ordinal) == true)
+        if (result?.ErrorCodes?.Contains("invalid-input-secret", StringComparer.Ordinal) == true ||
+            result?.ErrorCodes?.Contains("missing-input-secret", StringComparer.Ordinal) == true)
         {
             logger.LogError("Google rechazó la clave secreta configurada para reCAPTCHA.");
             throw new RecaptchaUnavailableException();
         }
-        return result?.success == true;
+
+        var minimumScore = configuration.GetValue("RecaptchaSettings:MinimumScore", 0.5);
+        if (minimumScore is < 0 or > 1)
+        {
+            logger.LogError("RecaptchaSettings:MinimumScore debe estar entre 0 y 1.");
+            throw new RecaptchaUnavailableException();
+        }
+
+        return result?.success == true &&
+            string.Equals(result.action, expectedAction, StringComparison.Ordinal) &&
+            result.score >= minimumScore;
     }
 
-    private sealed record RecaptchaVerificationResponse(bool success, string[]? error_codes);
+    private sealed record RecaptchaVerificationResponse(
+        bool success,
+        double? score,
+        string? action,
+        [property: JsonPropertyName("error-codes")] string[]? ErrorCodes);
 }
 
 public sealed class RecaptchaUnavailableException : Exception

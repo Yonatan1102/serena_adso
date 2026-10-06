@@ -7,32 +7,25 @@ public class diario_repositories : Idiario
     private readonly serena context;
     public diario_repositories(serena context) => this.context=context;
     public Task<List<diario>> Getdiario()=>context.diario.AsNoTracking().ToListAsync();
+    public Task<List<diario>> GetdiariosByUsuario(int id_usuario)=>context.diario
+        .AsNoTracking()
+        .Where(item=>item.id_usuario==id_usuario)
+        .OrderByDescending(item=>item.fecha_apertura)
+        .ToListAsync();
     public Task<diario?> GetdiarioById(int id)=>context.diario.FirstOrDefaultAsync(x=>x.id_diario==id);
     public Task<diario?> GetdiarioByUsuario(int id_usuario)=>context.diario.AsNoTracking().FirstOrDefaultAsync(x=>x.id_usuario==id_usuario);
     public async Task<diario> Postdiario(diario value){context.diario.Add(value);await context.SaveChangesAsync();return value;}
 
     public async Task<diario> UpsertDiario(diario value)
     {
-        var item = await context.diario.FirstOrDefaultAsync(x => x.id_usuario == value.id_usuario);
-        if (item == null)
+        var item = new diario
         {
-            item = new diario
-            {
-                id_usuario = value.id_usuario,
-                fecha_apertura = value.fecha_apertura == default ? DateTime.Now : value.fecha_apertura,
-                compartir_sp = value.compartir_sp,
-                contenido = value.contenido ?? string.Empty,
-            };
-            context.diario.Add(item);
-        }
-        else
-        {
-            var marca = $"\n\n--- Actualización {DateTime.Now:yyyy-MM-dd HH:mm} ---\n";
-            item.contenido = string.IsNullOrWhiteSpace(item.contenido)
-                ? (value.contenido ?? string.Empty)
-                : item.contenido + marca + (value.contenido ?? string.Empty);
-            item.compartir_sp = value.compartir_sp;
-        }
+            id_usuario = value.id_usuario,
+            fecha_apertura = value.fecha_apertura == default ? DateTime.UtcNow : value.fecha_apertura,
+            compartir_sp = value.compartir_sp,
+            contenido = value.contenido ?? string.Empty,
+        };
+        context.diario.Add(item);
         await context.SaveChangesAsync();
         return item;
     }

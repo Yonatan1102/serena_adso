@@ -17,6 +17,8 @@ namespace WebApplication1
         public DbSet<cita> cita { get; set; }
         public DbSet<historial_cita> historial_cita { get; set; }
         public DbSet<historial_clinico> historial_clinico { get; set; }
+        public DbSet<soporte_clinico> soporte_clinico { get; set; }
+        public DbSet<anotacion_clinica> anotacion_clinica { get; set; }
         public DbSet<estado_de_animo> estado_de_animo { get; set; }
         public DbSet<estado_animo_usuario> estado_animo_usuario { get; set; }
         public DbSet<diario> diario { get; set; }
@@ -114,6 +116,20 @@ namespace WebApplication1
             modelBuilder.Entity<historial_clinico>().Property(u => u.condiciones).HasColumnName("condiciones");
             modelBuilder.Entity<historial_clinico>().Property(u => u.antecedentes).HasColumnName("antecedentes");
 
+            modelBuilder.Entity<soporte_clinico>().HasKey(item => item.id_soporte);
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.id_soporte).ValueGeneratedOnAdd();
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.nombre_archivo).HasMaxLength(255).IsRequired();
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.descripcion).HasMaxLength(500);
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.archivo).HasColumnType("varbinary(max)").IsRequired();
+            modelBuilder.Entity<soporte_clinico>().HasIndex(item => item.id_aprendiz);
+
+            modelBuilder.Entity<anotacion_clinica>().HasKey(item => item.id_anotacion);
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.id_anotacion).ValueGeneratedOnAdd();
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.nombre_psicosocial).HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.tipo).HasMaxLength(30).IsRequired();
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.contenido).HasMaxLength(4000).IsRequired();
+            modelBuilder.Entity<anotacion_clinica>().HasIndex(item => item.id_aprendiz);
+
 
             modelBuilder.Entity<estado_de_animo>().ToTable("estado_de_animo");
             modelBuilder.Entity<estado_de_animo>().HasKey(u => u.id_estado);
@@ -170,7 +186,7 @@ namespace WebApplication1
             modelBuilder.Entity<disponibilidad>().Property(d => d.id_disponibilidad).HasColumnName("id_disponibilidad").ValueGeneratedOnAdd();
             modelBuilder.Entity<disponibilidad>().Property(d => d.id_usuario).HasColumnName("id_usuario");
             modelBuilder.Entity<disponibilidad>().Property(d => d.id_rol).HasColumnName("id_rol");
-            modelBuilder.Entity<disponibilidad>().Property(d => d.dia_semana).HasColumnName("dia_semana");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.fecha).HasColumnName("fecha").HasColumnType("date");
             modelBuilder.Entity<disponibilidad>().Property(d => d.hora_inicio).HasColumnName("hora_inicio");
             modelBuilder.Entity<disponibilidad>().Property(d => d.hora_fin).HasColumnName("hora_fin");
             modelBuilder.Entity<disponibilidad>().Property(d => d.estado).HasColumnName("estado");
@@ -220,6 +236,7 @@ namespace WebApplication1
             modelBuilder.Entity<verificacion_correo>().HasKey(v => v.id_verificacion);
             modelBuilder.Entity<verificacion_correo>().Property(v => v.id_verificacion).ValueGeneratedOnAdd();
             modelBuilder.Entity<verificacion_correo>().HasIndex(v => v.id_usuario).IsUnique();
+            modelBuilder.Entity<verificacion_correo>().Property(v => v.proposito).HasMaxLength(30).HasDefaultValue("verificacion-correo");
             modelBuilder.Entity<verificacion_correo>().HasOne(v => v.usuario)
                 .WithMany().HasForeignKey(v => v.id_usuario).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<usuario_ficha>()

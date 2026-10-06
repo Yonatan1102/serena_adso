@@ -1,18 +1,20 @@
 @WebApplication1_HostAddress = http://localhost:5185
-@recaptchaToken = replace-with-a-valid-recaptcha-token
+@loginRecaptchaToken = replace-with-a-fresh-v3-token-for-login
+@registerRecaptchaToken = replace-with-a-fresh-v3-token-for-register
+@orientationRecaptchaToken = replace-with-a-fresh-v3-token-for-orientation_request
 @accessToken = replace-with-a-jwt
 
-### Login — requires a reCAPTCHA v2 response token
+### Login — requires a fresh reCAPTCHA v3 token for action "login"
 POST {{WebApplication1_HostAddress}}/api/Login
 Content-Type: application/json
 
 {
   "correo": "aprendiz@example.com",
   "contrasena": "replace-with-password",
-  "recaptchaToken": "{{recaptchaToken}}"
+  "recaptchaToken": "{{loginRecaptchaToken}}"
 }
 
-### Register — consent is required
+### Register — consent and a fresh v3 token for action "register" are required
 POST {{WebApplication1_HostAddress}}/api/Login/registrar
 Content-Type: application/json
 
@@ -23,7 +25,7 @@ Content-Type: application/json
   "id_rol": 1,
   "documento": "123456789",
   "acepta_tratamiento_datos": true,
-  "recaptchaToken": "{{recaptchaToken}}"
+  "recaptchaToken": "{{registerRecaptchaToken}}"
 }
 
 ### Publicly visible, currently available slots for a professional
@@ -45,7 +47,7 @@ GET {{WebApplication1_HostAddress}}/api/admin/psicosociales/2
 Authorization: Bearer {{accessToken}}
 Accept: application/json
 
-### Request an orientation — requires a reCAPTCHA v2 response token
+### Request an orientation — requires a fresh reCAPTCHA v3 token for action "orientation_request"
 POST {{WebApplication1_HostAddress}}/api/cita/agendar
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
@@ -56,7 +58,7 @@ Authorization: Bearer {{accessToken}}
   "estado_cita": "Pendiente",
   "id_usuario_aprendiz": 1,
   "id_usuario_psicologo": 2,
-  "recaptchaToken": "{{recaptchaToken}}"
+  "recaptchaToken": "{{orientationRecaptchaToken}}"
 }
 
 ###

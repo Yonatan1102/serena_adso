@@ -1,13 +1,18 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, loadEnv} from 'vite';
 
-export default defineConfig(() => {
-  const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || 'http://localhost:5185';
+export default defineConfig(({ mode }) => {
+  const projectEnv = loadEnv(mode, path.resolve(__dirname, '..'), '');
+  const apiProxyTarget = process.env.VITE_API_PROXY_TARGET || projectEnv.VITE_API_PROXY_TARGET || 'http://localhost:5185';
+  const recaptchaSiteKey = process.env.VITE_RECAPTCHA_SITE_KEY || projectEnv.VITE_RECAPTCHA_SITE_KEY || projectEnv.RECAPTCHA_SITE_KEY || '';
 
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      'import.meta.env.VITE_RECAPTCHA_SITE_KEY': JSON.stringify(recaptchaSiteKey),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

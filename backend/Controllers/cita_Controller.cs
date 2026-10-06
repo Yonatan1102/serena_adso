@@ -89,7 +89,7 @@ namespace WebApplication1.Controllers
                 cita.id_usuario_aprendiz = aprendizId;
                 cita.estado_cita = "Pendiente";
 
-                if (!await recaptchaService.VerifyAsync(cita.recaptchaToken ?? string.Empty, HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
+                if (!await recaptchaService.VerifyAsync(cita.recaptchaToken ?? string.Empty, "orientation_request", HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
                     return BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
 
                 var response = await cita_repositories.Postcita(cita);
@@ -126,7 +126,7 @@ namespace WebApplication1.Controllers
             cita.id_usuario_aprendiz = aprendizId;
             cita.estado_cita = "Pendiente";
 
-            if (!await recaptchaService.VerifyAsync(cita.recaptchaToken ?? string.Empty, HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
+            if (!await recaptchaService.VerifyAsync(cita.recaptchaToken ?? string.Empty, "orientation_request", HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
                 return BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
 
             var response = await cita_repositories.Postcita(cita);

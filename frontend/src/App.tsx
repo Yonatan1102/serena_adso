@@ -20,34 +20,29 @@ import { CrearDiarioRapidoModal } from './components/CrearDiarioRapidoModal';
 import { SitioEnConstruccionModal } from './components/SitioEnConstruccionModal';
 import { CrearCustomFeedModal } from './components/CrearCustomFeedModal';
 import { CrearReporteModal } from './components/CrearReporteModal';
+import { AdminSupervisionView } from './components/AdminSupervisionView';
+import { HistorialAprendizView } from './components/HistorialAprendizView';
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const token = localStorage.getItem('serena_access_token') || localStorage.getItem('serena_auth_token');
-    return Boolean(token);
-  });
-
-  const [currentUser, setCurrentUser] = useState<Usuario>(() => {
-    const storedUser = localStorage.getItem('serena_current_user');
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser) as Usuario;
-      } catch (_error) {
-        // fall back to local default user
+function clearLegacyBrowserData() {
+  if (typeof window === 'undefined') return;
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if ((key?.startsWith('serena_') && key !== 'serena_theme') || key === '_grecaptcha') {
+        storage.removeItem(key);
       }
     }
-    return serenaApi.getCurrentUser();
-  });
+  }
+}
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (isAuthenticated) {
-      localStorage.setItem('serena_current_user', JSON.stringify(currentUser));
-    }
-  }, [currentUser, isAuthenticated]);
+clearLegacyBrowserData();
 
-  const usuariosDisponibles = serenaApi.getUsuarios();
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<Usuario>(() => serenaApi.getCurrentUser());
+
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
+  const [dataLoadError, setDataLoadError] = useState('');
 
   // Configuración de interfaz
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
@@ -84,28 +79,44 @@ export default function App() {
     setHistorialEstados(serenaApi.getHistorialEstados(currentUser.id_usuario));
   }, [currentUser]);
 
-  const handleSelectUser = (user: Usuario) => {
-    serenaApi.setCurrentUser(user);
-    setCurrentUser(user);
-    setActiveView('home');
+  const refreshConnectedData = async () => {
+    setDataLoadError('');
+    try {
+      const users = await serenaApi.getUsuariosDesdeApi();
+      const [appointments, livePosts] = await Promise.all([
+        serenaApi.getCitasDesdeApi(),
+        serenaApi.getPublicacionesDesdeApi(),
+      ]);
+      const usersById = new Map(users.map((user) => [user.id_usuario, user]));
+      setUsuariosDisponibles(users);
+      setCitas(appointments.map((appointment) => ({
+        ...appointment,
+        aprendiz: usersById.get(appointment.id_usuario_aprendiz),
+        psicologo: usersById.get(appointment.id_usuario_psicologo),
+      })));
+      setPublicaciones(livePosts);
+    } catch (cause) {
+      setDataLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar los datos del servidor.');
+    }
   };
 
   const handleLoginSuccess = (usuario: Usuario, token: string) => {
-    localStorage.setItem('serena_access_token', token);
-    localStorage.setItem('serena_auth_token', token);
-    localStorage.setItem('serena_current_user', JSON.stringify(usuario));
+    serenaApi.setAccessToken(token);
     serenaApi.setCurrentUser(usuario);
     setCurrentUser(usuario);
     setIsAuthenticated(true);
     setActiveView('home');
+    void refreshConnectedData();
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('serena_access_token');
-    localStorage.removeItem('serena_auth_token');
-    localStorage.removeItem('serena_current_user');
+    serenaApi.setAccessToken(null);
+    serenaApi.clearSessionData();
     setCurrentUser(serenaApi.getCurrentUser());
     setIsAuthenticated(false);
+    setUsuariosDisponibles([]);
+    setCitas([]);
+    setDataLoadError('');
     setActiveView('home');
   };
 
@@ -119,9 +130,7 @@ export default function App() {
     setPublicaciones([...serenaApi.getPublicaciones()]);
   };
 
-  const handleRefreshCitas = () => {
-    setCitas([...serenaApi.getCitas()]);
-  };
+  const handleRefreshCitas = refreshConnectedData;
 
   const handleRefreshFormularios = () => {
     setFormularios([...serenaApi.getFormularios()]);
@@ -154,13 +163,15 @@ export default function App() {
     return <LoginView onLogin={handleLoginSuccess} />;
   }
 
+  if (currentUser.id_rol === 3) {
+    return <AdminSupervisionView currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
   return (
     <div className="h-screen overflow-hidden bg-[#F8F9FA] text-slate-900 flex flex-col font-sans antialiased selection:bg-[#EBF7E6] selection:text-[#2E8500]">
       {/* Header Superior Estilo Reddit */}
       <Header
         currentUser={currentUser}
-        usuariosDisponibles={usuariosDisponibles}
-        onSelectUser={handleSelectUser}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         isSidebarCollapsed={isSidebarCollapsed}
         onOpenCrearDiarioRapido={() => setIsCrearDiarioRapidoOpen(true)}
@@ -197,6 +208,7 @@ export default function App() {
 
         {/* ÁREA DE CONTENIDO CENTRAL INDEPENDIENTE */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[#F8F9FA] p-3 sm:p-5 lg:p-6 relative">
+          {dataLoadError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{dataLoadError}</p>}
           {activeView === 'home' && (
             currentUser.id_rol === 1 ? (
               <HomeAprendiz
@@ -280,6 +292,10 @@ export default function App() {
               aprendizSeleccionado={aprendizSeleccionado}
               onVolver={aprendizSeleccionado ? () => setActiveView('home') : undefined}
             />
+          )}
+
+          {activeView === 'mi_historial' && currentUser.id_rol === 1 && (
+            <HistorialAprendizView currentUser={currentUser} />
           )}
 
           {activeView === 'formularios' && (

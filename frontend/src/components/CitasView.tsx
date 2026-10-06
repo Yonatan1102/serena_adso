@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   CalendarCheck,
   Clock,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Usuario, Cita, Disponibilidad } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
-import { RecaptchaV2 } from './RecaptchaV2';
+import { RecaptchaV3, RecaptchaV3Handle } from './RecaptchaV3';
 
 interface CitasViewProps {
   currentUser: Usuario;
@@ -48,14 +48,10 @@ export const CitasView: React.FC<CitasViewProps> = ({
   const [motivo, setMotivo] = useState<string>('');
   const [agendando, setAgendando] = useState<boolean>(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const [recaptchaToken, setRecaptchaToken] = useState('');
-  const [captchaVersion, setCaptchaVersion] = useState(0);
+  const recaptchaRef = useRef<RecaptchaV3Handle>(null);
   const [disponibilidadesPsico, setDisponibilidadesPsico] = useState<Disponibilidad[]>([]);
-  const diaSeleccionado = fechaSeleccionada
-    ? (new Date(`${fechaSeleccionada}T12:00:00`).getDay() + 6) % 7 + 1
-    : null;
   const franjasDisponiblesPsico = disponibilidadesPsico
-    .filter((slot) => slot.estado !== false && slot.dia_semana === diaSeleccionado)
+    .filter((slot) => slot.estado !== false && slot.fecha === fechaSeleccionada)
     .map((slot) => slot.hora_inicio.slice(0, 5));
 
   // Psicólogo seleccionado para ver su disponibilidad
@@ -89,10 +85,6 @@ export const CitasView: React.FC<CitasViewProps> = ({
       setMensaje('Selecciona una fecha, una franja disponible y describe brevemente el motivo.');
       return;
     }
-    if (!recaptchaToken) {
-      setMensaje('Completa la verificación reCAPTCHA para enviar la solicitud.');
-      return;
-    }
     if (!franjasDisponiblesPsico.includes(franjaSeleccionada)) {
       setMensaje('La franja seleccionada ya no está disponible. Actualiza la disponibilidad e inténtalo nuevamente.');
       return;
@@ -100,9 +92,11 @@ export const CitasView: React.FC<CitasViewProps> = ({
 
     setMensaje(null);
     setAgendando(true);
-    const fechaHoraCompleta = `${fechaSeleccionada}T${franjaSeleccionada}:00.000Z`;
+    const fechaHoraCompleta = `${fechaSeleccionada}T${franjaSeleccionada}:00`;
 
     try {
+      const recaptchaToken = await recaptchaRef.current?.execute('orientation_request');
+      if (!recaptchaToken) throw new Error('No fue posible generar el token reCAPTCHA.');
       await serenaApi.agendarCitaEnApi({
         fecha_hora: fechaHoraCompleta,
         motivo: motivo.trim(),
@@ -120,9 +114,6 @@ export const CitasView: React.FC<CitasViewProps> = ({
     } catch (error) {
       setAgendando(false);
       setMensaje(error instanceof Error ? error.message : 'No se pudo guardar la orientación.');
-    } finally {
-      setRecaptchaToken('');
-      setCaptchaVersion((current) => current + 1);
     }
   };
 
@@ -304,7 +295,7 @@ export const CitasView: React.FC<CitasViewProps> = ({
                 />
               </div>
 
-              <RecaptchaV2 key={captchaVersion} onToken={setRecaptchaToken} />
+              <RecaptchaV3 ref={recaptchaRef} />
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-slate-400 flex items-center gap-1.5">

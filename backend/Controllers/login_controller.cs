@@ -69,7 +69,7 @@ public class LoginController : ControllerBase
             return BadRequest(new { mensaje = "Selecciona un programa y una ficha activa asociada." });
         if (request.id_rol == 2 && (request.id_programa.HasValue || request.id_ficha.HasValue))
             return BadRequest(new { mensaje = "Solo los aprendices deben seleccionar un programa y una ficha." });
-        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "register", cancellationToken);
         if (captchaFailure is not null) return captchaFailure;
         if (await _loginService.BuscarPorCorreo(email) != null)
             return Conflict(new { mensaje = "El correo ya está registrado." });
@@ -88,7 +88,6 @@ public class LoginController : ControllerBase
         };
 
         var creado = await _loginService.Registrar(usuario);
-        creado.contrasena = "[protegida]";
         try
         {
             await _emailVerificationService.IssueCodeAsync(creado, cancellationToken);
@@ -110,14 +109,17 @@ public class LoginController : ControllerBase
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
-        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "login", cancellationToken);
         if (captchaFailure is not null) return captchaFailure;
 
-        var usuario = await _loginService.ValidarCredenciales(request.correo, request.contrasena);
-        if (usuario == null)
-            return Unauthorized(new { mensaje = "Credenciales incorrectas." });
+        var usuario = await _loginService.ValidarCredenciales(
+            request.correo.Trim().ToLowerInvariant(),
+            request.contrasena);
+        if (usuario is null)
+            return Unauthorized(new { mensaje = "Correo o contraseña incorrectos." });
         if (!usuario.email_verificado)
-            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Debes verificar tu correo institucional antes de iniciar sesión." });
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Verifica tu correo antes de iniciar sesión." });
+
         var dominioValido = usuario.id_rol switch
         {
             1 => usuario.email.EndsWith("@soy.sena.edu.co", StringComparison.OrdinalIgnoreCase),
@@ -127,9 +129,72 @@ public class LoginController : ControllerBase
         if (!dominioValido)
             return Unauthorized(new { mensaje = "El correo institucional no corresponde al rol de la cuenta." });
 
+        return CrearRespuestaLogin(usuario);
+    }
+
+    [HttpPost("solicitar-codigo-acceso")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> SolicitarCodigoAcceso(
+        [FromBody] EmailCodeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "login_code", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+
+        try
+        {
+            await _emailVerificationService.IssueLoginCodeAsync(request.email, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "No se pudo enviar un código de acceso.");
+        }
+
+        return Accepted(new { mensaje = "Si la cuenta institucional existe y está verificada, recibirás un código de seis dígitos." });
+    }
+
+    [HttpPost("iniciar-con-codigo")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> IniciarConCodigo(
+        [FromBody] LoginCodeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "login_code_verify", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        if (!await _emailVerificationService.VerifyLoginCodeAsync(request.email, request.codigo, cancellationToken))
+            return Unauthorized(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
+
+        var usuario = await _loginService.BuscarPorCorreo(request.email.Trim().ToLowerInvariant());
+        if (usuario is null || !usuario.email_verificado)
+            return Unauthorized(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
+
+        return CrearRespuestaLogin(usuario);
+    }
+
+    private IActionResult CrearRespuestaLogin(usuario usuario)
+    {
         var token = GenerarJwtToken(usuario);
-        usuario.contrasena = "[protegida]";
-        return Ok(new { token, usuario, mensaje = "Autenticación correcta" });
+        return Ok(new
+        {
+            token,
+            usuario = new
+            {
+                usuario.id_usuario,
+                usuario.nombre_usuario,
+                usuario.email,
+                usuario.id_rol,
+                usuario.centro,
+                centro_formacion = usuario.centro,
+                usuario.num_ficha,
+                usuario.documento,
+                usuario.programa_formacion
+            },
+            mensaje = "Autenticación correcta"
+        });
     }
 
     [HttpPost("verificar-correo")]
@@ -138,7 +203,7 @@ public class LoginController : ControllerBase
         [FromBody] VerifyEmailRequest request,
         CancellationToken cancellationToken)
     {
-        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "verify_email", cancellationToken);
         if (captchaFailure is not null) return captchaFailure;
         if (await _emailVerificationService.VerifyCodeAsync(request.email, request.codigo, cancellationToken))
             return Ok(new { mensaje = "Correo verificado. Ya puedes iniciar sesión." });
@@ -151,7 +216,7 @@ public class LoginController : ControllerBase
         [FromBody] ResendVerificationRequest request,
         CancellationToken cancellationToken)
     {
-        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, cancellationToken);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "resend_email", cancellationToken);
         if (captchaFailure is not null) return captchaFailure;
         try
         {
@@ -166,6 +231,46 @@ public class LoginController : ControllerBase
                 detail: "Inténtalo nuevamente más tarde.");
         }
         return Accepted(new { mensaje = "Si existe una cuenta pendiente de verificación, enviaremos un código." });
+    }
+
+    [HttpPost("olvido-contrasena")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> SolicitarRestablecimiento(
+        [FromBody] EmailCodeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "forgot_password", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        try
+        {
+            await _emailVerificationService.IssuePasswordResetCodeAsync(request.email, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "No se pudo enviar un código de recuperación.");
+        }
+        return Accepted(new { mensaje = "Si la cuenta institucional existe y está verificada, recibirás un código de recuperación." });
+    }
+
+    [HttpPost("restablecer-contrasena")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> RestablecerContrasena(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "reset_password", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        return await _emailVerificationService.ResetPasswordAsync(
+            request.email,
+            request.codigo,
+            request.nuevaContrasena,
+            cancellationToken)
+            ? Ok(new { mensaje = "Contraseña actualizada. Ya puedes solicitar un código de acceso." })
+            : BadRequest(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
     }
 
     [Authorize]
@@ -223,12 +328,13 @@ public class LoginController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private async Task<IActionResult?> ValidateRecaptchaAsync(string token, CancellationToken cancellationToken)
+    private async Task<IActionResult?> ValidateRecaptchaAsync(string token, string expectedAction, CancellationToken cancellationToken)
     {
         try
         {
             return await _recaptchaService.VerifyAsync(
                 token,
+                expectedAction,
                 HttpContext.Connection.RemoteIpAddress?.ToString(),
                 cancellationToken)
                 ? null
@@ -295,11 +401,47 @@ public sealed record ResendVerificationRequest
 
 public sealed record LoginRequest
 {
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(150)]
     public required string correo { get; init; }
 
-    [Required]
+    [Required, StringLength(255)]
     public required string contrasena { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record EmailCodeRequest
+{
+    [Required, EmailAddress]
+    public required string email { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record LoginCodeRequest
+{
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
+
+    [Required, RegularExpression(@"^\d{6}$")]
+    public required string codigo { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record ResetPasswordRequest
+{
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
+
+    [Required, RegularExpression(@"^\d{6}$")]
+    public required string codigo { get; init; }
+
+    [Required, MinLength(8), StringLength(255)]
+    public required string nuevaContrasena { get; init; }
 
     [Required]
     public required string recaptchaToken { get; init; }

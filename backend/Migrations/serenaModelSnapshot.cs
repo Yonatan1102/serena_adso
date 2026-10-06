@@ -115,13 +115,13 @@ namespace WebApplication1.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_disponibilidad"));
 
-                    b.Property<byte>("dia_semana")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("dia_semana");
-
                     b.Property<bool>("estado")
                         .HasColumnType("bit")
                         .HasColumnName("estado");
+
+                    b.Property<DateOnly>("fecha")
+                        .HasColumnType("date")
+                        .HasColumnName("fecha");
 
                     b.Property<TimeSpan>("hora_fin")
                         .HasColumnType("time")
@@ -386,6 +386,79 @@ namespace WebApplication1.Migrations
                     b.ToTable("historial_clinico", (string)null);
                 });
 
+            modelBuilder.Entity("WebApplication1.models.anotacion_clinica", b =>
+                {
+                    b.Property<int>("id_anotacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_anotacion"));
+
+                    b.Property<string>("contenido")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("id_aprendiz")
+                        .HasColumnType("int");
+
+                    b.Property<int>("id_psicosocial")
+                        .HasColumnType("int");
+
+                    b.Property<string>("nombre_psicosocial")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("id_anotacion");
+
+                    b.HasIndex("id_aprendiz");
+
+                    b.ToTable("anotacion_clinica");
+                });
+
+            modelBuilder.Entity("WebApplication1.models.soporte_clinico", b =>
+                {
+                    b.Property<int>("id_soporte")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("id_soporte"));
+
+                    b.Property<byte[]>("archivo")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("fecha_carga")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("id_aprendiz")
+                        .HasColumnType("int");
+
+                    b.Property<string>("nombre_archivo")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("id_soporte");
+
+                    b.HasIndex("id_aprendiz");
+
+                    b.ToTable("soporte_clinico");
+                });
+
             modelBuilder.Entity("WebApplication1.models.menu", b =>
                 {
                     b.Property<int>("id_menu")
@@ -571,6 +644,10 @@ namespace WebApplication1.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("fecha_consentimiento");
 
+                    b.Property<DateTime?>("ultimo_acceso")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ultimo_acceso");
+
                     b.Property<int?>("id_ficha")
                         .HasColumnType("int")
                         .HasColumnName("id_ficha");
@@ -655,6 +732,14 @@ namespace WebApplication1.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)")
                         .HasColumnName("codigo_hash");
+
+                    b.Property<string>("proposito")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("verificacion-correo")
+                        .HasColumnName("proposito");
 
                     b.Property<DateTimeOffset>("enviado_en")
                         .HasColumnType("datetimeoffset")

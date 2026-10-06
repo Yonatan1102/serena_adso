@@ -12,9 +12,15 @@ const dias = [
   { value: 6, label: 'Sábado' },
 ];
 
+const today = () => {
+  const date = new Date();
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+};
+
 export function DisponibilidadCard() {
   const [slots, setSlots] = useState<Disponibilidad[]>([]);
-  const [dia, setDia] = useState(1);
+  const [fecha, setFecha] = useState(today);
   const [inicio, setInicio] = useState('09:00');
   const [fin, setFin] = useState('10:00');
   const [error, setError] = useState('');
@@ -38,13 +44,13 @@ export function DisponibilidadCard() {
     setError('');
     try {
       const created = await serenaApi.crearDisponibilidadEnApi({
-        dia_semana: dia,
+        fecha,
         hora_inicio: `${inicio}:00`,
         hora_fin: `${fin}:00`,
         estado: true,
       });
       setSlots((current) => [...current, created].sort((a, b) =>
-        a.dia_semana - b.dia_semana || a.hora_inicio.localeCompare(b.hora_inicio)));
+        a.fecha.localeCompare(b.fecha) || a.hora_inicio.localeCompare(b.hora_inicio)));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No fue posible guardar la franja.');
     } finally {
@@ -58,16 +64,14 @@ export function DisponibilidadCard() {
         <Clock className="h-5 w-5 text-violet-700" />
         <div>
           <h2 className="font-bold text-slate-900">Mi disponibilidad para orientaciones</h2>
-          <p className="text-xs text-slate-500">Las franjas ocupadas dejan de estar disponibles para reserva.</p>
+          <p className="text-xs text-slate-500">Define la fecha y el horario exacto disponible para reserva.</p>
         </div>
       </div>
 
       <form onSubmit={addAvailability} className="grid gap-2 sm:grid-cols-4">
         <label className="text-xs font-semibold text-slate-600">
-          Día
-          <select value={dia} onChange={(event) => setDia(Number(event.target.value))} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm">
-            {dias.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
+          Fecha
+          <input type="date" min={today()} required value={fecha} onChange={(event) => setFecha(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm" />
         </label>
         <label className="text-xs font-semibold text-slate-600">
           Inicio
@@ -86,7 +90,7 @@ export function DisponibilidadCard() {
       <div className="mt-4 flex flex-wrap gap-2">
         {slots.map((slot) => (
           <span key={slot.id_disponibilidad} className={`rounded-lg px-2.5 py-1 text-xs font-medium ${slot.estado ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-            {dias.find((item) => item.value === slot.dia_semana)?.label} · {slot.hora_inicio.slice(0, 5)}–{slot.hora_fin.slice(0, 5)} · {slot.estado ? 'Disponible' : 'Ocupada'}
+            {new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${slot.fecha}T00:00:00Z`))} · {slot.hora_inicio.slice(0, 5)}–{slot.hora_fin.slice(0, 5)} · {slot.estado ? 'Disponible' : 'Ocupada'}
           </span>
         ))}
         {slots.length === 0 && !error && <p className="text-xs text-slate-400">Aún no has registrado franjas horarias.</p>}

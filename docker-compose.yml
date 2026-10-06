@@ -4,6 +4,8 @@ services:
     container_name: sqlserver_serena
     ports:
       - "1433:1433"
+    volumes:
+      - serena_sql_data:/var/opt/mssql
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Developer
@@ -27,6 +29,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       Jwt__Key: ${JWT_SIGNING_KEY:-}
       RecaptchaSettings__SecretKey: ${RECAPTCHA_SECRET_KEY:-}
+      RecaptchaSettings__MinimumScore: ${RECAPTCHA_MIN_SCORE:-0.5}
       Email__Smtp__Host: ${SMTP_HOST:-}
       Email__Smtp__Port: ${SMTP_PORT:-587}
       Email__Smtp__Username: ${SMTP_USERNAME:-}
@@ -57,8 +60,11 @@ services:
     environment:
       VITE_API_URL: /api
       VITE_API_PROXY_TARGET: http://host.docker.internal:5185
-      VITE_RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:-6Ldu9dstAAAAAEssV2f88pzpXf_rc7zX3O9MOgWy}
+      VITE_RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       - api
+
+volumes:
+  serena_sql_data:

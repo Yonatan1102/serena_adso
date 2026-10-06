@@ -67,6 +67,7 @@ builder.Services.AddRateLimiter(options =>
 // 2. Registro de Inyección de Dependencias
 builder.Services.AddScoped<Icita, cita_repositories>();
 builder.Services.AddScoped<Idiario, diario_repositories>();
+builder.Services.AddScoped<Idisponibilidad, disponibilidad_Repositories>();
 builder.Services.AddScoped<Iemergencia, emergencia_repositories>();
 builder.Services.AddScoped<Iestado_de_animo, estado_de_animo_repositories>();
 builder.Services.AddScoped<Iformulario, formulario_repositories>();
@@ -185,6 +186,9 @@ using (var scope = app.Services.CreateScope())
             throw new InvalidOperationException("El correo configurado para bootstrap ya pertenece a otro rol.");
         }
     }
+
+    if (app.Environment.IsDevelopment())
+        DemoDataSeeder.Seed(db);
 }
 
 if (app.Environment.IsDevelopment())
