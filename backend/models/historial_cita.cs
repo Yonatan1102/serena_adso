@@ -22,6 +22,16 @@ namespace WebApplication1.models
         [DataType(DataType.DateTime)]
         public DateTime fecha_cambio { get; set; }
 
+        [Column("estado_anterior")]
+        public string? estado_anterior { get; set; }
+
+        [Column("estado_nuevo")]
+        public string? estado_nuevo { get; set; }
+
+        [Column("motivo_cambio")]
+        [StringLength(300)]
+        public string? motivo_cambio { get; set; }
+
         [ForeignKey(nameof(id_cita))]
         public virtual cita? cita { get; set; }
 

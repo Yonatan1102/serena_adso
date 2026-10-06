@@ -395,9 +395,7 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
         {/* Tarjeta 1: Bienestar al Aprendiz SENA */}
         <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#7E22CE]/10 flex items-center justify-center shrink-0 overflow-hidden">
-              <img src="/IMG/logo.png" alt="" className="w-7 h-7 object-contain" />
-            </div>
+            <img src="/IMG/logo.png" alt="SERENA" className="h-10 w-10 shrink-0 object-contain" />
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="font-bold text-sm text-slate-900">SERENA</h3>
@@ -424,7 +422,7 @@ export const HomeAprendiz: React.FC<HomeAprendizProps> = ({
                 onClick={onOpenAgendarCita}
                 className="mt-1 w-full py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-medium transition-colors cursor-pointer text-center"
               >
-                Agendar Cita de Orientación
+                Solicitar orientación psicosocial
               </button>
             </div>
           )}

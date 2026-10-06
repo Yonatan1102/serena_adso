@@ -5,6 +5,8 @@ namespace WebApplication1.interfaces;
 public interface Idisponibilidad
 {
     Task<List<disponibilidad>> Getdisponibilidad();
+    Task<List<disponibilidad>> GetDisponibilidadDisponiblePorUsuario(int idUsuario);
+    Task<List<disponibilidad>> GetDisponibilidadPorUsuario(int idUsuario);
     Task<disponibilidad?> GetdisponibilidadById(int id);
     Task<disponibilidad> Postdisponibilidad(disponibilidad value);
     Task<disponibilidad?> Putdisponibilidad(disponibilidad value);

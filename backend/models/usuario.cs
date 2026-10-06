@@ -44,7 +44,28 @@ namespace WebApplication1.models
         [StringLength(30)]
         public string? num_ficha { get; set; }
 
+        [StringLength(30)]
+        [Column("documento")]
+        public string? documento { get; set; }
+
+        [Column("acepta_tratamiento_datos")]
+        public bool acepta_tratamiento_datos { get; set; }
+
+        [Column("fecha_consentimiento")]
+        public DateTime? fecha_consentimiento { get; set; }
+
+        [Column("id_ficha")]
+        public int? id_ficha { get; set; }
+
+        [Column("email_verificado")]
+        public bool email_verificado { get; set; }
+
+        [Column("ultimo_acceso")]
+        public DateTime? ultimo_acceso { get; set; }
+
         public virtual rol? rol { get; set; }
+        [ForeignKey(nameof(id_ficha))]
+        public virtual ficha? ficha { get; set; }
 
         public virtual historial_clinico? historial_Clinico { get; set; }
         public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();

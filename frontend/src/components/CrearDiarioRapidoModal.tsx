@@ -33,7 +33,6 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
     setError(null);
     try {
       await serenaApi.actualizarDiarioEnApi({
-        id_usuario: currentUser.id_usuario,
         contenido: contenido.trim(),
         compartir_sp: compartirSp,
       });
@@ -106,7 +105,7 @@ export const CrearDiarioRapidoModal: React.FC<CrearDiarioRapidoModalProps> = ({
             />
             <label htmlFor="compartir_sp_check" className="text-xs text-slate-700 cursor-pointer">
               <span className="font-bold text-slate-900 block">
-                {idioma === 'es' ? 'Compartir con mi psicólogo asignado' : 'Share with assigned counselor'}
+                {idioma === 'es' ? 'Compartir con mi psicosocial asignado' : 'Share with assigned counselor'}
               </span>
               <span className="text-slate-500">
                 {idioma === 'es'

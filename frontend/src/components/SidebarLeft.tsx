@@ -89,7 +89,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
   onOpenRecursoModal,
   idioma = 'es',
 }) => {
-  const isPsicologo = currentUser.id_rol === 2;
+  const isPsicologo = currentUser.id_rol === 2 || currentUser.id_rol === 3;
 
   const [customFeeds, setCustomFeeds] = useState<CustomFeed[]>(() =>
     serenaApi.getCustomFeeds()
@@ -180,6 +180,14 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                 </button>
 
                 <button
+                  onClick={() => setActiveView('mi_historial')}
+                  title="Mi historial de salud"
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${activeView === 'mi_historial' ? 'bg-[#7E22CE]/10 text-[#7E22CE]' : 'text-slate-700 hover:bg-slate-100'}`}
+                >
+                  <FileText className="w-5 h-5" />
+                </button>
+
+                <button
                   onClick={() => setActiveView('estado_de_animo')}
                   title="Estado de Ánimo"
                   className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
@@ -217,7 +225,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
 
                 <button
                   onClick={() => setActiveView('citas')}
-                  title="Agendar Cita"
+                  title="Agendar Orientación"
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <RedditPlusIcon className="w-5 h-5" />
@@ -320,6 +328,14 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                     <span>Diario & Noticias</span>
                   </button>
 
+                  <button
+                    onClick={() => setActiveView('mi_historial')}
+                    className={getItemClasses('mi_historial')}
+                  >
+                    <FileText className={getIconClasses('mi_historial')} />
+                    <span>Mi historial de salud</span>
+                  </button>
+
                   {/* 4. Estado de Ánimo */}
                   <button
                     onClick={() => setActiveView('estado_de_animo')}
@@ -350,10 +366,10 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                   {/* 7. Cita: EXACTAMENTE IGUAL a "+ Start a community" en image.png pero con icono + y texto limpio */}
                   <button
                     onClick={() => setActiveView('citas')}
-                    className="w-full text-left px-3 py-2 rounded-xl text-sm font-normal text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-3 cursor-pointer"
+                    className={getItemClasses('citas')}
                   >
-                    <RedditPlusIcon className="w-5 h-5 text-slate-800" />
-                    <span>Cita (Orientación)</span>
+                    <RedditPlusIcon className={getIconClasses('citas')} />
+                    <span>Programar cita</span>
                   </button>
                 </div>
 
@@ -551,7 +567,7 @@ export const SidebarLeft: React.FC<SidebarLeftProps> = ({
                     className={getItemClasses('reportes')}
                   >
                     <BarChart2 className={getIconClasses('reportes')} />
-                    <span>Reportes Clínicos</span>
+                    <span>Reportes</span>
                   </button>
 
                   {/* Crear Reportes (plano) */}

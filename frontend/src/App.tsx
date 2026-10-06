@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Usuario, Comunidad, Publicacion, EstadoDeAnimo, Cita, Formulario, Ficha, UsuarioFicha } from './types/serena.types';
+import { Usuario, Comunidad, Publicacion, EstadoDeAnimo, Cita, Formulario } from './types/serena.types';
 import { serenaApi } from './services/serena-api.service';
 import { LoginView } from './components/LoginView';
 import { Header } from './components/Header';
@@ -20,32 +20,33 @@ import { CrearDiarioRapidoModal } from './components/CrearDiarioRapidoModal';
 import { SitioEnConstruccionModal } from './components/SitioEnConstruccionModal';
 import { CrearCustomFeedModal } from './components/CrearCustomFeedModal';
 import { CrearReporteModal } from './components/CrearReporteModal';
+import { AdminSupervisionView } from './components/AdminSupervisionView';
+import { HistorialAprendizView } from './components/HistorialAprendizView';
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return Boolean(localStorage.getItem('serena_access_token'));
-  });
-
-  const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
-  const [fichasDisponibles, setFichasDisponibles] = useState<Ficha[]>([]);
-  const [relacionesUsuarioFicha, setRelacionesUsuarioFicha] = useState<UsuarioFicha[]>([]);
-  const [currentUser, setCurrentUser] = useState<Usuario>(() => {
-    const storedUser = localStorage.getItem('serena_current_user');
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser) as Usuario;
-      } catch (_error) {
-        // fall back to local default user
+function clearLegacyBrowserData() {
+  if (typeof window === 'undefined') return;
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if ((key?.startsWith('serena_') && key !== 'serena_theme') || key === '_grecaptcha') {
+        storage.removeItem(key);
       }
     }
-    return serenaApi.getCurrentUser();
-  });
+  }
+}
+
+clearLegacyBrowserData();
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<Usuario>(() => serenaApi.getCurrentUser());
+
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<Usuario[]>([]);
+  const [dataLoadError, setDataLoadError] = useState('');
 
   // Configuración de interfaz
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [idioma, setIdioma] = useState<'es' | 'en'>('es');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => localStorage.getItem('serena_theme') === 'dark');
 
   // Navegación
   const [activeView, setActiveView] = useState<string>('home');
@@ -53,10 +54,12 @@ export default function App() {
 
   // Estados reactivos sincronizados con serenaApi
   const [comunidades, setComunidades] = useState<Comunidad[]>(() => serenaApi.getComunidades());
-  const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
-  const [historialEstados, setHistorialEstados] = useState<EstadoDeAnimo[]>([]);
-  const [citas, setCitas] = useState<Cita[]>([]);
-  const [formularios, setFormularios] = useState<Formulario[]>([]);
+  const [publicaciones, setPublicaciones] = useState<Publicacion[]>(() => serenaApi.getPublicaciones());
+  const [historialEstados, setHistorialEstados] = useState<EstadoDeAnimo[]>(() =>
+    serenaApi.getHistorialEstados(currentUser.id_usuario)
+  );
+  const [citas, setCitas] = useState<Cita[]>(() => serenaApi.getCitas());
+  const [formularios, setFormularios] = useState<Formulario[]>(() => serenaApi.getFormularios());
 
   // Modales
   const [isEmergenciaOpen, setIsEmergenciaOpen] = useState<boolean>(false);
@@ -71,53 +74,50 @@ export default function App() {
 
   const [aprendizSeleccionado, setAprendizSeleccionado] = useState<Usuario | undefined>(undefined);
 
-  useEffect(() => {
-    const loadUsuarios = async () => {
-      try {
-        const [usuarios, fichas, relaciones] = await Promise.all([
-          serenaApi.getUsuariosDesdeApi(),
-          serenaApi.getFichasDesdeApi(),
-          serenaApi.getUsuarioFichaDesdeApi(),
-        ]);
-        setUsuariosDisponibles(usuarios);
-        setFichasDisponibles(fichas);
-        setRelacionesUsuarioFicha(relaciones);
-      } catch {
-        setUsuariosDisponibles([]);
-        setFichasDisponibles([]);
-        setRelacionesUsuarioFicha([]);
-      }
-    };
-
-    void loadUsuarios();
-  }, []);
-
   // Actualizar historial al cambiar usuario
   useEffect(() => {
-    const loadHistorialEstados = async () => {
-      try {
-        const estados = await serenaApi.getHistorialEstadosDesdeApi(currentUser.id_usuario);
-        setHistorialEstados(estados);
-      } catch {
-        setHistorialEstados([]);
-      }
-    };
-
-    void loadHistorialEstados();
+    setHistorialEstados(serenaApi.getHistorialEstados(currentUser.id_usuario));
   }, [currentUser]);
 
+  const refreshConnectedData = async () => {
+    setDataLoadError('');
+    try {
+      const users = await serenaApi.getUsuariosDesdeApi();
+      const [appointments, livePosts] = await Promise.all([
+        serenaApi.getCitasDesdeApi(),
+        serenaApi.getPublicacionesDesdeApi(),
+      ]);
+      const usersById = new Map(users.map((user) => [user.id_usuario, user]));
+      setUsuariosDisponibles(users);
+      setCitas(appointments.map((appointment) => ({
+        ...appointment,
+        aprendiz: usersById.get(appointment.id_usuario_aprendiz),
+        psicologo: usersById.get(appointment.id_usuario_psicologo),
+      })));
+      setPublicaciones(livePosts);
+    } catch (cause) {
+      setDataLoadError(cause instanceof Error ? cause.message : 'No se pudieron cargar los datos del servidor.');
+    }
+  };
+
   const handleLoginSuccess = (usuario: Usuario, token: string) => {
-    localStorage.setItem('serena_access_token', token);
+    serenaApi.setAccessToken(token);
     serenaApi.setCurrentUser(usuario);
     setCurrentUser(usuario);
     setIsAuthenticated(true);
     setActiveView('home');
+    void refreshConnectedData();
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('serena_access_token');
-    localStorage.removeItem('serena_current_user');
+    serenaApi.setAccessToken(null);
+    serenaApi.clearSessionData();
+    setCurrentUser(serenaApi.getCurrentUser());
     setIsAuthenticated(false);
+    setUsuariosDisponibles([]);
+    setCitas([]);
+    setDataLoadError('');
+    setActiveView('home');
   };
 
   const handleSelectComunidad = (comunidadId: string) => {
@@ -125,44 +125,15 @@ export default function App() {
     setActiveView('comunidad');
   };
 
-  const handleVote = async (id_pub: number, delta: number) => {
-    const publicacion = publicaciones.find((p) => p.id_publicaciones === id_pub);
-    if (!publicacion) return;
-    try {
-      await serenaApi.votarPublicacionEnApi(publicacion, delta);
-      await handleRefreshPublicaciones();
-    } catch {
-      // Si falla, se deja el estado actual
-    }
+  const handleVote = (id_pub: number, delta: number) => {
+    serenaApi.votarPublicacion(id_pub, delta, currentUser.id_usuario);
+    setPublicaciones([...serenaApi.getPublicaciones()]);
   };
 
-  const handleRefreshPublicaciones = async () => {
-    try {
-      setPublicaciones(await serenaApi.getPublicacionesDesdeApi(selectedComunidadId));
-    } catch {
-      setPublicaciones([]);
-    }
-  };
+  const handleRefreshCitas = refreshConnectedData;
 
-  const handleRefreshCitas = async () => {
-    try {
-      setCitas(await serenaApi.getCitasDesdeApi());
-    } catch {
-      setCitas([]);
-    }
-  };
-
-  useEffect(() => {
-    void handleRefreshCitas();
-    void handleRefreshPublicaciones();
-  }, [selectedComunidadId]);
-
-  const handleRefreshFormularios = async () => {
-    try {
-      setFormularios(await serenaApi.getFormulariosDesdeApi());
-    } catch {
-      setFormularios([]);
-    }
+  const handleRefreshFormularios = () => {
+    setFormularios([...serenaApi.getFormularios()]);
   };
 
   const handleAbrirExpediente = (aprendiz: Usuario) => {
@@ -183,60 +154,33 @@ export default function App() {
     setIdioma((prev) => (prev === 'es' ? 'en' : 'es'));
   };
 
-  const handleToggleTheme = () => {
-    setIsDarkMode((previous) => {
-      const next = !previous;
-      localStorage.setItem('serena_theme', next ? 'dark' : 'light');
-      return next;
-    });
-  };
-
-  const obtenerFichaUsuario = (usuario: Usuario) => {
-    const relacion = relacionesUsuarioFicha.find((r) => r.id_usuario === usuario.id_usuario && r.estado !== false);
-    if (relacion) {
-      const fichaRelacionada = fichasDisponibles.find((f) => f.id_ficha === relacion.id_ficha);
-      if (fichaRelacionada) return fichaRelacionada.codigo_ficha;
-    }
-    return usuario.num_ficha ?? null;
-  };
-
-  const fichaActualUsuario = obtenerFichaUsuario(currentUser);
-
   // Psicólogos y aprendices
-  const psicologosDisponibles = usuariosDisponibles.filter((u) => {
-    if (u.id_rol !== 2) return false;
-    if (!fichaActualUsuario) return true;
-    return obtenerFichaUsuario(u) === fichaActualUsuario;
-  });
-  const aprendicesDisponibles = usuariosDisponibles.filter((u) => {
-    if (u.id_rol !== 1) return false;
-    if (!fichaActualUsuario) return true;
-    return obtenerFichaUsuario(u) === fichaActualUsuario;
-  });
+  const psicologosDisponibles = usuariosDisponibles.filter((u) => u.id_rol === 2);
+  const aprendicesDisponibles = usuariosDisponibles.filter((u) => u.id_rol === 1);
   const currentComunidad = comunidades.find((c) => c.id === selectedComunidadId) || comunidades[0];
 
   if (!isAuthenticated) {
     return <LoginView onLogin={handleLoginSuccess} />;
   }
 
+  if (currentUser.id_rol === 3) {
+    return <AdminSupervisionView currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
   return (
-    <div className={isDarkMode ? 'dark h-screen overflow-hidden flex flex-col font-sans antialiased selection:bg-violet-900 selection:text-violet-100' : 'h-screen overflow-hidden bg-[#FAF9FF] text-slate-900 flex flex-col font-sans antialiased selection:bg-violet-100 selection:text-violet-900'}>
+    <div className="h-screen overflow-hidden bg-[#F8F9FA] text-slate-900 flex flex-col font-sans antialiased selection:bg-[#EBF7E6] selection:text-[#2E8500]">
       {/* Header Superior Estilo Reddit */}
       <Header
         currentUser={currentUser}
-        usuariosDisponibles={usuariosDisponibles}
-        onLogout={handleLogout}
         onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         isSidebarCollapsed={isSidebarCollapsed}
         onOpenCrearDiarioRapido={() => setIsCrearDiarioRapidoOpen(true)}
         onOpenCreatePublicacion={() => setIsCrearPubOpen(true)}
         onOpenBackendGuide={() => setIsBackendGuideOpen(true)}
         onOpenEmergencia={() => setIsEmergenciaOpen(true)}
-        onGoHome={() => setActiveView('home')}
-        isDarkMode={isDarkMode}
-        onToggleTheme={handleToggleTheme}
         idioma={idioma}
         onToggleIdioma={handleToggleIdioma}
+        onLogout={handleLogout}
       />
 
       {/* Contenedor Principal: Sidebar Izquierdo Pinned Independiente + Feed Scroll */}
@@ -264,6 +208,7 @@ export default function App() {
 
         {/* ÁREA DE CONTENIDO CENTRAL INDEPENDIENTE */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto bg-[#F8F9FA] p-3 sm:p-5 lg:p-6 relative">
+          {dataLoadError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{dataLoadError}</p>}
           {activeView === 'home' && (
             currentUser.id_rol === 1 ? (
               <HomeAprendiz
@@ -286,7 +231,6 @@ export default function App() {
                 citas={citas}
                 publicaciones={publicaciones}
                 aprendicesSeguimiento={aprendicesDisponibles}
-                emergencias={serenaApi.getEmergencias()}
                 onOpenCreatePublicacion={() => setIsCrearPubOpen(true)}
                 onOpenCreateFormulario={() => setActiveView('formularios')}
                 onRefreshCitas={handleRefreshCitas}
@@ -302,13 +246,8 @@ export default function App() {
             <EstadoDeAnimoView
               currentUser={currentUser}
               historialEstados={historialEstados}
-              onEstadoRegistrado={async () => {
-                try {
-                  const estados = await serenaApi.getHistorialEstadosDesdeApi(currentUser.id_usuario);
-                  setHistorialEstados(estados);
-                } catch {
-                  setHistorialEstados([]);
-                }
+              onEstadoRegistrado={() => {
+                setHistorialEstados(serenaApi.getHistorialEstados(currentUser.id_usuario));
               }}
             />
           )}
@@ -355,6 +294,10 @@ export default function App() {
             />
           )}
 
+          {activeView === 'mi_historial' && currentUser.id_rol === 1 && (
+            <HistorialAprendizView currentUser={currentUser} />
+          )}
+
           {activeView === 'formularios' && (
             <FormulariosView
               currentUser={currentUser}
@@ -364,21 +307,15 @@ export default function App() {
                 const nombre = prompt('Ingresa el título del nuevo formulario para el CMTC:');
                 if (nombre) {
                   const desc = prompt('Ingresa una breve descripción:');
-                  void (async () => {
-                    try {
-                      await serenaApi.crearFormularioEnApi({
-                        nombre_formulario: nombre,
-                        descripcion: desc || 'Formulario de bienestar formativo',
-                        id_usuario: currentUser.id_usuario,
-                        preguntas_count: 5,
-                        id_comunidad: 's/CMTC',
-                        respondido: false,
-                      });
-                      await handleRefreshFormularios();
-                    } catch (error) {
-                      console.error(error);
-                    }
-                  })();
+                  serenaApi.crearFormulario(
+                    nombre,
+                    desc || 'Formulario de bienestar formativo',
+                    currentUser.id_usuario,
+                    5,
+                    's/CMTC'
+                  );
+                  handleRefreshFormularios();
+                  alert('¡Formulario publicado para los aprendices del CMTC!');
                 }
               }}
             />
@@ -389,7 +326,7 @@ export default function App() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="font-black text-lg text-slate-900">
-                    Reportes institucionales
+                    Reportes y Trazabilidad Institucional
                   </h2>
                   <p className="text-xs text-slate-500">
                     Centro CMTC • Ficha ADSO 3288046 • Bienestar al Aprendiz
@@ -410,7 +347,7 @@ export default function App() {
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-2xl font-black text-[#B95FE0]">{formularios.length}</p>
-                  <p className="text-xs font-bold text-slate-500 uppercase mt-1">Formularios y encuestas</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase mt-1">Formularios / Tamizajes</p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <p className="text-2xl font-black text-slate-800">{publicaciones.length}</p>
@@ -442,13 +379,8 @@ export default function App() {
         defaultComunidadId={selectedComunidadId}
         isOpen={isCrearPubOpen}
         onClose={() => setIsCrearPubOpen(false)}
-        onPublicacionCreada={async (publicacion) => {
-          const publicacionConAutor = {
-            ...publicacion,
-            autor: usuariosDisponibles.find((usuario) => usuario.id_usuario === publicacion.id_usuario),
-          };
-          setPublicaciones((actuales) => [publicacionConAutor, ...actuales]);
-          await handleRefreshPublicaciones();
+        onPublicacionCreada={() => {
+          setPublicaciones([...serenaApi.getPublicaciones()]);
         }}
       />
 

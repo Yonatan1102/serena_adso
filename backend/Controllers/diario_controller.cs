@@ -1,148 +1,108 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using WebApplication1.interfaces;
 using WebApplication1.models;
 
-namespace WebApplication1.Controllers
+namespace WebApplication1.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/diario")]
+public sealed class diario_controller(Idiario diarioRepository) : ControllerBase
 {
-    using Microsoft.AspNetCore.Mvc;
-    using WebApplication1.interfaces;
+    [Authorize(Roles = "Admin")]
+    [HttpGet]
+    public async Task<IActionResult> ListarDiarios() =>
+        Ok((await diarioRepository.Getdiario()).Where(item => item.compartir_sp).Select(ToResponse));
 
-    [Route("api/diario")]
-    [ApiController]
-    public class diario_controller : ControllerBase
-   
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> ObtenerDiario(int id)
     {
-        private readonly Idiario diarioRepository;
-
-        public diario_controller(Idiario diarioRepository)
-        {
-            this.diarioRepository = diarioRepository;
-        }
-        [HttpGet]
-        public async Task<IActionResult> ListarDiarios()
-        {
-            try
-
-            {
-                var response = await diarioRepository.Getdiario();
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener los diarios.", detalle = ex.Message });
-            }
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> ObtenerDiario(int id)
-        { 
-                try
-        {
-            var response = await diarioRepository.GetdiarioById(id);
-            return response == null ? NotFound() : Ok(response);
-        }
-                catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el diario.", detalle = ex.Message });
-            }
-        }
-
-        [HttpGet("usuario/{id_usuario:int}")]
-        public async Task<IActionResult> ObtenerDiarioPorUsuario(int id_usuario)
-        {
-            try
-            {
-                var response = await diarioRepository.GetdiarioByUsuario(id_usuario);
-                return response == null
-                    ? NotFound(new { mensaje = "El usuario aún no tiene un diario." })
-                    : Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el diario del usuario.", detalle = ex.Message });
-            }
-        }
-
-        [HttpPost("crear")]
-        public async Task<IActionResult> crear_diario([FromBody] diario diario)
-        {
-            try
-            {
-
-                if (diario == null)
-                {
-                    return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
-                }
-
-                if (string.IsNullOrWhiteSpace(diario.contenido))
-                {
-                    return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
-                }
-
-                // Un aprendiz tiene UN SOLO diario: si ya existe, esta llamada agrega una actualización.
-                var response = await diarioRepository.UpsertDiario(diario);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Error interno al crear el diario.", detalle = ex.Message });
-            }
-        }
-
-        [HttpPost("registrar")]
-        public async Task<IActionResult> CrearDiario([FromBody] diario diario)
-        {
-            try
-            {
-                if (diario == null || string.IsNullOrWhiteSpace(diario.contenido))
-                {
-                    return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
-                }
-
-                var response = await diarioRepository.UpsertDiario(diario);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al crear el diario.", detalle = ex.Message });
-            }
-        }
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> ActualizarDiario(int id, [FromBody] diario diario)
-        { 
-            try
-        {
-            if (diario == null)
-            {
-                return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
-            }
-
-            if (id != diario.id_diario)
-            {
-                return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
-            }
-
-            var response = await diarioRepository.Putdiario(diario);
-            return response == null ? NotFound() : Ok(response);
-        }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el diario.", detalle = ex.Message });
-            }
-        }
-
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> EliminarDiario(int id)
-        {
-            try
-            {
-                var response = await diarioRepository.Deletediario(id);
-                return response ? NoContent() : NotFound();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al eliminar el diario.", detalle = ex.Message });
-            }
-        }
+        var entry = await diarioRepository.GetdiarioById(id);
+        if (entry is null) return NotFound();
+        if (!int.TryParse(User.FindFirstValue("id_usuario"), out var callerId)) return Unauthorized();
+        if (entry.id_usuario != callerId &&
+            (!(User.IsInRole("Psicosocial") || User.IsInRole("Admin")) || !entry.compartir_sp))
+            return Forbid();
+        return Ok(ToResponse(entry));
     }
+
+    [HttpGet("usuario/{id_usuario:int}")]
+    public async Task<IActionResult> ObtenerDiarioPorUsuario(int id_usuario)
+    {
+        if (!int.TryParse(User.FindFirstValue("id_usuario"), out var callerId)) return Unauthorized();
+        var esPropietario = callerId == id_usuario;
+        if (!esPropietario && !User.IsInRole("Psicosocial") && !User.IsInRole("Admin")) return Forbid();
+
+        var entries = await diarioRepository.GetdiariosByUsuario(id_usuario);
+        if (!esPropietario) entries = entries.Where(item => item.compartir_sp).ToList();
+        return Ok(entries.Select(ToResponse));
+    }
+
+    [Authorize(Roles = "Aprendiz")]
+    [HttpPost("crear")]
+    public async Task<IActionResult> CrearActualizacion([FromBody] DiarioUpdateRequest request)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (string.IsNullOrWhiteSpace(request.contenido))
+            return BadRequest(new { mensaje = "El contenido del diario es obligatorio." });
+        if (!int.TryParse(User.FindFirstValue("id_usuario"), out var userId)) return Unauthorized();
+
+        var entry = new diario
+        {
+            id_usuario = userId,
+            fecha_apertura = DateTime.UtcNow,
+            compartir_sp = request.compartir_sp,
+            contenido = request.contenido.Trim()
+        };
+        var created = await diarioRepository.UpsertDiario(entry);
+        return CreatedAtAction(nameof(ObtenerDiario), new { id = created.id_diario }, ToResponse(created));
+    }
+
+    [Authorize(Roles = "Aprendiz")]
+    [HttpPost("registrar")]
+    public Task<IActionResult> RegistrarActualizacion([FromBody] DiarioUpdateRequest request) => CrearActualizacion(request);
+
+    [Authorize(Roles = "Aprendiz")]
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> ActualizarDiario(int id, [FromBody] diario update)
+    {
+        if (!int.TryParse(User.FindFirstValue("id_usuario"), out var userId)) return Unauthorized();
+        var existing = await diarioRepository.GetdiarioById(id);
+        if (existing is null) return NotFound();
+        if (existing.id_usuario != userId) return Forbid();
+        update.id_diario = id;
+        update.id_usuario = userId;
+        var result = await diarioRepository.Putdiario(update);
+        return result is null ? NotFound() : Ok(ToResponse(result));
+    }
+
+    [Authorize(Roles = "Aprendiz")]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> EliminarDiario(int id)
+    {
+        if (!int.TryParse(User.FindFirstValue("id_usuario"), out var userId)) return Unauthorized();
+        var entry = await diarioRepository.GetdiarioById(id);
+        if (entry is null) return NotFound();
+        if (entry.id_usuario != userId) return Forbid();
+        return await diarioRepository.Deletediario(id) ? NoContent() : NotFound();
+    }
+
+    private static DiarioResponse ToResponse(diario item) => new(
+        item.id_diario,
+        item.id_usuario,
+        item.fecha_apertura,
+        item.compartir_sp,
+        item.contenido);
 }
+
+public sealed record DiarioUpdateRequest([Required, StringLength(4000)] string contenido, bool compartir_sp);
+
+public sealed record DiarioResponse(
+    int id_diario,
+    int id_usuario,
+    DateTime fecha_apertura,
+    bool compartir_sp,
+    string contenido);

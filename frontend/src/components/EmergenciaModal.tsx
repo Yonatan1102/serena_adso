@@ -122,7 +122,7 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
               <PhoneCall className="w-4 h-4 text-emerald-200" />
               <div className="text-left">
                 <p className="font-bold">Consultorio Bienestar CMTC</p>
-                <p className="text-[10px] text-emerald-200">Dra. Laura Martínez • Psicóloga</p>
+                <p className="text-[10px] text-emerald-200">Dra. Laura Martínez • Psicosocial</p>
               </div>
             </div>
             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-lg">Llamar CMTC</span>
@@ -132,7 +132,7 @@ export const EmergenciaModal: React.FC<EmergenciaModalProps> = ({
         {/* Notificar por escrito a Psicólogo */}
         <div className="border-t border-slate-100 pt-4">
           <p className="text-xs font-bold text-slate-800 mb-2">
-            ¿Deseas enviar un mensaje directo a tu psicólogo asignado?
+            ¿Deseas enviar un mensaje directo a tu psicosocial asignado?
           </p>
           {notificado ? (
             <div className="p-3 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-200 text-xs flex items-center gap-2">

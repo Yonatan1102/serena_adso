@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -6,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WebApplication1.interfaces;
 using WebApplication1.models;
+using WebApplication1.services;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace WebApplication1.Controllers;
 
@@ -15,50 +18,271 @@ namespace WebApplication1.Controllers;
 public class LoginController : ControllerBase
 {
     private readonly Iloginservice _loginService;
+    private readonly IRecaptchaService _recaptchaService;
+    private readonly IEmailVerificationService _emailVerificationService;
+    private readonly IProgramaRepository _programaRepository;
     private readonly IConfiguration _config;
+    private readonly ILogger<LoginController> _logger;
 
-    public LoginController(Iloginservice loginService, IConfiguration config)
+    public LoginController(
+        Iloginservice loginService,
+        IRecaptchaService recaptchaService,
+        IConfiguration config,
+        IEmailVerificationService emailVerificationService,
+        IProgramaRepository programaRepository,
+        ILogger<LoginController> logger)
     {
         _loginService = loginService;
+        _recaptchaService = recaptchaService;
         _config = config;
+        _emailVerificationService = emailVerificationService;
+        _programaRepository = programaRepository;
+        _logger = logger;
     }
 
     [HttpPost("registrar")]
-    public async Task<IActionResult> Registrar([FromBody] usuario usuario)
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> Registrar(
+        [FromBody] RegisterRequest request,
+        CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        if (await _loginService.BuscarPorCorreo(usuario.email) != null)
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (!request.acepta_tratamiento_datos)
+            return BadRequest(new { mensaje = "Debes aceptar el tratamiento de datos y el acuerdo de confidencialidad." });
+        if (request.id_rol is not (1 or 2))
+            return BadRequest(new { mensaje = "El rol seleccionado no es válido." });
+        var email = request.email.Trim().ToLowerInvariant();
+        var dominioValido = request.id_rol == 1
+            ? email.EndsWith("@soy.sena.edu.co", StringComparison.Ordinal)
+            : email.EndsWith("@sena.edu.co", StringComparison.Ordinal);
+        if (!dominioValido)
+            return BadRequest(new { mensaje = request.id_rol == 1
+                ? "Los aprendices deben usar su correo @soy.sena.edu.co."
+                : "Los profesionales psicosociales deben usar su correo @sena.edu.co." });
+        if (request.id_rol == 1 &&
+            (!request.id_programa.HasValue || !request.id_ficha.HasValue ||
+             !await _programaRepository.IsActiveFichaForProgramAsync(
+                 request.id_ficha.Value,
+                 request.id_programa.Value,
+                 cancellationToken)))
+            return BadRequest(new { mensaje = "Selecciona un programa y una ficha activa asociada." });
+        if (request.id_rol == 2 && (request.id_programa.HasValue || request.id_ficha.HasValue))
+            return BadRequest(new { mensaje = "Solo los aprendices deben seleccionar un programa y una ficha." });
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "register", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        if (await _loginService.BuscarPorCorreo(email) != null)
             return Conflict(new { mensaje = "El correo ya está registrado." });
-            
+
+        var usuario = new usuario
+        {
+            nombre_usuario = request.nombre_usuario.Trim(),
+            email = email,
+            contrasena = request.contrasena,
+            id_rol = request.id_rol,
+            id_ficha = request.id_ficha,
+            documento = request.documento,
+            acepta_tratamiento_datos = true,
+            fecha_consentimiento = DateTime.UtcNow,
+            email_verificado = false
+        };
+
         var creado = await _loginService.Registrar(usuario);
-        creado.contrasena = "[protegida]";
-        return Created("api/usuario/" + creado.id_usuario, creado);
+        try
+        {
+            await _emailVerificationService.IssueCodeAsync(creado, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "No se pudo iniciar la verificación para {Email}.", creado.email);
+            return Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "No fue posible enviar el código de verificación.",
+                detail: "La cuenta quedó pendiente de verificación. Reintenta solicitar el código en unos minutos.");
+        }
+        return Accepted(new { mensaje = "Cuenta creada. Ingresa el código enviado a tu correo para activarla.", correo = creado.email });
     }
 
     [HttpPost]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        
-        var usuario = await _loginService.ValidarCredenciales(request.correo, request.contrasena);
-        if (usuario == null) return Unauthorized(new { mensaje = "Credenciales incorrectas." });
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "login", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
 
-        
+        var usuario = await _loginService.ValidarCredenciales(
+            request.correo.Trim().ToLowerInvariant(),
+            request.contrasena);
+        if (usuario is null)
+            return Unauthorized(new { mensaje = "Correo o contraseña incorrectos." });
+        if (!usuario.email_verificado)
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensaje = "Verifica tu correo antes de iniciar sesión." });
+
+        var dominioValido = usuario.id_rol switch
+        {
+            1 => usuario.email.EndsWith("@soy.sena.edu.co", StringComparison.OrdinalIgnoreCase),
+            2 => usuario.email.EndsWith("@sena.edu.co", StringComparison.OrdinalIgnoreCase),
+            _ => true
+        };
+        if (!dominioValido)
+            return Unauthorized(new { mensaje = "El correo institucional no corresponde al rol de la cuenta." });
+
+        return CrearRespuestaLogin(usuario);
+    }
+
+    [HttpPost("solicitar-codigo-acceso")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> SolicitarCodigoAcceso(
+        [FromBody] EmailCodeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "login_code", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+
+        try
+        {
+            await _emailVerificationService.IssueLoginCodeAsync(request.email, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "No se pudo enviar un código de acceso.");
+        }
+
+        return Accepted(new { mensaje = "Si la cuenta institucional existe y está verificada, recibirás un código de seis dígitos." });
+    }
+
+    [HttpPost("iniciar-con-codigo")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> IniciarConCodigo(
+        [FromBody] LoginCodeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "login_code_verify", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        if (!await _emailVerificationService.VerifyLoginCodeAsync(request.email, request.codigo, cancellationToken))
+            return Unauthorized(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
+
+        var usuario = await _loginService.BuscarPorCorreo(request.email.Trim().ToLowerInvariant());
+        if (usuario is null || !usuario.email_verificado)
+            return Unauthorized(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
+
+        return CrearRespuestaLogin(usuario);
+    }
+
+    private IActionResult CrearRespuestaLogin(usuario usuario)
+    {
         var token = GenerarJwtToken(usuario);
-
-        usuario.contrasena = "[protegida]";
-        return Ok(new 
-        { 
-            token, 
-            usuario, 
-            mensaje = "Autenticación correcta" 
+        return Ok(new
+        {
+            token,
+            usuario = new
+            {
+                usuario.id_usuario,
+                usuario.nombre_usuario,
+                usuario.email,
+                usuario.id_rol,
+                usuario.centro,
+                centro_formacion = usuario.centro,
+                usuario.num_ficha,
+                usuario.documento,
+                usuario.programa_formacion
+            },
+            mensaje = "Autenticación correcta"
         });
     }
 
-    [HttpPost("cambiar-contrasena")]
-    public async Task<IActionResult> CambiarContrasena([FromBody] ChangePasswordRequest request)
+    [HttpPost("verificar-correo")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> VerificarCorreo(
+        [FromBody] VerifyEmailRequest request,
+        CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "verify_email", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        if (await _emailVerificationService.VerifyCodeAsync(request.email, request.codigo, cancellationToken))
+            return Ok(new { mensaje = "Correo verificado. Ya puedes iniciar sesión." });
+        return BadRequest(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
+    }
+
+    [HttpPost("reenviar-verificacion")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> ReenviarVerificacion(
+        [FromBody] ResendVerificationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "resend_email", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        try
+        {
+            await _emailVerificationService.ResendCodeAsync(request.email, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "No se pudo reenviar el código de verificación.");
+            return Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "No fue posible enviar el código.",
+                detail: "Inténtalo nuevamente más tarde.");
+        }
+        return Accepted(new { mensaje = "Si existe una cuenta pendiente de verificación, enviaremos un código." });
+    }
+
+    [HttpPost("olvido-contrasena")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> SolicitarRestablecimiento(
+        [FromBody] EmailCodeRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "forgot_password", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        try
+        {
+            await _emailVerificationService.IssuePasswordResetCodeAsync(request.email, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "No se pudo enviar un código de recuperación.");
+        }
+        return Accepted(new { mensaje = "Si la cuenta institucional existe y está verificada, recibirás un código de recuperación." });
+    }
+
+    [HttpPost("restablecer-contrasena")]
+    [EnableRateLimiting("verification")]
+    public async Task<IActionResult> RestablecerContrasena(
+        [FromBody] ResetPasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        var captchaFailure = await ValidateRecaptchaAsync(request.recaptchaToken, "reset_password", cancellationToken);
+        if (captchaFailure is not null) return captchaFailure;
+        return await _emailVerificationService.ResetPasswordAsync(
+            request.email,
+            request.codigo,
+            request.nuevaContrasena,
+            cancellationToken)
+            ? Ok(new { mensaje = "Contraseña actualizada. Ya puedes solicitar un código de acceso." })
+            : BadRequest(new { mensaje = "El código no es válido o ya expiró. Solicita uno nuevo." });
+    }
+
+    [Authorize]
+    [HttpPost("cambiar-contrasena")]
+    public async Task<IActionResult> CambiarContrasena(
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+        if (!string.Equals(User.FindFirstValue(ClaimTypes.Email), request.correo, StringComparison.OrdinalIgnoreCase))
+            return Forbid();
         if (request.contrasenaActual == request.nuevaContrasena)
             return BadRequest(new { mensaje = "La nueva contraseña debe ser diferente a la actual." });
 
@@ -74,14 +298,23 @@ public class LoginController : ControllerBase
 
     private string GenerarJwtToken(usuario usuario)
     {
-        var secretKey = _config["Jwt:Key"];
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
+        var secretKey = _config["Jwt:Key"]!;
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var nombreRol = usuario.rol?.nombre_rol ?? string.Empty;
+        var rol = nombreRol.Contains("admin", StringComparison.OrdinalIgnoreCase)
+            ? "Admin"
+            : nombreRol.Contains("psic", StringComparison.OrdinalIgnoreCase)
+                ? "Psicosocial"
+                : "Aprendiz";
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, usuario.email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Name, usuario.nombre_usuario),
+            new Claim(ClaimTypes.Email, usuario.email),
+            new Claim(ClaimTypes.Role, rol),
             new Claim("id_usuario", usuario.id_usuario.ToString())
         };
 
@@ -90,33 +323,138 @@ public class LoginController : ControllerBase
             audience: _config["Jwt:Audience"],
             claims: claims,
             expires: DateTime.UtcNow.AddHours(8),
-            signingCredentials: creds
-        );
+            signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    private async Task<IActionResult?> ValidateRecaptchaAsync(string token, string expectedAction, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _recaptchaService.VerifyAsync(
+                token,
+                expectedAction,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                cancellationToken)
+                ? null
+                : BadRequest(new { mensaje = "No fue posible validar reCAPTCHA. Inténtalo nuevamente." });
+        }
+        catch (RecaptchaUnavailableException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                mensaje = "El servicio de validación reCAPTCHA no está disponible. Inténtalo más tarde."
+            });
+        }
+    }
 }
 
-public class LoginRequest
+public sealed record RegisterRequest
 {
-    [System.ComponentModel.DataAnnotations.Required]
-    [System.ComponentModel.DataAnnotations.EmailAddress]
-    public string correo { get; set; } = string.Empty;
+    [Required, StringLength(50)]
+    public required string nombre_usuario { get; init; }
 
-    [System.ComponentModel.DataAnnotations.Required]
-    public string contrasena { get; set; } = string.Empty;
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
+
+    [Required, MinLength(8), StringLength(255)]
+    public required string contrasena { get; init; }
+
+    [Range(1, 2)]
+    public int id_rol { get; init; }
+
+    public int? id_programa { get; init; }
+
+    public int? id_ficha { get; init; }
+
+    [StringLength(30)]
+    public string? documento { get; init; }
+
+    [Required]
+    public bool acepta_tratamiento_datos { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
 }
 
-public class ChangePasswordRequest
+public sealed record VerifyEmailRequest
 {
-    [System.ComponentModel.DataAnnotations.Required]
-    [System.ComponentModel.DataAnnotations.EmailAddress]
-    public string correo { get; set; } = string.Empty;
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
 
-    [System.ComponentModel.DataAnnotations.Required]
-    public string contrasenaActual { get; set; } = string.Empty;
+    [Required, RegularExpression(@"^\d{6}$")]
+    public required string codigo { get; init; }
 
-    [System.ComponentModel.DataAnnotations.Required]
-    [System.ComponentModel.DataAnnotations.MinLength(8)]
-    public string nuevaContrasena { get; set; } = string.Empty;
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record ResendVerificationRequest
+{
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record LoginRequest
+{
+    [Required, EmailAddress, StringLength(150)]
+    public required string correo { get; init; }
+
+    [Required, StringLength(255)]
+    public required string contrasena { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record EmailCodeRequest
+{
+    [Required, EmailAddress]
+    public required string email { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record LoginCodeRequest
+{
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
+
+    [Required, RegularExpression(@"^\d{6}$")]
+    public required string codigo { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record ResetPasswordRequest
+{
+    [Required, EmailAddress, StringLength(150)]
+    public required string email { get; init; }
+
+    [Required, RegularExpression(@"^\d{6}$")]
+    public required string codigo { get; init; }
+
+    [Required, MinLength(8), StringLength(255)]
+    public required string nuevaContrasena { get; init; }
+
+    [Required]
+    public required string recaptchaToken { get; init; }
+}
+
+public sealed record ChangePasswordRequest
+{
+    [Required, EmailAddress]
+    public required string correo { get; init; }
+
+    [Required]
+    public required string contrasenaActual { get; init; }
+
+    [Required, MinLength(8)]
+    public required string nuevaContrasena { get; init; }
 }

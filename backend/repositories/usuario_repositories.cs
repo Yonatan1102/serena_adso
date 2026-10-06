@@ -47,14 +47,27 @@ public class usuario_repositories : Iusuario, Iloginservice
     }
 
     public Task<usuario?> BuscarPorCorreo(string email) =>
-        context.usuario.AsNoTracking().FirstOrDefaultAsync(x => x.email == email);
+        context.usuario.AsNoTracking().Include(x => x.rol).FirstOrDefaultAsync(x => x.email == email);
 
     public async Task<usuario?> ValidarCredenciales(string email, string contrasena)
     {
-        var usuario = await context.usuario.FirstOrDefaultAsync(x => x.email == email);
+        var usuario = await context.usuario.Include(x => x.rol).FirstOrDefaultAsync(x => x.email == email);
         if (usuario == null) return null;
-        var resultado = new PasswordHasher<usuario>().VerifyHashedPassword(usuario, usuario.contrasena, contrasena);
-        return resultado == PasswordVerificationResult.Success ? usuario : null;
+        try
+        {
+            var hasher = new PasswordHasher<usuario>();
+            var resultado = hasher.VerifyHashedPassword(usuario, usuario.contrasena, contrasena);
+            if (resultado == PasswordVerificationResult.Failed) return null;
+            if (resultado == PasswordVerificationResult.SuccessRehashNeeded)
+                usuario.contrasena = hasher.HashPassword(usuario, contrasena);
+            usuario.ultimo_acceso = DateTime.UtcNow;
+            await context.SaveChangesAsync();
+            return usuario;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
     }
 
     public Task<usuario> Registrar(usuario usuario) => Postusuario(usuario);
@@ -65,7 +78,15 @@ public class usuario_repositories : Iusuario, Iloginservice
         if (usuario == null) return false;
 
         var hasher = new PasswordHasher<usuario>();
-        var resultado = hasher.VerifyHashedPassword(usuario, usuario.contrasena, contrasenaActual);
+        PasswordVerificationResult resultado;
+        try
+        {
+            resultado = hasher.VerifyHashedPassword(usuario, usuario.contrasena, contrasenaActual);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
         if (resultado == PasswordVerificationResult.Failed) return false;
 
         usuario.contrasena = hasher.HashPassword(usuario, nuevaContrasena);

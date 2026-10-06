@@ -1,259 +1,494 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, ShieldCheck, UserPlus } from 'lucide-react';
+import { Usuario } from '../types/serena.types';
+import { RecaptchaV3, RecaptchaV3Handle } from './RecaptchaV3';
 
-interface LoginResponseUser {
-  id_usuario: number;
-  nombre_usuario: string;
-  email: string;
-  id_rol: number;
-  centro: 'CMTC' | 'CMM' | 'CEET';
-  num_ficha?: string;
-  avatar_url?: string;
-  telefono?: string;
-  especialidad?: string;
-  programa_formacion?: string;
-  jornada?: string;
-  estado_formativo?: string;
-}
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+const inputClass = 'w-full rounded-lg border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-100';
+
+type View = 'login' | 'register' | 'verify' | 'login-code' | 'forgot' | 'reset';
+type AccountRole = 1 | 2;
 
 interface LoginViewProps {
-  onLogin: (usuario: LoginResponseUser, token: string) => void;
+  onLogin: (usuario: Usuario, token: string) => void;
 }
 
-const registrationSteps = ['Tu nombre', 'Tu rol', 'Tu sede', 'Tu centro', 'Tu programa', 'Tu ficha', 'Tus credenciales'];
+interface ProgramaOption {
+  id_programa: number;
+  nombre_programa: string;
+}
+
+interface FichaOption {
+  id_ficha: number;
+  codigo_ficha: string;
+  jornada: string;
+}
+
+class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
+async function requestApi<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiRequestError(
+      result?.mensaje || result?.detail || result?.title || 'No fue posible completar la solicitud.',
+      response.status,
+    );
+  }
+  return result as T;
+}
 
 export function LoginView({ onLogin }: LoginViewProps) {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [registrationStep, setRegistrationStep] = useState(0);
+  const [view, setView] = useState<View>('login');
   const [nombre, setNombre] = useState('');
-  const [rol, setRol] = useState<'aprendiz' | 'psicologo'>('aprendiz');
-  const [sede, setSede] = useState('');
-  const [centro, setCentro] = useState<'CMTC' | 'CMM' | 'CEET'>('CMTC');
-  const [programa, setPrograma] = useState('');
-  const [ficha, setFicha] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
-  const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [codigo, setCodigo] = useState('');
+  const [rol, setRol] = useState<AccountRole>(1);
+  const [documento, setDocumento] = useState('');
+  const [programas, setProgramas] = useState<ProgramaOption[]>([]);
+  const [fichas, setFichas] = useState<FichaOption[]>([]);
+  const [programaId, setProgramaId] = useState('');
+  const [fichaId, setFichaId] = useState('');
+  const [aceptaTratamiento, setAceptaTratamiento] = useState(false);
+  const recaptchaRef = useRef<RecaptchaV3Handle>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [notice, setNotice] = useState('');
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
-  const resetRegistration = () => {
-    setIsRegistering(false);
-    setRegistrationStep(0);
-    setNombre('');
-    setRol('aprendiz');
-    setSede('');
-    setCentro('CMTC');
-    setPrograma('');
-    setFicha('');
-    setCorreo('');
-    setContrasena('');
-    setConfirmarContrasena('');
-    setError('');
-  };
+  useEffect(() => {
+    if (view !== 'register') return;
+    let active = true;
+    fetch(`${API_BASE_URL}/programas`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(response.status >= 500
+            ? 'La API de SERENA no está disponible. Comprueba que el backend y SQL Server estén iniciados.'
+            : 'No fue posible cargar los programas.');
+        }
+        return response.json() as Promise<ProgramaOption[]>;
+      })
+      .then((items) => { if (active) setProgramas(items); })
+      .catch((cause: Error) => {
+        if (active) setError(cause instanceof TypeError
+          ? 'No se pudo conectar con la API de SERENA. Comprueba que el backend esté disponible.'
+          : cause.message);
+      });
+    return () => { active = false; };
+  }, [view]);
 
-  const startRegistration = () => {
-    setIsRegistering(true);
-    setRegistrationStep(0);
-    setError('');
-    setSuccess('');
-  };
-
-  const validateRegistrationStep = () => {
-    if (registrationStep === 0 && !nombre.trim()) return 'Cuéntanos tu nombre completo.';
-    if (registrationStep === 2 && !sede.trim()) return 'Escribe la sede a la que perteneces.';
-    if (registrationStep === 4 && !programa.trim()) return 'Escribe tu programa de formación.';
-    if (registrationStep === 5 && !ficha.trim()) return 'Escribe el número de tu ficha.';
-    if (registrationStep === 6) {
-      if (!correo.trim() || !contrasena.trim()) return 'Ingresa tu correo y contraseña.';
-      if (contrasena.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
-      if (contrasena !== confirmarContrasena) return 'Las contraseñas no coinciden.';
+  useEffect(() => {
+    if (view !== 'register' || rol !== 1 || !programaId) {
+      setFichas([]);
+      setFichaId('');
+      return;
     }
-    return '';
+    let active = true;
+    fetch(`${API_BASE_URL}/programas/${programaId}/fichas`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(response.status >= 500
+            ? 'La API de SERENA no está disponible. Comprueba que el backend y SQL Server estén iniciados.'
+            : 'No fue posible cargar las fichas.');
+        }
+        return response.json() as Promise<FichaOption[]>;
+      })
+      .then((items) => { if (active) setFichas(items); })
+      .catch((cause: Error) => {
+        if (active) setError(cause instanceof TypeError
+          ? 'No se pudo conectar con la API de SERENA. Comprueba que el backend esté disponible.'
+          : cause.message);
+      });
+    return () => { active = false; };
+  }, [view, rol, programaId]);
+
+  const changeView = (nextView: View) => {
+    setView(nextView);
+    setError('');
+    setNotice('');
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const executeRecaptcha = (action: string) => {
+    if (!recaptchaRef.current) throw new Error('reCAPTCHA todavía no está listo. Inténtalo nuevamente.');
+    return recaptchaRef.current.execute(action);
+  };
+
+  const handleLoginWithPassword = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    setSuccess('');
-
-    if (!isRegistering) {
-      if (!correo.trim() || !contrasena.trim()) {
-        setError('Debe ingresar correo y contraseña.');
-        return;
-      }
-      setIsLoading(true);
-    } else {
-      const validationError = validateRegistrationStep();
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-      if (registrationStep < registrationSteps.length - 1) {
-        setRegistrationStep((step) => step + 1);
-        return;
-      }
-      setIsLoading(true);
-    }
-
+    setIsLoading(true);
     try {
-      const response = await fetch(isRegistering ? '/api/Login/registrar' : '/api/Login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          isRegistering
-            ? {
-                nombre_usuario: nombre.trim(),
-                email: correo.trim(),
-                contrasena,
-                id_rol: rol === 'psicologo' ? 2 : 1,
-                sede: sede.trim(),
-                centro,
-                programa_formacion: programa.trim(),
-                num_ficha: ficha.trim(),
-              }
-            : { correo: correo.trim(), contrasena },
-        ),
+      const recaptchaToken = await executeRecaptcha('login');
+      const response = await requestApi<{ usuario: Usuario; token: string }>('/Login', {
+        correo: correo.trim(), contrasena, recaptchaToken,
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.mensaje || (isRegistering ? 'No se pudo completar el registro.' : 'No se pudo iniciar sesión.'));
-      }
-
-      if (isRegistering) {
-        resetRegistration();
-        setSuccess('Registro exitoso. Ahora puedes iniciar sesión.');
-        setIsLoading(false);
-        return;
-      }
-
-      const usuario = payload?.usuario ?? payload?.data?.usuario;
-      const token = payload?.token ?? payload?.data?.token;
-      if (!usuario || !token) throw new Error('La respuesta del servidor no incluye usuario o token.');
-      onLogin(usuario, token);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ocurrió un error inesperado.');
+      onLogin(response.usuario, response.token);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo iniciar sesión.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const inputClass = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100';
+  const handleLoginWithCode = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('login_code_verify');
+      const response = await requestApi<{ usuario: Usuario; token: string }>('/Login/iniciar-con-codigo', {
+        email: correo.trim(), codigo: codigo.trim(), recaptchaToken,
+      });
+      onLogin(response.usuario, response.token);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo iniciar sesión.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const renderRegistrationStep = () => {
-    switch (registrationStep) {
-      case 0:
-        return <Field id="nombre" label="¿Cómo te llamas?" value={nombre} onChange={setNombre} placeholder="Tu nombre completo" autoComplete="name" className={inputClass} />;
-      case 1:
-        return (
-          <div>
-            <label className="mb-3 block text-sm font-medium text-slate-700">¿Cuál es tu rol en SERENA?</label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {([['aprendiz', 'Aprendiz'], ['psicologo', 'Psicólogo']] as const).map(([value, label]) => (
-                <button key={value} type="button" onClick={() => setRol(value)} className={`rounded-xl border px-4 py-4 text-left transition ${rol === value ? 'border-violet-500 bg-violet-50 text-violet-800 ring-2 ring-violet-100' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-violet-300'}`}>
-                  <span className="block font-semibold">{label}</span>
-                  <span className="mt-1 block text-xs text-slate-500">{value === 'aprendiz' ? 'Estoy en formación' : 'Acompaño procesos de bienestar'}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      case 2:
-        return <Field id="sede" label="¿En qué sede estás?" value={sede} onChange={setSede} placeholder="Ej. Sede principal" className={inputClass} />;
-      case 3:
-        return (
-          <div>
-            <label htmlFor="centro" className="mb-2 block text-sm font-medium text-slate-700">Selecciona tu centro</label>
-            <select id="centro" value={centro} onChange={(event) => setCentro(event.target.value as typeof centro)} className={inputClass}>
-              <option value="CMTC">CMTC</option>
-              <option value="CMM">CMM</option>
-              <option value="CEET">CEET</option>
-            </select>
-          </div>
-        );
-      case 4:
-        return <Field id="programa" label="¿Cuál es tu programa?" value={programa} onChange={setPrograma} placeholder="Ej. Análisis y Desarrollo de Software" className={inputClass} />;
-      case 5:
-        return <Field id="ficha" label="¿Cuál es tu número de ficha?" value={ficha} onChange={setFicha} placeholder="Ej. 3288046" inputMode="numeric" className={inputClass} />;
-      default:
-        return (
-          <div className="space-y-5">
-            <Field id="correo" label="Correo institucional" value={correo} onChange={setCorreo} placeholder="tu.correo@sena.edu.co" type="email" autoComplete="email" className={inputClass} />
-            <Field id="contrasena" label="Contraseña" value={contrasena} onChange={setContrasena} placeholder="Mínimo 8 caracteres" type="password" autoComplete="new-password" className={inputClass} />
-            <Field id="confirmarContrasena" label="Confirma tu contraseña" value={confirmarContrasena} onChange={setConfirmarContrasena} placeholder="Repite tu contraseña" type="password" autoComplete="new-password" className={inputClass} />
-          </div>
-        );
+  const handleRequestLoginCode = async (event?: React.SyntheticEvent) => {
+    event?.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('login_code');
+      const response = await requestApi<{ mensaje: string }>('/Login/solicitar-codigo-acceso', {
+        email: correo.trim(), recaptchaToken,
+      });
+      setCodigo('');
+      setNotice(response.mensaje);
+      setView('login-code');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible solicitar el código.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRequestPasswordReset = async (event?: React.SyntheticEvent) => {
+    event?.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('forgot_password');
+      const response = await requestApi<{ mensaje: string }>('/Login/olvido-contrasena', {
+        email: correo.trim(), recaptchaToken,
+      });
+      setCodigo('');
+      setNotice(response.mensaje);
+      setView('reset');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible solicitar el restablecimiento.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('reset_password');
+      const response = await requestApi<{ mensaje: string }>('/Login/restablecer-contrasena', {
+        email: correo.trim(), codigo: codigo.trim(), nuevaContrasena: contrasena, recaptchaToken,
+      });
+      setContrasena('');
+      setCodigo('');
+      setNotice(response.mensaje);
+      setView('login');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No fue posible restablecer la contraseña.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    if (!aceptaTratamiento) {
+      setError('Debes aceptar el aviso de privacidad para crear la cuenta.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('register');
+      const response = await requestApi<{ mensaje: string; correo: string }>('/Login/registrar', {
+        nombre_usuario: nombre.trim(),
+        email: correo.trim(),
+        contrasena,
+        id_rol: rol,
+        id_programa: rol === 1 ? Number(programaId) : null,
+        id_ficha: rol === 1 ? Number(fichaId) : null,
+        documento: documento.trim() || null,
+        acepta_tratamiento_datos: true,
+        recaptchaToken,
+      });
+      setCorreo(response.correo || correo.trim());
+      setContrasena('');
+      setCodigo('');
+      setNotice(response.mensaje || 'Cuenta creada. Revisa tu correo institucional.');
+      setView('verify');
+    } catch (cause) {
+      if (cause instanceof ApiRequestError && cause.status === 503) {
+        setCorreo(correo.trim());
+        setContrasena('');
+        setCodigo('');
+        setView('verify');
+        setNotice('La cuenta quedó creada, pero el correo no pudo enviarse. Corrige la configuración de correo y luego solicita un nuevo código.');
+        return;
+      }
+      setError(cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerify = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('verify_email');
+      const response = await requestApi<{ mensaje: string }>('/Login/verificar-correo', {
+        email: correo.trim(), codigo: codigo.trim(), recaptchaToken,
+      });
+      setNotice(response.mensaje || 'Correo verificado. Ya puedes iniciar sesión.');
+      setContrasena('');
+      setView('login');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo verificar el correo.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setError('');
+    setIsLoading(true);
+    try {
+      const recaptchaToken = await executeRecaptcha('resend_email');
+      const response = await requestApi<{ mensaje: string }>('/Login/reenviar-verificacion', {
+        email: correo.trim(), recaptchaToken,
+      });
+      setNotice(response.mensaje || 'Si la cuenta está pendiente, se enviará un nuevo código.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo reenviar el código.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#f3e8ff,_#faf5ff_45%,_#ede9fe)] flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-3xl border border-violet-100 bg-white/90 p-8 shadow-[0_30px_80px_rgba(76,29,149,0.14)] backdrop-blur-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-violet-100 p-3 shadow-sm">
-            <img src="/IMG/logo.png" alt="Logo de SERENA" className="h-full w-full object-contain" />
+    <main className="relative min-h-screen overflow-hidden bg-[#f5f1fb] text-slate-900">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_12%_12%,rgba(124,58,237,0.13),transparent_36%),radial-gradient(ellipse_at_90%_84%,rgba(192,132,252,0.18),transparent_32%)]" />
+      <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20 lg:px-12">
+        <section className="hidden lg:block">
+          <div className="mb-8 flex h-24 w-24 items-center justify-center">
+            <img src="/IMG/logo.png" alt="SERENA" className="h-24 w-24 object-contain" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">SERENA</p>
-          <h1 className="mt-3 text-3xl font-extrabold text-slate-900">{isRegistering ? 'Crear cuenta' : 'Iniciar sesión'}</h1>
-          <p className="mt-2 text-sm text-slate-500">{isRegistering ? registrationSteps[registrationStep] : 'Accede a tu bienestar emocional y acompañamiento SENA.'}</p>
-        </div>
+          <p className="text-sm font-semibold uppercase text-violet-700">SENA · CMTC</p>
+          <h1 className="mt-3 max-w-md text-4xl font-bold leading-tight text-[#2d1748]">SERENA</h1>
+          <p className="mt-3 max-w-sm text-base leading-7 text-slate-600">Acceso institucional para aprendices y profesionales psicosociales.</p>
+          <div className="mt-10 h-1 w-16 rounded-full bg-violet-600" />
+        </section>
 
-        {isRegistering && (
+        <section className="mx-auto w-full max-w-lg rounded-2xl border border-violet-100 bg-white p-5 shadow-[0_24px_70px_rgba(57,31,84,0.12)] sm:p-8">
+          <div className="mb-7 flex items-center gap-3 lg:hidden">
+            <div className="flex h-14 w-14 items-center justify-center">
+              <img src="/IMG/logo.png" alt="SERENA" className="h-14 w-14 object-contain" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#2d1748]">SERENA</p>
+              <p className="text-xs text-slate-500">SENA · CMTC</p>
+            </div>
+          </div>
+
+          {(view === 'login' || view === 'register') && (
+            <div className="mb-7 grid grid-cols-2 rounded-xl bg-violet-50 p-1" role="tablist" aria-label="Acceso a SERENA">
+              <button type="button" role="tab" aria-selected={view === 'login'} onClick={() => changeView('login')} className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition ${view === 'login' ? 'bg-white text-violet-800 shadow-sm' : 'text-violet-600 hover:text-violet-900'}`}>
+                Iniciar sesión
+              </button>
+              <button type="button" role="tab" aria-selected={view === 'register'} onClick={() => changeView('register')} className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${view === 'register' ? 'bg-white text-violet-800 shadow-sm' : 'text-violet-600 hover:text-violet-900'}`}>
+                <UserPlus size={16} /> Crear cuenta
+              </button>
+            </div>
+          )}
+
           <div className="mb-6">
-            <div className="mb-2 flex justify-between text-xs font-medium text-slate-500"><span>Paso {registrationStep + 1} de {registrationSteps.length}</span><span>{Math.round(((registrationStep + 1) / registrationSteps.length) * 100)}%</span></div>
-            <div className="h-2 overflow-hidden rounded-full bg-violet-100"><div className="h-full rounded-full bg-violet-600 transition-all duration-500" style={{ width: `${((registrationStep + 1) / registrationSteps.length) * 100}%` }} /></div>
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+              {view === 'verify' ? <ShieldCheck size={19} /> : view === 'register' ? <UserPlus size={19} /> : <ShieldCheck size={19} />}
+            </div>
+            <h2 className="text-2xl font-bold text-[#2d1748]">
+              {view === 'login' ? 'Bienvenido de nuevo' : view === 'register' ? 'Crear cuenta institucional' : view === 'verify' ? 'Verifica tu correo' : view === 'login-code' ? 'Ingresa tu código' : view === 'forgot' ? 'Recupera tu acceso' : 'Restablece tu contraseña'}
+            </h2>
+            <p className="mt-1.5 text-sm text-slate-500">
+              {view === 'login' ? 'Ingresa con tu correo institucional y contraseña.' : view === 'register' ? 'Elige el tipo de cuenta que corresponde a tu correo SENA.' : view === 'verify' || view === 'login-code' || view === 'reset' ? `Ingresa el código de seis dígitos enviado a ${correo}.` : view === 'forgot' ? 'Escribe tu correo institucional para recibir un código e iniciar sesión sin contraseña.' : 'Elige una contraseña nueva para tu cuenta.'}
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div key={`${isRegistering}-${registrationStep}`} className={isRegistering ? 'animate-[pulse_300ms_ease-out]' : ''}>
-            {isRegistering ? renderRegistrationStep() : (
-              <div className="space-y-5">
-                <Field id="correo" label="Correo institucional" value={correo} onChange={setCorreo} placeholder="tu.correo@sena.edu.co" type="email" autoComplete="email" className={inputClass} />
-                <Field id="contrasena" label="Contraseña" value={contrasena} onChange={setContrasena} placeholder="********" type="password" autoComplete="current-password" className={inputClass} />
+          {notice && <p role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800">{notice}</p>}
+          {error && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">{error}</p>}
+
+          {view === 'login' && (
+            <form onSubmit={handleLoginWithPassword} className="space-y-4">
+              <div>
+                <label htmlFor="correo-login" className="mb-1.5 block text-sm font-medium text-slate-700">Correo institucional</label>
+                <input id="correo-login" className={inputClass} type="email" value={correo} onChange={(event) => setCorreo(event.target.value)} autoComplete="username" placeholder="nombre@soy.sena.edu.co" required />
               </div>
-            )}
-          </div>
+              <div>
+                <label htmlFor="contrasena-login" className="mb-1.5 block text-sm font-medium text-slate-700">Contraseña</label>
+                <input id="contrasena-login" className={inputClass} type="password" value={contrasena} onChange={(event) => setContrasena(event.target.value)} autoComplete="current-password" placeholder="Tu contraseña" required />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">
+                {isLoading ? 'Validando…' : 'Ingresar'}
+              </button>
+              <button type="button" onClick={() => changeView('forgot')} className="w-full py-1 text-sm font-medium text-sky-700 hover:text-sky-900">¿Olvidaste tu contraseña?</button>
+            </form>
+          )}
 
-          {error && <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-          {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</div>}
+          {view === 'login-code' && (
+            <form onSubmit={handleLoginWithCode} className="space-y-4">
+              <div>
+                <label htmlFor="codigo-login" className="mb-1.5 block text-sm font-medium text-slate-700">Código de acceso</label>
+                <input id="codigo-login" className={`${inputClass} text-center text-lg tracking-[0.3em]`} value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" required minLength={6} maxLength={6} />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">{isLoading ? 'Validando…' : 'Ingresar'}</button>
+              <button type="button" disabled={isLoading} onClick={handleRequestLoginCode} className="w-full py-2 text-sm font-semibold text-violet-800 hover:text-violet-950 disabled:opacity-50">Enviar otro código</button>
+              <button type="button" onClick={() => changeView('login')} className="flex w-full items-center justify-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft size={15} /> Cambiar correo</button>
+            </form>
+          )}
 
-          <div className="flex gap-3">
-            {isRegistering && registrationStep > 0 && <button type="button" onClick={() => { setRegistrationStep((step) => step - 1); setError(''); }} className="flex-1 rounded-xl border border-violet-200 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-50">Atrás</button>}
-            <button type="submit" disabled={isLoading} className="flex flex-1 items-center justify-center rounded-xl bg-violet-700 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-violet-700/20 transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-70">
-              {isLoading ? (isRegistering ? 'Registrando...' : 'Iniciando sesión...') : (isRegistering ? (registrationStep === registrationSteps.length - 1 ? 'Crear cuenta' : 'Continuar') : 'Ingresar')}
-            </button>
-          </div>
-        </form>
+          {view === 'forgot' && (
+            <form onSubmit={handleRequestLoginCode} className="space-y-4">
+              <div>
+                <label htmlFor="correo-recuperacion" className="mb-1.5 block text-sm font-medium text-slate-700">Correo institucional</label>
+                <input id="correo-recuperacion" className={inputClass} type="email" value={correo} onChange={(event) => setCorreo(event.target.value)} autoComplete="email" required />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-60">{isLoading ? 'Enviando…' : 'Enviar código para iniciar sesión'}</button>
+              <button type="button" disabled={isLoading} onClick={handleRequestPasswordReset} className="w-full py-1 text-sm font-medium text-sky-700 hover:text-sky-900 disabled:opacity-50">Restablecer mi contraseña</button>
+              <button type="button" onClick={() => changeView('login')} className="flex w-full items-center justify-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft size={15} /> Volver</button>
+            </form>
+          )}
 
-        {!isRegistering ? (
-          <button type="button" onClick={startRegistration} className="mt-5 w-full text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700 hover:underline">¿No tienes cuenta? Crea una</button>
-        ) : (
-          <button type="button" onClick={resetRegistration} className="mt-5 w-full text-center text-sm font-semibold text-blue-600 transition hover:text-blue-700 hover:underline">Ya tengo una cuenta</button>
-        )}
+          {view === 'reset' && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label htmlFor="codigo-restablecimiento" className="mb-1.5 block text-sm font-medium text-slate-700">Código de recuperación</label>
+                <input id="codigo-restablecimiento" className={`${inputClass} text-center text-lg tracking-[0.3em]`} value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" required minLength={6} maxLength={6} />
+              </div>
+              <div>
+                <label htmlFor="contrasena-nueva" className="mb-1.5 block text-sm font-medium text-slate-700">Nueva contraseña</label>
+                <input id="contrasena-nueva" className={inputClass} type="password" value={contrasena} onChange={(event) => setContrasena(event.target.value)} autoComplete="new-password" minLength={8} required />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-60">{isLoading ? 'Actualizando…' : 'Guardar contraseña nueva'}</button>
+            </form>
+          )}
+
+          {view === 'register' && (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <fieldset>
+                <legend className="mb-2 text-sm font-medium text-slate-700">Tipo de cuenta</legend>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setRol(1)} aria-pressed={rol === 1} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${rol === 1 ? 'border-violet-500 bg-violet-50 text-violet-800' : 'border-slate-200 text-slate-600 hover:border-violet-200'}`}>Aprendiz</button>
+                  <button type="button" onClick={() => setRol(2)} aria-pressed={rol === 2} className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${rol === 2 ? 'border-violet-500 bg-violet-50 text-violet-800' : 'border-slate-200 text-slate-600 hover:border-violet-200'}`}>Psicosocial</button>
+                </div>
+              </fieldset>
+              <div>
+                <label htmlFor="nombre-registro" className="mb-1.5 block text-sm font-medium text-slate-700">Nombre completo</label>
+                <input id="nombre-registro" className={inputClass} value={nombre} onChange={(event) => setNombre(event.target.value)} autoComplete="name" required maxLength={50} />
+              </div>
+              <div>
+                <label htmlFor="correo-registro" className="mb-1.5 block text-sm font-medium text-slate-700">Correo institucional</label>
+                <input id="correo-registro" className={inputClass} type="email" value={correo} onChange={(event) => setCorreo(event.target.value)} autoComplete="email" placeholder={rol === 1 ? 'nombre@soy.sena.edu.co' : 'nombre@sena.edu.co'} required maxLength={150} />
+              </div>
+              <div>
+                <label htmlFor="contrasena-registro" className="mb-1.5 block text-sm font-medium text-slate-700">Contraseña</label>
+                <input id="contrasena-registro" className={inputClass} type="password" value={contrasena} onChange={(event) => setContrasena(event.target.value)} autoComplete="new-password" minLength={8} required />
+              </div>
+              {rol === 1 && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="programa-registro" className="mb-1.5 block text-sm font-medium text-slate-700">Programa</label>
+                    <select id="programa-registro" className={inputClass} value={programaId} onChange={(event) => { setProgramaId(event.target.value); setFichaId(''); }} required>
+                      <option value="">Selecciona un programa</option>
+                      {programas.map((item) => <option key={item.id_programa} value={item.id_programa}>{item.nombre_programa}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="ficha-registro" className="mb-1.5 block text-sm font-medium text-slate-700">Ficha</label>
+                    <select id="ficha-registro" className={inputClass} value={fichaId} onChange={(event) => setFichaId(event.target.value)} required disabled={!programaId || fichas.length === 0}>
+                      <option value="">{programaId ? 'Selecciona una ficha' : 'Primero elige el programa'}</option>
+                      {fichas.map((item) => <option key={item.id_ficha} value={item.id_ficha}>{item.codigo_ficha}{item.jornada ? ` · ${item.jornada}` : ''}</option>)}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="documento-registro" className="mb-1.5 block text-sm font-medium text-slate-700">Documento <span className="font-normal text-slate-400">(opcional)</span></label>
+                    <input id="documento-registro" className={inputClass} value={documento} onChange={(event) => setDocumento(event.target.value)} maxLength={30} />
+                  </div>
+                </div>
+              )}
+              <div className="rounded-lg bg-violet-50/80 p-3.5">
+                <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700">
+                  <input type="checkbox" checked={aceptaTratamiento} onChange={(event) => setAceptaTratamiento(event.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-violet-700" />
+                  <span>He leído el <button type="button" onClick={() => setShowPrivacy(true)} className="font-semibold text-violet-800 underline decoration-violet-300 underline-offset-2 hover:text-violet-950">aviso de privacidad</button> y autorizo el tratamiento necesario para crear y gestionar mi cuenta.</span>
+                </label>
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">
+                {isLoading ? 'Creando cuenta…' : 'Crear cuenta'}
+              </button>
+            </form>
+          )}
+
+          {view === 'verify' && (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div>
+                <label htmlFor="codigo-verificacion" className="mb-1.5 block text-sm font-medium text-slate-700">Código de verificación</label>
+                <input id="codigo-verificacion" className={`${inputClass} text-center text-lg tracking-[0.3em]`} value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" required minLength={6} maxLength={6} />
+              </div>
+              <RecaptchaV3 ref={recaptchaRef} />
+              <button type="submit" disabled={isLoading} className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60">
+                {isLoading ? 'Verificando…' : 'Verificar correo'}
+              </button>
+              <button type="button" disabled={isLoading} onClick={handleResendCode} className="w-full py-2 text-sm font-semibold text-violet-800 hover:text-violet-950 disabled:opacity-50">Reenviar código</button>
+              <button type="button" onClick={() => changeView('login')} className="flex w-full items-center justify-center gap-2 py-1 text-sm text-slate-500 hover:text-slate-800"><ArrowLeft size={15} /> Volver al inicio de sesión</button>
+            </form>
+          )}
+
+        </section>
       </div>
-    </div>
-  );
-}
 
-interface FieldProps {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  className: string;
-  type?: string;
-  autoComplete?: string;
-  inputMode?: 'numeric';
-}
-
-function Field({ id, label, value, onChange, placeholder, className, type = 'text', autoComplete, inputMode }: FieldProps) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
-      <input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} autoComplete={autoComplete} inputMode={inputMode} className={className} placeholder={placeholder} />
-    </div>
+      {showPrivacy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowPrivacy(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="privacy-title" className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+            <p className="text-xs font-semibold uppercase text-violet-700">SERENA · SENA</p>
+            <h2 id="privacy-title" className="mt-2 text-xl font-bold text-[#2d1748]">Aviso de privacidad y tratamiento de datos</h2>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+              <p>Para crear y proteger tu cuenta se tratarán tu nombre, correo institucional, contraseña almacenada como hash y, si eres aprendiz, el programa y la ficha seleccionados. El correo se usa para verificar la cuenta y enviarte comunicaciones necesarias del servicio.</p>
+              <p>Al usar las funciones de acompañamiento puedes aportar información relacionada con tu bienestar emocional. Estos datos son sensibles y se tratarán con acceso restringido para prestar las funciones solicitadas, de acuerdo con la normativa colombiana de protección de datos personales.</p>
+              <p>Puedes solicitar información sobre el tratamiento o ejercer tus derechos de consulta, actualización, rectificación y supresión ante el responsable institucional de protección de datos del SENA.</p>
+              <p className="rounded-lg bg-violet-50 p-3 text-xs text-violet-950">La aceptación se registra con fecha y hora. La política institucional completa y su canal oficial de contacto deben estar disponibles para los usuarios antes del despliegue productivo.</p>
+            </div>
+            <button type="button" onClick={() => setShowPrivacy(false)} className="mt-6 w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-800">Cerrar aviso</button>
+          </section>
+        </div>
+      )}
+    </main>
   );
 }
