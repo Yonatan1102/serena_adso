@@ -6,6 +6,7 @@ namespace WebApplication1.interfaces
     public interface Idiario
     {
         Task<List<diario>> Getdiario();
+        Task<List<diario>> GetdiariosByUsuario(int id_usuario);
         Task<diario> Postdiario(diario diario);
         Task<diario?> GetdiarioById(int id);
         Task<diario?> GetdiarioByUsuario(int id_usuario);

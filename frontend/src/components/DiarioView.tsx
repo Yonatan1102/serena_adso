@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   BookMarked,
   Lock,
-  Share2,
   ShieldCheck,
   CheckCircle2,
   Eye,
@@ -30,7 +29,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
     ? aprendizSeleccionado?.id_usuario || currentUser.id_usuario
     : currentUser.id_usuario;
 
-  const [diario, setDiario] = useState<Diario | null>(null);
+  const [actualizaciones, setActualizaciones] = useState<Diario[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string>('');
 
@@ -43,10 +42,9 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
     setError('');
     try {
       const resultado = await serenaApi.getDiarioDesdeApi(idObjetivo);
-      setDiario(resultado);
-      if (resultado) setCompartirSp(resultado.compartir_sp);
+      setActualizaciones(resultado);
     } catch (err) {
-      setDiario(null);
+      setActualizaciones([]);
       setError(err instanceof Error ? err.message : 'No se pudo cargar el diario.');
     } finally {
       setCargando(false);
@@ -58,9 +56,6 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser.id_rol, currentUser.id_usuario, idObjetivo]);
 
-  // El psicólogo solo ve el diario si el aprendiz lo compartió explícitamente
-  const diarioVisible = isPsicologo ? Boolean(diario?.compartir_sp) : true;
-
   const handleGuardarActualizacion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoContenido.trim()) return;
@@ -69,28 +64,16 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
     setError('');
     try {
       await serenaApi.actualizarDiarioEnApi({
-        id_usuario: currentUser.id_usuario,
         contenido: nuevoContenido.trim(),
         compartir_sp: compartirSp,
       });
       setGuardando(false);
       setNuevoContenido('');
+      setCompartirSp(false);
       await cargarDiario();
     } catch (err) {
       setGuardando(false);
       setError(err instanceof Error ? err.message : 'No se pudo actualizar el diario.');
-    }
-  };
-
-  const handleToggleCompartir = async () => {
-    if (!diario) return;
-    const nuevoValor = !diario.compartir_sp;
-    try {
-      const actualizado = await serenaApi.cambiarPermisoCompartirDiarioEnApi(diario, nuevoValor);
-      setDiario(actualizado);
-      setCompartirSp(actualizado.compartir_sp);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo actualizar el permiso.');
     }
   };
 
@@ -131,7 +114,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
             <p className="text-slate-500 text-[11px]">
               {isPsicologo
                 ? 'Si el diario no está compartido, ningún profesional puede acceder a él.'
-                : 'Tú decides si tu diario es privado o si deseas que lo lea tu psicólogo asignado.'}
+                : 'Cada actualización es privada por defecto; puedes compartirla con tu psicosocial asignado.'}
             </p>
           </div>
         </div>
@@ -153,7 +136,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
               <span>Agregar Actualización a tu Diario</span>
             </h3>
             <p className="text-xs text-slate-400">
-              Lo que escribas se añadirá a tu diario (que es uno solo). Nadie podrá leerlo a menos que actives la casilla de compartir.
+              Cada actualización se guarda por separado. Solo tu psicosocial podrá leer las que marques para compartir.
             </p>
           </div>
 
@@ -172,7 +155,7 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
               />
             </div>
 
-            {/* Toggle de permiso para compartir con el psicólogo */}
+            {/* Toggle de permiso para compartir con el profesional psicosocial */}
             <div className="p-3 rounded-xl border border-slate-100 bg-white/60 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2.5">
                 {compartirSp ? (
@@ -182,12 +165,12 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
                 )}
                 <div>
                   <p className="text-xs font-semibold text-slate-800">
-                    Compartir mi diario con mi psicólogo asignado
+                    Compartir esta actualización con mi psicosocial
                   </p>
                   <p className="text-[11px] text-slate-500">
                     {compartirSp
-                      ? 'Visible para tu psicólogo para enriquecer tus sesiones.'
-                      : 'Privado absoluto: nadie más podrá leerlo.'}
+                      ? 'Esta actualización será visible para tu psicosocial.'
+                      : 'Esta actualización será privada.'}
                   </p>
                 </div>
               </div>
@@ -217,22 +200,12 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
         </div>
       )}
 
-      {/* DIARIO ÚNICO DEL USUARIO */}
+      {/* Actualizaciones individuales del diario */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-sm sm:text-base font-bold text-slate-900">
-            {isPsicologo ? 'Diario del aprendiz' : 'Tu Diario'}
+            {isPsicologo ? 'Actualizaciones compartidas por el aprendiz' : 'Tu Diario'}
           </h3>
-          {diario && !isPsicologo && (
-            <button
-              onClick={handleToggleCompartir}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors"
-              title={diario.compartir_sp ? 'Hacer privado' : 'Compartir con psicólogo'}
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              {diario.compartir_sp ? 'Compartido' : 'Privado'}
-            </button>
-          )}
         </div>
 
         {cargando ? (
@@ -240,46 +213,29 @@ export const DiarioView: React.FC<DiarioViewProps> = ({
             <RefreshCw className="w-4 h-4 animate-spin" />
             Cargando diario...
           </div>
-        ) : !diario ? (
+        ) : actualizaciones.length === 0 ? (
           <div className="bg-transparent rounded-2xl p-8 text-center border border-transparent text-xs text-slate-400">
             {isPsicologo
-              ? 'El aprendiz aún no ha creado su diario.'
+              ? 'El aprendiz aún no ha compartido actualizaciones de su diario.'
               : 'Aún no has escrito nada en tu diario. ¡Agrega tu primera actualización!'}
           </div>
-        ) : !diarioVisible ? (
-          <div className="bg-transparent rounded-2xl p-8 text-center border border-transparent text-xs text-slate-400">
-            Este diario es privado y no fue compartido contigo.
-          </div>
         ) : (
-          <div className="bg-transparent rounded-2xl p-4 sm:p-5 border border-transparent hover:bg-white hover:border-slate-200/70 hover:shadow-xs transition-all duration-150 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-400 font-normal">
-                  Apertura:{' '}
-                  {new Date(diario.fecha_apertura).toLocaleDateString('es-CO', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
-                {diario.compartir_sp ? (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EBF7E6] text-[#2E8500] flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    Compartido con Psicólogo
+          <div className="flex flex-col divide-y divide-slate-200/70">
+            {actualizaciones.map((entry) => (
+              <article key={entry.id_diario} className="py-4 first:pt-1">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">
+                    {new Date(entry.fecha_apertura).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })}
                   </span>
-                ) : (
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-slate-400" />
-                    Privado
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
-              {diario.contenido || 'Sin contenido aún.'}
-            </p>
+                  {entry.compartir_sp ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800"><Eye className="h-3 w-3" />Compartida</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600"><Lock className="h-3 w-3" />Privada</span>
+                  )}
+                </div>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{entry.contenido}</p>
+              </article>
+            ))}
           </div>
         )}
       </div>

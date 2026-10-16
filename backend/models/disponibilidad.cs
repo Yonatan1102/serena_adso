@@ -18,9 +18,8 @@ namespace WebApplication1.models
         [Required]
         public int id_rol {get; set;}
 
-        [Required]
-        [Range(1,6, ErrorMessage ="el dia debe de esta ente 1(lunes) y 6(sabado)")]
-        public byte dia_semana { get; set;}
+        [Column(TypeName = "date")]
+        public DateOnly fecha { get; set; }
 
         [Required]
         [DataType(DataType.Time)]

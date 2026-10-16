@@ -28,13 +28,14 @@ import {
 } from 'lucide-react';
 import {
   Usuario,
-  HistoriaClinica,
   Cita,
-  CertificadoSoporte,
-  AnotacionClinica,
+  ClinicalSummary,
+  ClinicalSupportFile,
+  ClinicalNoteEntry,
   Publicacion,
 } from '../types/serena.types';
 import { serenaApi } from '../services/serena-api.service';
+import { DiarioView } from './DiarioView';
 
 interface ExpedienteClinicoModalProps {
   currentUser: Usuario;
@@ -64,7 +65,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
           </div>
           <h2 className="font-bold text-slate-900 text-base">Acceso restringido</h2>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Solo profesionales de psicología y bienestar autorizados por el SENA tienen permiso para consultar expedientes clínicos e historiales de aprendices.
+            Solo profesionales psicosociales y de bienestar autorizados por el SENA tienen permiso para consultar expedientes e historiales de aprendices.
           </p>
           <button
             onClick={onClose}
@@ -78,21 +79,9 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
   }
 
   // Estados de datos
-  const [historia, setHistoria] = useState<HistoriaClinica | undefined>(() =>
-    serenaApi.getHistoriaClinica(aprendiz.id_usuario, currentUser.id_rol)
-  );
-  const [condiciones, setCondiciones] = useState<string[]>(() => {
-    const h = serenaApi.getHistoriaClinica(aprendiz.id_usuario, currentUser.id_rol);
-    if (h?.condiciones_lista && h.condiciones_lista.length > 0) return h.condiciones_lista;
-    if (h?.condiciones) return h.condiciones.split(',').map((c) => c.trim()).filter(Boolean);
-    return ['Estrés situacional reactivo'];
-  });
-  const [soportes, setSoportes] = useState<CertificadoSoporte[]>(() =>
-    serenaApi.getSoportesClinicos(aprendiz.id_usuario)
-  );
-  const [anotaciones, setAnotaciones] = useState<AnotacionClinica[]>(() =>
-    serenaApi.getAnotacionesClinicas(aprendiz.id_usuario)
-  );
+  const [condiciones, setCondiciones] = useState<string[]>([]);
+  const [soportes, setSoportes] = useState<ClinicalSupportFile[]>([]);
+  const [anotaciones, setAnotaciones] = useState<ClinicalNoteEntry[]>([]);
   const [citasAprendiz, setCitasAprendiz] = useState<Cita[]>(() => {
     const all = serenaApi.getCitas();
     return all.filter((c) => c.id_usuario_aprendiz === aprendiz.id_usuario);
@@ -102,24 +91,10 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
   );
 
   // Formulario para agregar condición
-  const [nuevaCondicion, setNuevaCondicion] = useState('');
-  const [showAddCondicion, setShowAddCondicion] = useState(false);
-
   // Formulario para nuevo comentario / evolución clínica
   const [nuevoComentarioTexto, setNuevoComentarioTexto] = useState('');
-  const [tipoAnotacion, setTipoAnotacion] = useState<'Evolución' | 'Comentario' | 'Condición' | 'Acuerdo'>('Evolución');
+  const [tipoAnotacion, setTipoAnotacion] = useState<'Evolución' | 'Comentario' | 'Acuerdo'>('Evolución');
   const [guardandoAnotacion, setGuardandoAnotacion] = useState(false);
-
-  // Formulario para nuevo certificado médico
-  const [showAddSoporte, setShowAddSoporte] = useState(false);
-  const [nuevoSoporte, setNuevoSoporte] = useState({
-    nombre_documento: '',
-    entidad: '',
-    medico_especialista: '',
-    diagnostico_cie10: '',
-    observaciones: '',
-    tipo_archivo: 'PDF' as 'PDF' | 'DOCX' | 'JPG',
-  });
 
   // Estado para añadir comentario a una cita específica
   const [comentarioCitaInputs, setComentarioCitaInputs] = useState<Record<number, string>>({});
@@ -138,91 +113,64 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
 
   // Recargar datos al cambiar de aprendiz
   useEffect(() => {
-    if (aprendiz) {
-      const h = serenaApi.getHistoriaClinica(aprendiz.id_usuario, currentUser.id_rol);
-      setHistoria(h);
-      if (h?.condiciones_lista && h.condiciones_lista.length > 0) {
-        setCondiciones(h.condiciones_lista);
-      } else if (h?.condiciones) {
-        setCondiciones(h.condiciones.split(',').map((c) => c.trim()).filter(Boolean));
-      } else {
-        setCondiciones(['Estrés situacional reactivo']);
+    let active = true;
+    const loadClinicalData = async () => {
+      try {
+        const [summary, uploadedSupports, clinicalNotes] = await Promise.all([
+          serenaApi.getResumenClinicoAprendizDesdeApi(aprendiz.id_usuario),
+          serenaApi.getSoportesClinicosDesdeApi(aprendiz.id_usuario),
+          serenaApi.getAnotacionesClinicasDesdeApi(aprendiz.id_usuario),
+        ]);
+        if (!active) return;
+        setCondiciones(summary.condiciones);
+        setSoportes(uploadedSupports);
+        setAnotaciones(clinicalNotes);
+      } catch (cause) {
+        if (active) mostrarMensaje(cause instanceof Error ? cause.message : 'No se pudo cargar el expediente desde el servidor.');
       }
-      setSoportes(serenaApi.getSoportesClinicos(aprendiz.id_usuario));
-      setAnotaciones(serenaApi.getAnotacionesClinicas(aprendiz.id_usuario));
+      if (!active) return;
       setCitasAprendiz(serenaApi.getCitas().filter((c) => c.id_usuario_aprendiz === aprendiz.id_usuario));
       setVotosUsuario(serenaApi.getVotosUsuario(aprendiz.id_usuario));
-    }
+    };
+    void loadClinicalData();
+    return () => { active = false; };
   }, [aprendiz, currentUser]);
 
   // Manejo de condiciones
-  const handleAgregarCondicion = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevaCondicion.trim()) return;
-    const actualizadas = serenaApi.agregarCondicion(aprendiz.id_usuario, nuevaCondicion.trim());
-    setCondiciones(actualizadas);
-    setNuevaCondicion('');
-    setShowAddCondicion(false);
-    mostrarMensaje('Condición diagnóstica añadida al expediente.');
-  };
-
-  const handleEliminarCondicion = (cond: string) => {
-    const actualizadas = serenaApi.eliminarCondicion(aprendiz.id_usuario, cond);
-    setCondiciones(actualizadas);
-    mostrarMensaje('Condición eliminada del registro.');
-  };
-
   // Manejo de comentarios / anotaciones clínicas
-  const handleGuardarAnotacion = (e: React.FormEvent) => {
+  const handleGuardarAnotacion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoComentarioTexto.trim()) return;
 
     setGuardandoAnotacion(true);
-    const nueva = serenaApi.agregarAnotacionClinica(
-      aprendiz.id_usuario,
-      currentUser.id_usuario,
-      currentUser.nombre_usuario,
-      tipoAnotacion,
-      nuevoComentarioTexto.trim()
-    );
-
-    setAnotaciones((prev) => [nueva, ...prev]);
-    setNuevoComentarioTexto('');
-    setGuardandoAnotacion(false);
-    mostrarMensaje('Comentario clínico guardado con firma profesional.');
+    try {
+      const note = await serenaApi.agregarAnotacionClinicaEnApi(
+        aprendiz.id_usuario,
+        tipoAnotacion as ClinicalNoteEntry['tipo'],
+        nuevoComentarioTexto.trim(),
+      );
+      setAnotaciones((previous) => [note, ...previous]);
+      setNuevoComentarioTexto('');
+      mostrarMensaje('Nota guardada en el historial clínico.');
+    } catch (cause) {
+      mostrarMensaje(cause instanceof Error ? cause.message : 'No se pudo guardar la nota.');
+    } finally {
+      setGuardandoAnotacion(false);
+    }
   };
 
-  // Manejo de soportes clínicos y certificados
-  const handleGuardarSoporte = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevoSoporte.nombre_documento.trim() || !nuevoSoporte.entidad.trim()) {
-      setAlertaExito('Por favor indica el nombre del documento y la entidad emisora.');
-      return;
+  const descargarSoporte = async (support: ClinicalSupportFile) => {
+    try {
+      const blob = await serenaApi.descargarSoporteClinicoDesdeApi(support.id_soporte);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = support.nombre_archivo;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (cause) {
+      mostrarMensaje(cause instanceof Error ? cause.message : 'No se pudo descargar el PDF.');
     }
-
-    const creado = serenaApi.agregarSoporteClinico({
-      id_usuario: aprendiz.id_usuario,
-      nombre_documento: nuevoSoporte.nombre_documento.trim(),
-      entidad: nuevoSoporte.entidad.trim(),
-      medico_especialista: nuevoSoporte.medico_especialista.trim() || 'Médico tratante no especificado',
-      diagnostico_cie10: nuevoSoporte.diagnostico_cie10.trim(),
-      observaciones: nuevoSoporte.observaciones.trim(),
-      tipo_archivo: nuevoSoporte.tipo_archivo,
-      fecha_emision: new Date().toISOString().split('T')[0],
-      tamano: '1.1 MB',
-    });
-
-    setSoportes((prev) => [creado, ...prev]);
-    setNuevoSoporte({
-      nombre_documento: '',
-      entidad: '',
-      medico_especialista: '',
-      diagnostico_cie10: '',
-      observaciones: '',
-      tipo_archivo: 'PDF',
-    });
-    setShowAddSoporte(false);
-    mostrarMensaje('Certificado médico registrado exitosamente.');
   };
 
   // Manejo de comentarios en citas
@@ -236,7 +184,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
     setComentarioCitaInputs((prev) => ({ ...prev, [idCita]: '' }));
     setCitaActivaComentario(null);
     if (onRefreshCitas) onRefreshCitas();
-    mostrarMensaje('Comentario registrado en la cita.');
+    mostrarMensaje('Comentario registrado en la orientación.');
   };
 
   return (
@@ -251,7 +199,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
             className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-1.5 -ml-3 rounded-xl hover:bg-slate-200/50 transition-colors cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:-translate-x-0.5 transition-transform" />
-            <span>Volver a Psicología</span>
+            <span>Volver al acompañamiento psicosocial</span>
           </button>
 
           <span className="h-4 w-px bg-slate-200" />
@@ -338,7 +286,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex items-center gap-6 text-xs text-slate-500 self-start md:self-auto">
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">
-                    Citas en Centro
+                    Orientaciones en Centro
                   </span>
                   <span className="text-lg font-bold text-slate-900">
                     {citasAprendiz.length}
@@ -390,7 +338,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                   Centro Formativo
                 </span>
                 <span className="font-semibold text-slate-800">
-                  {aprendiz.centro} • Paloquemao
+                  {aprendiz.centro}
                 </span>
               </div>
 
@@ -451,21 +399,10 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
 
               {/* A. CONDICIONES DIAGNÓSTICAS */}
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                    <Tag className="w-3.5 h-3.5 text-[#39A900]" />
-                    Condiciones Registradas
-                  </span>
-                  {!showAddCondicion && (
-                    <button
-                      onClick={() => setShowAddCondicion(true)}
-                      className="text-xs font-semibold text-[#2E8500] hover:text-[#39A900] flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Agregar condición
-                    </button>
-                  )}
-                </div>
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                  <Tag className="w-3.5 h-3.5 text-[#39A900]" />
+                  Condiciones Registradas por el Aprendiz
+                </span>
 
                 {/* Chips de condiciones */}
                 <div className="flex flex-wrap gap-2 items-center">
@@ -474,177 +411,24 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                       Sin condiciones activas registradas en la historia clínica.
                     </span>
                   ) : (
-                    condiciones.map((cond, idx) => (
+                    condiciones.map((cond) => (
                       <span
-                        key={idx}
+                        key={cond}
                         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-slate-200/50 text-slate-800 transition-colors"
                       >
                         <span>{cond}</span>
-                        <button
-                          onClick={() => handleEliminarCondicion(cond)}
-                          title="Eliminar condición"
-                          className="text-slate-400 hover:text-rose-600 cursor-pointer ml-0.5"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
                       </span>
                     ))
                   )}
                 </div>
-
-                {/* Formulario rápido para nueva condición */}
-                {showAddCondicion && (
-                  <form onSubmit={handleAgregarCondicion} className="flex items-center gap-2 mt-1">
-                    <input
-                      type="text"
-                      value={nuevaCondicion}
-                      onChange={(e) => setNuevaCondicion(e.target.value)}
-                      placeholder="Ej: Ansiedad adaptativa, Tensión postural..."
-                      className="flex-1 text-xs px-3.5 py-2 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-[#39A900]"
-                      autoFocus
-                    />
-                    <button
-                      type="submit"
-                      className="px-3.5 py-2 bg-[#39A900] hover:bg-[#2E8500] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                    >
-                      Guardar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddCondicion(false);
-                        setNuevaCondicion('');
-                      }}
-                      className="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                  </form>
-                )}
               </div>
 
               {/* B. CERTIFICADOS Y SOPORTES MÉDICOS EXTERNOS */}
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                    <Paperclip className="w-3.5 h-3.5 text-[#39A900]" />
-                    Certificados y Soportes Médicos Externos
-                  </span>
-                  <button
-                    onClick={() => setShowAddSoporte(!showAddSoporte)}
-                    className="text-xs font-semibold text-[#2E8500] hover:text-[#39A900] flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    {showAddSoporte ? 'Cerrar' : 'Adjuntar soporte'}
-                  </button>
-                </div>
-
-                {/* Formulario para nuevo certificado */}
-                {showAddSoporte && (
-                  <form
-                    onSubmit={handleGuardarSoporte}
-                    className="p-4 bg-white/80 rounded-2xl border border-slate-200/80 flex flex-col gap-3 text-xs animate-in fade-in duration-150"
-                  >
-                    <div className="font-bold text-slate-800 text-xs">
-                      Registrar Certificado / Soporte Externo
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                          Nombre del Documento *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={nuevoSoporte.nombre_documento}
-                          onChange={(e) =>
-                            setNuevoSoporte({ ...nuevoSoporte, nombre_documento: e.target.value })
-                          }
-                          placeholder="Ej: Incapacidad Médica 3 Días"
-                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                          Nombre de la Entidad Emisora *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={nuevoSoporte.entidad}
-                          onChange={(e) =>
-                            setNuevoSoporte({ ...nuevoSoporte, entidad: e.target.value })
-                          }
-                          placeholder="Ej: EPS Sanitas, Compensar, SURA"
-                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                          Médico Tratante / Especialista
-                        </label>
-                        <input
-                          type="text"
-                          value={nuevoSoporte.medico_especialista}
-                          onChange={(e) =>
-                            setNuevoSoporte({ ...nuevoSoporte, medico_especialista: e.target.value })
-                          }
-                          placeholder="Ej: Dr. Fernando Salazar (Psiquiatría)"
-                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                          Diagnóstico CIE-10 (opcional)
-                        </label>
-                        <input
-                          type="text"
-                          value={nuevoSoporte.diagnostico_cie10}
-                          onChange={(e) =>
-                            setNuevoSoporte({ ...nuevoSoporte, diagnostico_cie10: e.target.value })
-                          }
-                          placeholder="Ej: F41.1 Ansiedad generalizada"
-                          className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">
-                        Observaciones Clínicas o Recomendaciones
-                      </label>
-                      <input
-                        type="text"
-                        value={nuevoSoporte.observaciones}
-                        onChange={(e) =>
-                          setNuevoSoporte({ ...nuevoSoporte, observaciones: e.target.value })
-                        }
-                        placeholder="Recomendaciones de pausas activas, flexibilización formativa, etc."
-                        className="w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setShowAddSoporte(false)}
-                        className="px-3 py-1.5 rounded-xl text-slate-500 hover:bg-slate-200 text-xs font-semibold cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-1.5 bg-[#39A900] hover:bg-[#2E8500] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                      >
-                        Guardar Soporte
-                      </button>
-                    </div>
-                  </form>
-                )}
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                  <Paperclip className="w-3.5 h-3.5 text-[#39A900]" />
+                  PDFs adjuntos por el aprendiz
+                </span>
 
                 {/* Lista de certificados (Limpia, sin bordes pesados) */}
                 <div className="flex flex-col divide-y divide-slate-200/60 max-h-[300px] overflow-y-auto discreet-scroll pr-1">
@@ -654,57 +438,28 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                     </div>
                   ) : (
                     soportes.map((soporte) => (
-                      <div
-                        key={soporte.id_soporte}
-                        className="py-3.5 flex flex-col gap-1.5 group"
-                      >
+                      <div key={soporte.id_soporte} className="py-3.5 flex flex-col gap-1.5 group">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex flex-col">
                             <span className="font-bold text-xs text-slate-900">
-                              {soporte.nombre_documento}
+                              {soporte.nombre_archivo}
                             </span>
-                            {/* Nombre de la entidad emisora destacado */}
-                            <span className="text-xs font-semibold text-[#2E8500] flex items-center gap-1 mt-0.5">
-                              <Building2 className="w-3.5 h-3.5" />
-                              {soporte.entidad}
-                            </span>
+                            {soporte.descripcion && <span className="mt-0.5 text-xs text-slate-500">{soporte.descripcion}</span>}
                           </div>
 
                           <span className="text-[11px] text-slate-400 shrink-0">
-                            {soporte.fecha_emision}
+                            {new Date(soporte.fecha_carga).toLocaleDateString('es-CO')}
                           </span>
                         </div>
 
-                        {soporte.medico_especialista && (
-                          <p className="text-[11px] text-slate-500">
-                            <strong className="text-slate-700">Tratante:</strong> {soporte.medico_especialista}
-                          </p>
-                        )}
-
-                        {soporte.diagnostico_cie10 && (
-                          <div className="inline-flex">
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-200/60 text-slate-700">
-                              CIE-10: {soporte.diagnostico_cie10}
-                            </span>
-                          </div>
-                        )}
-
-                        {soporte.observaciones && (
-                          <p className="text-xs text-slate-600 leading-relaxed pt-0.5">
-                            {soporte.observaciones}
-                          </p>
-                        )}
-
                         <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
-                          <span>Archivo: {soporte.tipo_archivo} • {soporte.tamano || '850 KB'}</span>
+                          <span>PDF · {(soporte.tamano_bytes / 1024 / 1024).toFixed(2)} MB</span>
                           <button
-                            onClick={() =>
-                              mostrarMensaje(`Visualizando soporte oficial emitido por ${soporte.entidad}.`)
-                            }
+                            onClick={() => void descargarSoporte(soporte)}
                             className="text-[#2E8500] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
                           >
                             <Download className="w-3 h-3" />
-                            Ver documento
+                            Descargar PDF
                           </button>
                         </div>
                       </div>
@@ -717,7 +472,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex flex-col gap-3 pt-2">
                 <span className="text-xs font-bold text-slate-700 flex items-center gap-2">
                   <MessageSquare className="w-3.5 h-3.5 text-[#39A900]" />
-                  Anotaciones Clínicas y Notas de Evolución
+                  Anotaciones y Notas de Evolución
                 </span>
 
                 {/* Formulario para redactar nota */}
@@ -806,7 +561,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
                 <div>
                   <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                    Historial de Citas
+                    Historial de Orientaciones
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Sesiones de acompañamiento psicológico agendadas en el CMTC
@@ -821,7 +576,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               <div className="flex flex-col divide-y divide-slate-200/60 max-h-[700px] overflow-y-auto discreet-scroll pr-2">
                 {citasAprendiz.length === 0 ? (
                   <div className="py-8 text-center text-slate-400 text-xs">
-                    El aprendiz no tiene citas previas registradas con los psicólogos del centro.
+                    El aprendiz no tiene orientaciones previas registradas con los psicosociales del centro.
                   </div>
                 ) : (
                   citasAprendiz.map((cita) => {
@@ -841,7 +596,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                         ? 'Dra. Laura Martínez'
                         : cita.id_usuario_psicologo === 5
                         ? 'Dr. Carlos Pardo'
-                        : 'Psicología CMTC');
+                        : 'Bienestar psicosocial CMTC');
 
                     const badgeColor =
                       cita.estado_cita === 'Realizada'
@@ -867,7 +622,7 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
                                 {psicologoAtendio}
                               </span>
                               <span className="text-[11px] text-slate-400">
-                                • Psicología CMTC
+                                • Bienestar psicosocial CMTC
                               </span>
                             </div>
                             <p className="text-xs text-slate-500 font-medium mt-0.5 flex items-center gap-1">
@@ -963,6 +718,12 @@ export const ExpedienteClinicoModal: React.FC<ExpedienteClinicoModalProps> = ({
               </div>
             </section>
           </div>
+
+          {currentUser.id_rol === 2 && (
+            <section className="border-t border-slate-200/60 pt-6">
+              <DiarioView currentUser={currentUser} aprendizSeleccionado={aprendiz} />
+            </section>
+          )}
 
           {/* =======================================================================
               3. SECCIÓN INFERIOR: INTERACCIONES COMUNITARIAS DEL APRENDIZ

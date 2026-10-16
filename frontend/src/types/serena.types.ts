@@ -8,12 +8,38 @@ export interface Rol {
   nombre_rol: 'Aprendiz' | 'Psicólogo' | 'Administrador';
 }
 
+export interface ClinicalSummary {
+  condiciones: string[];
+  fecha_apertura: string | null;
+}
+
+export interface ClinicalSupportFile {
+  id_soporte: number;
+  id_aprendiz: number;
+  nombre_archivo: string;
+  descripcion: string | null;
+  fecha_carga: string;
+  tamano_bytes: number;
+}
+
+export interface ClinicalNoteEntry {
+  id_anotacion: number;
+  id_aprendiz: number;
+  id_psicosocial: number;
+  nombre_psicologo: string;
+  fecha: string;
+  tipo: 'Evolución' | 'Comentario' | 'Acuerdo';
+  contenido: string;
+}
+
 export interface Usuario {
   id_usuario: number;
   nombre_usuario: string;
   email: string;
   id_rol: number;
   centro: 'CMTC' | 'CMM' | 'CEET';
+  centro_formacion?: 'CMTC' | 'CMM' | 'CEET';
+  ultimo_estado_animo?: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
   num_ficha?: string;
   avatar_url?: string;
   especialidad?: string; // Para psicólogos
@@ -56,9 +82,11 @@ export interface Cita {
   id_cita: number;
   fecha_hora: string; // ISO string
   motivo: string;
-  estado_cita: 'Pendiente' | 'Confirmada' | 'Realizada' | 'Cancelada';
+  estado_cita: 'Pendiente' | 'Confirmada' | 'Realizada' | 'Cancelada' | 'Rechazada';
   id_usuario_aprendiz: number;
   id_usuario_psicologo: number;
+  motivo_cambio?: string;
+  recaptchaToken?: string;
   // Campos auxiliares para la UI
   aprendiz?: Usuario;
   psicologo?: Usuario;
@@ -126,20 +154,125 @@ export interface Diario {
   id_diario: number;
   id_usuario: number;
   fecha_apertura: string;
-  compartir_sp: boolean; // true = Compartido con psicólogo, false = Privado
+  compartir_sp: boolean;
   contenido: string; // Encriptado simulado AES
   titulo?: string;
 }
 
+export interface Disponibilidad {
+  id_disponibilidad: number;
+  id_usuario: number;
+  id_rol: number;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  estado: boolean;
+}
+
+export interface Ficha {
+  id_ficha: number;
+  id_programa: number;
+  codigo_ficha: string;
+  programa: string;
+  centro: string;
+  jornada: string;
+  estado: boolean;
+}
+
+export interface UsuarioFicha {
+  id_usuario_ficha: number;
+  id_usuario: number;
+  id_ficha: number;
+  fecha_asignacion: string;
+  estado: boolean;
+}
+
+export interface Programa {
+  id_programa: number;
+  nombre_programa: string;
+}
+
+export interface FichaRegistro {
+  id_ficha: number;
+  codigo_ficha: string;
+  programa: string;
+  jornada: string;
+}
+
+export interface AdminPsicosocial {
+  id_usuario: number;
+  nombre: string;
+  correo: string;
+  documento: string | null;
+  fichas_asignadas: number;
+  aprendices_asignados: number;
+  aprendices_con_orientacion: number;
+  orientaciones_realizadas: number;
+  orientaciones_totales: number;
+  ultimo_acceso: string | null;
+}
+
+export interface AdminFicha {
+  id_ficha: number;
+  codigo_ficha: string;
+  programa: string;
+  centro: string;
+  jornada: string | null;
+  fecha_asignacion: string | null;
+  aprendices_asignados: number;
+}
+
+export interface AdminPsicosocialDetail extends AdminPsicosocial {
+  fichas: AdminFicha[];
+  orientaciones_rechazadas: number;
+  orientaciones_canceladas: number;
+  orientaciones_pendientes: number;
+  orientaciones: Array<{
+    id_orientacion: number;
+    id_aprendiz: number;
+    fecha_hora: string;
+    motivo: string;
+    estado: string;
+    aprendiz: string;
+    motivo_rechazo_cancelacion: string | null;
+  }>;
+  aprendices: Array<{
+    id_usuario: number;
+    nombre: string;
+    correo: string;
+    num_ficha: string | null;
+    id_ficha: number;
+    codigo_ficha: string;
+    ha_hablado: boolean;
+    orientaciones: number;
+    ultima_orientacion: string | null;
+    primera_orientacion?: string | null;
+  }>;
+  publicaciones: Array<{
+    id_publicacion: number;
+    titulo: string;
+    fecha_publicacion: string;
+  }>;
+}
+
+export interface ReporteOrientacion {
+  id_orientacion: number;
+  fecha_hora: string;
+  motivo: string;
+  estado: string;
+  id_aprendiz: number;
+  aprendiz: string;
+  motivo_cambio: string | null;
+}
+
 export interface EstadoDeAnimo {
-  id_estado?: number;
-  id_estado_usuario?: number;
+  id_estado: number;
   nombre_estado: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
+  estado?: 'Feliz' | 'Calmado' | 'Ansioso' | 'Triste' | 'Motivado';
   fecha_estado: string;
   id_usuario: number;
-  motivo?: string;
-  centro?: 'CMTC' | 'CMM' | 'CEET';
-  avatar_path?: string;
+  centro: 'CMTC' | 'CMM' | 'CEET';
+  avatar_path: string;
   nota?: string;
   intensidad?: number; // 1 - 5
 }
@@ -156,6 +289,7 @@ export interface Publicacion {
   comentarios_count: number;
   comentarios?: number;
   imagen_url?: string;
+  url_imagen?: string;
   etiqueta?: string;
 }
 
@@ -166,38 +300,6 @@ export interface Emergencia {
   descripcion: string;
   estado?: 'Registrada' | 'Atendida' | 'En seguimiento';
   usuario?: Usuario;
-}
-
-export interface Disponibilidad {
-  id_disponibilidad: number;
-  id_usuario: number;
-  id_rol: number;
-  dia_semana: number;
-  hora_inicio: string;
-  hora_fin: string;
-  estado?: boolean;
-  usuario?: Usuario;
-  rol?: Rol;
-}
-
-export interface Ficha {
-  id_ficha: number;
-  codigo_ficha: string;
-  programa: string;
-  centro: 'CMTC' | 'CMM' | 'CEET';
-  jornada?: 'Diurna' | 'Nocturna' | 'Mixta' | 'Fines de Semana';
-  estado?: boolean;
-  usuarios?: Usuario[];
-}
-
-export interface UsuarioFicha {
-  id_usuario_ficha: number;
-  id_usuario: number;
-  id_ficha: number;
-  fecha_asignacion?: string;
-  estado?: boolean;
-  usuario?: Usuario;
-  ficha?: Ficha;
 }
 
 export interface Formulario {
