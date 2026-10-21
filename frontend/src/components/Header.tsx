@@ -2,26 +2,19 @@ import React, { useState } from 'react';
 import {
   Bell,
   Globe,
-  Moon,
   Settings,
   Plus,
   User as UserIcon,
   Menu as MenuIcon,
-  CheckCircle2,
   ExternalLink,
   ShieldAlert,
   Heart,
   ChevronDown,
-  LogOut,
-  KeyRound,
 } from 'lucide-react';
 import { Usuario } from '../types/serena.types';
 
 interface HeaderProps {
   currentUser: Usuario;
-  usuariosDisponibles: Usuario[];
-  onSelectUser?: (user: Usuario) => void;
-  onLogout: () => void;
   onToggleSidebar: () => void;
   isSidebarCollapsed: boolean;
   onOpenCrearDiarioRapido: () => void;
@@ -30,17 +23,12 @@ interface HeaderProps {
   onOpenEmergencia?: () => void;
   idioma: 'es' | 'en';
   onToggleIdioma: () => void;
+  onLogout?: () => void;
   onSearchChange?: (term: string) => void;
-  onGoHome: () => void;
-  isDarkMode: boolean;
-  onToggleTheme: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
-  usuariosDisponibles,
-  onSelectUser,
-  onLogout,
   onToggleSidebar,
   isSidebarCollapsed,
   onOpenCrearDiarioRapido,
@@ -49,83 +37,31 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenEmergencia,
   idioma,
   onToggleIdioma,
+  onLogout,
   onSearchChange,
-  onGoHome,
-  isDarkMode,
-  onToggleTheme,
 }) => {
   const isPsicologo = currentUser.id_rol === 2;
   const [logoError, setLogoError] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [passwordMessage, setPasswordMessage] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  const handleChangePassword = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setPasswordMessage('');
-    setPasswordError('');
-
-    if (newPassword.length < 8) {
-      setPasswordError('La nueva contraseña debe tener al menos 8 caracteres.');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setPasswordError('Las contraseñas nuevas no coinciden.');
-      return;
-    }
-
-    setIsChangingPassword(true);
-
-    try {
-      const response = await fetch('/api/Login/cambiar-contrasena', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          correo: currentUser.email,
-          contrasenaActual: currentPassword,
-          nuevaContrasena: newPassword,
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.mensaje || 'No se pudo actualizar la contraseña.');
-      }
-
-      setPasswordMessage(payload?.mensaje || 'Contraseña actualizada correctamente.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setIsChangingPassword(false);
-    } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'No se pudo actualizar la contraseña.');
-      setIsChangingPassword(false);
-    }
-  };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FAF9FF]/90 backdrop-blur-md border-b border-violet-100/80 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
+    <header className="sticky top-0 z-40 bg-[#F8F9FA]/90 backdrop-blur-md border-b border-slate-200/70 px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between gap-2 sm:gap-4">
       {/* LADO IZQUIERDO: Logo destacado + Nombre SERENA + Slogan */}
-      <button type="button" onClick={onGoHome} className="flex items-center gap-2 sm:gap-3 shrink-0 text-left cursor-pointer" title="Ir al inicio">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Logo de SERENA: Mucho más visible y claro */}
         <div className="flex items-center gap-2.5">
-          <div className="h-9 sm:h-10 w-auto flex items-center justify-center shrink-0">
+          <div className="h-10 sm:h-12 w-auto flex items-center justify-center shrink-0">
             {!logoError ? (
               <img
                 src="/IMG/logo.png"
                 alt="SERENA Logo"
-                className="h-full w-auto max-h-10 object-contain"
+                className="h-full w-auto max-h-12 object-contain"
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="h-9 w-9 rounded-xl bg-violet-700 flex items-center justify-center text-white font-black text-base shadow-xs">
+              <div className="h-9 w-9 rounded-xl bg-[#39A900] flex items-center justify-center text-white font-black text-base shadow-xs">
                 S
               </div>
             )}
@@ -136,10 +72,17 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="font-extrabold text-lg tracking-tight text-slate-900">
                 SERENA
               </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF7E6] text-[#2E8500] border border-[#39A900]/25">
+                CMTC • SENA
+              </span>
             </div>
+            {/* Slogan solicitado: "Tu compañera Digital para el bienestar emocional" */}
+            <span className="hidden xl:inline text-[10px] text-slate-500 font-medium tracking-tight mt-0.5">
+              Tu compañera Digital para el bienestar emocional
+            </span>
           </div>
         </div>
-      </button>
+      </div>
 
       {/* LADO DERECHO: Botón de Emergencia LLAMATIVO SIN PARPADEAR + Acciones */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
@@ -159,15 +102,6 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
         )}
-        <button
-          type="button"
-          onClick={onToggleTheme}
-          title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-          aria-label={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-          className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-        >
-          {isDarkMode ? <span className="text-sm">☀</span> : <Moon className="w-4 h-4" />}
-        </button>
         {/* 5. Engranaje (Configuración) */}
         <div className="relative">
           <button
@@ -210,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
           title={idioma === 'es' ? 'Cambiar a English' : 'Switch to Spanish'}
           className="h-8 px-2 rounded-full hover:bg-slate-100 flex items-center gap-1 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer text-xs font-semibold"
         >
-            <Globe className="w-4 h-4 text-violet-600" />
+          <Globe className="w-4 h-4 text-[#63C976]" />
           <span className="uppercase text-[11px] font-bold">{idioma}</span>
         </button>
 
@@ -291,7 +225,7 @@ export const Header: React.FC<HeaderProps> = ({
             title={`${currentUser.nombre_usuario} (${isPsicologo ? 'Psicólogo' : 'Aprendiz'})`}
             className="flex items-center gap-1.5 p-1 hover:bg-slate-100 rounded-full border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-violet-700 to-fuchsia-300 text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#63C976] to-[#EBADFF] text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs">
               {currentUser.avatar_url ? (
                 <img
                   src={currentUser.avatar_url}
@@ -313,105 +247,25 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="px-3 py-2 border-b border-slate-100">
                 <p className="font-bold text-slate-900">{currentUser.nombre_usuario}</p>
                 <p className="text-[11px] text-slate-500">{currentUser.email}</p>
-                <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
+                <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ECF9EE] text-[#47A95B]">
                   {isPsicologo ? 'Psicólogo(a) Bienestar' : `Aprendiz Ficha ${currentUser.num_ficha}`}
                 </span>
               </div>
 
-              <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                {idioma === 'es' ? 'Cuenta actual' : 'Current account'}
-              </div>
-
-              <div className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600">
-                <p className="font-semibold text-slate-800">{currentUser.nombre_usuario}</p>
-                <p className="mt-0.5">{currentUser.email}</p>
-                <p className="mt-1 text-[10px] text-violet-700 font-bold">
-                  {currentUser.id_rol === 2 ? 'Psicólogo(a)' : currentUser.id_rol === 3 ? 'Administrador(a)' : 'Aprendiz'}
-                </p>
-              </div>
-
               <button
                 onClick={() => {
-                  setShowChangePassword(true);
+                  onLogout?.();
                   setShowUserMenu(false);
-                  setPasswordMessage('');
-                  setPasswordError('');
                 }}
-                className="mt-2 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-2 text-left font-semibold text-slate-700 transition-colors hover:text-violet-700"
+                className="mt-2 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-left text-xs font-semibold text-red-700 transition hover:bg-red-100"
               >
-                <KeyRound className="h-4 w-4" />
-                <span>{idioma === 'es' ? 'Cambiar contraseña' : 'Change password'}</span>
+                {idioma === 'es' ? 'Cerrar sesión' : 'Log out'}
               </button>
 
-              <button
-                onClick={() => {
-                  setShowUserMenu(false);
-                  onLogout();
-                }}
-                className="mt-2 flex w-full items-center gap-2 border-t border-slate-100 px-3 pt-2 text-left font-semibold text-violet-700 transition-colors hover:text-violet-900"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>{idioma === 'es' ? 'Cerrar sesión' : 'Sign out'}</span>
-              </button>
             </div>
           )}
         </div>
       </div>
-
-      {showChangePassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" onClick={() => setShowChangePassword(false)}>
-          <form
-            onSubmit={handleChangePassword}
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-          >
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Cambiar contraseña</h2>
-                <p className="mt-1 text-xs text-slate-500">Actualiza el acceso de {currentUser.email}.</p>
-              </div>
-              <button type="button" onClick={() => setShowChangePassword(false)} className="text-xl text-slate-400 hover:text-slate-700" aria-label="Cerrar">×</button>
-            </div>
-
-            <div className="space-y-4">
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-                placeholder="Contraseña actual"
-                autoComplete="current-password"
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-              />
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Nueva contraseña (mínimo 8 caracteres)"
-                autoComplete="new-password"
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-              />
-              <input
-                type="password"
-                value={confirmNewPassword}
-                onChange={(event) => setConfirmNewPassword(event.target.value)}
-                placeholder="Confirmar nueva contraseña"
-                autoComplete="new-password"
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-              />
-            </div>
-
-            {passwordError && <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{passwordError}</p>}
-            {passwordMessage && <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{passwordMessage}</p>}
-
-            <button type="submit" disabled={isChangingPassword} className="mt-5 w-full rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-70">
-              {isChangingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
-            </button>
-          </form>
-        </div>
-      )}
     </header>
   );
 };

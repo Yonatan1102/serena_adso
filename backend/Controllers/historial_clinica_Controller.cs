@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Authorization;
 using WebApplication1.models;
 
 namespace WebApplication1.Controllers
@@ -7,6 +8,7 @@ namespace WebApplication1.Controllers
     using Microsoft.AspNetCore.Mvc;
     using WebApplication1.interfaces;
 
+    [Authorize(Roles = "Admin")]
     [Route("api/historial-clinico")]
     [ApiController]
     public class historial_clinico_controller : ControllerBase

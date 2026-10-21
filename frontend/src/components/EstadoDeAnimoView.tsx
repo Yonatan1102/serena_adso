@@ -79,7 +79,7 @@ const CMTC_MOODS: AvatarMoodOption[] = [
     primaryImage: '/IMG/ancioso.png',
     fallbackSvg: '/IMG/ancioso.png',
     valorNumerico: 2,
-    fraseConsejo: 'Recuerda hacer una pausa activa de respiración 4x4. Si la sobrecarga persiste, agenda con tu psicólogo.',
+    fraseConsejo: 'Recuerda hacer una pausa activa de respiración 4x4. Si la sobrecarga persiste, agenda con tu psicosocial.',
   },
   {
     id: 'Triste',
@@ -352,7 +352,7 @@ export const EstadoDeAnimoView: React.FC<EstadoDeAnimoViewProps> = ({
             </span>
           </h3>
           <p className="text-xs text-slate-400">
-            Este registro alimenta tu gráfica de evolución emocional y permite a tu psicólogo realizar acompañamientos más asertivos.
+            Este registro alimenta tu gráfica de evolución emocional y permite a tu psicosocial realizar acompañamientos más asertivos.
           </p>
         </div>
 

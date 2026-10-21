@@ -17,6 +17,8 @@ namespace WebApplication1
         public DbSet<cita> cita { get; set; }
         public DbSet<historial_cita> historial_cita { get; set; }
         public DbSet<historial_clinico> historial_clinico { get; set; }
+        public DbSet<soporte_clinico> soporte_clinico { get; set; }
+        public DbSet<anotacion_clinica> anotacion_clinica { get; set; }
         public DbSet<estado_de_animo> estado_de_animo { get; set; }
         public DbSet<estado_animo_usuario> estado_animo_usuario { get; set; }
         public DbSet<diario> diario { get; set; }
@@ -25,6 +27,8 @@ namespace WebApplication1
         public DbSet<disponibilidad> disponibilidad { get; set; } = null!;
         public DbSet<ficha> ficha { get; set; } = null!;
         public DbSet<usuario_ficha> usuario_ficha { get; set; } = null!;
+        public DbSet<programa> programa { get; set; } = null!;
+        public DbSet<verificacion_correo> verificacion_correo { get; set; } = null!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -40,10 +44,20 @@ namespace WebApplication1
             modelBuilder.Entity<usuario>().Property(u => u.email).HasColumnName("email");
             modelBuilder.Entity<usuario>().Property(u => u.contrasena).HasColumnName("contrasena");
             modelBuilder.Entity<usuario>().Property(u => u.id_rol).HasColumnName("id_rol");
+            modelBuilder.Entity<usuario>().Property(u => u.documento).HasColumnName("documento").HasMaxLength(30);
+            modelBuilder.Entity<usuario>().Property(u => u.acepta_tratamiento_datos).HasColumnName("acepta_tratamiento_datos");
+            modelBuilder.Entity<usuario>().Property(u => u.fecha_consentimiento).HasColumnName("fecha_consentimiento");
+            modelBuilder.Entity<usuario>().Property(u => u.id_ficha).HasColumnName("id_ficha");
+            modelBuilder.Entity<usuario>().Property(u => u.email_verificado).HasColumnName("email_verificado");
             modelBuilder.Entity<usuario>()
                 .HasOne(u => u.rol)
                 .WithMany(r => r.usuario)
                 .HasForeignKey(u => u.id_rol)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<usuario>()
+                .HasOne(u => u.ficha)
+                .WithMany()
+                .HasForeignKey(u => u.id_ficha)
                 .OnDelete(DeleteBehavior.Restrict);
 
 
@@ -85,9 +99,12 @@ namespace WebApplication1
 
             modelBuilder.Entity<historial_cita>().ToTable("historial_cita");
             modelBuilder.Entity<historial_cita>().HasKey(u => u.id_h_cita);
-            modelBuilder.Entity<historial_cita>().Property(u => u.id_cita).HasColumnName("id_cita").ValueGeneratedOnAdd();
+            modelBuilder.Entity<historial_cita>().Property(u => u.id_cita).HasColumnName("id_cita");
             modelBuilder.Entity<historial_cita>().Property(u => u.observaciones_historial).HasColumnName("observacion_historial");
             modelBuilder.Entity<historial_cita>().Property(u => u.fecha_cambio).HasColumnName("fecha_cambio");
+            modelBuilder.Entity<historial_cita>().Property(u => u.estado_anterior).HasColumnName("estado_anterior");
+            modelBuilder.Entity<historial_cita>().Property(u => u.estado_nuevo).HasColumnName("estado_nuevo");
+            modelBuilder.Entity<historial_cita>().Property(u => u.motivo_cambio).HasColumnName("motivo_cambio").HasMaxLength(300);
 
 
             modelBuilder.Entity<historial_clinico>().ToTable("historial_clinico");
@@ -98,6 +115,20 @@ namespace WebApplication1
             modelBuilder.Entity<historial_clinico>().Property(u => u.fecha_apertura).HasColumnName("fecha_apertura");
             modelBuilder.Entity<historial_clinico>().Property(u => u.condiciones).HasColumnName("condiciones");
             modelBuilder.Entity<historial_clinico>().Property(u => u.antecedentes).HasColumnName("antecedentes");
+
+            modelBuilder.Entity<soporte_clinico>().HasKey(item => item.id_soporte);
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.id_soporte).ValueGeneratedOnAdd();
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.nombre_archivo).HasMaxLength(255).IsRequired();
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.descripcion).HasMaxLength(500);
+            modelBuilder.Entity<soporte_clinico>().Property(item => item.archivo).HasColumnType("varbinary(max)").IsRequired();
+            modelBuilder.Entity<soporte_clinico>().HasIndex(item => item.id_aprendiz);
+
+            modelBuilder.Entity<anotacion_clinica>().HasKey(item => item.id_anotacion);
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.id_anotacion).ValueGeneratedOnAdd();
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.nombre_psicosocial).HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.tipo).HasMaxLength(30).IsRequired();
+            modelBuilder.Entity<anotacion_clinica>().Property(item => item.contenido).HasMaxLength(4000).IsRequired();
+            modelBuilder.Entity<anotacion_clinica>().HasIndex(item => item.id_aprendiz);
 
 
             modelBuilder.Entity<estado_de_animo>().ToTable("estado_de_animo");
@@ -155,7 +186,7 @@ namespace WebApplication1
             modelBuilder.Entity<disponibilidad>().Property(d => d.id_disponibilidad).HasColumnName("id_disponibilidad").ValueGeneratedOnAdd();
             modelBuilder.Entity<disponibilidad>().Property(d => d.id_usuario).HasColumnName("id_usuario");
             modelBuilder.Entity<disponibilidad>().Property(d => d.id_rol).HasColumnName("id_rol");
-            modelBuilder.Entity<disponibilidad>().Property(d => d.dia_semana).HasColumnName("dia_semana");
+            modelBuilder.Entity<disponibilidad>().Property(d => d.fecha).HasColumnName("fecha").HasColumnType("date");
             modelBuilder.Entity<disponibilidad>().Property(d => d.hora_inicio).HasColumnName("hora_inicio");
             modelBuilder.Entity<disponibilidad>().Property(d => d.hora_fin).HasColumnName("hora_fin");
             modelBuilder.Entity<disponibilidad>().Property(d => d.estado).HasColumnName("estado");
@@ -172,9 +203,13 @@ namespace WebApplication1
 
             modelBuilder.Entity<ficha>().ToTable("ficha");
             modelBuilder.Entity<ficha>().HasKey(f => f.id_ficha);
-            modelBuilder.Entity<ficha>().Property(f => f.id_ficha).HasColumnName("id_ficha").ValueGeneratedOnAdd();
+            modelBuilder.Entity<ficha>().Property(f => f.id_ficha).ValueGeneratedNever();
+            modelBuilder.Entity<ficha>().HasOne(f => f.programa_navegacion)
+                .WithMany(p => p.fichas).HasForeignKey(f => f.id_programa).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<ficha>().Property(f => f.id_ficha).HasColumnName("id_ficha");
             modelBuilder.Entity<ficha>().Property(f => f.codigo_ficha).HasColumnName("codigo_ficha");
             modelBuilder.Entity<ficha>().Property(f => f.programa).HasColumnName("programa");
+            modelBuilder.Entity<ficha>().Property(f => f.id_programa).HasColumnName("id_programa");
             modelBuilder.Entity<ficha>().Property(f => f.centro).HasColumnName("centro");
             modelBuilder.Entity<ficha>().Property(f => f.jornada).HasColumnName("jornada");
             modelBuilder.Entity<ficha>().Property(f => f.estado).HasColumnName("estado");
@@ -191,6 +226,19 @@ namespace WebApplication1
                 .WithMany(u => u.usuario_fichas)
                 .HasForeignKey(uf => uf.id_usuario)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<programa>().ToTable("programa");
+            modelBuilder.Entity<programa>().HasKey(p => p.id_programa);
+            modelBuilder.Entity<programa>().Property(p => p.id_programa).ValueGeneratedOnAdd();
+            modelBuilder.Entity<programa>().HasIndex(p => p.nombre_programa).IsUnique();
+
+            modelBuilder.Entity<verificacion_correo>().ToTable("verificacion_correo");
+            modelBuilder.Entity<verificacion_correo>().HasKey(v => v.id_verificacion);
+            modelBuilder.Entity<verificacion_correo>().Property(v => v.id_verificacion).ValueGeneratedOnAdd();
+            modelBuilder.Entity<verificacion_correo>().HasIndex(v => v.id_usuario).IsUnique();
+            modelBuilder.Entity<verificacion_correo>().Property(v => v.proposito).HasMaxLength(30).HasDefaultValue("verificacion-correo");
+            modelBuilder.Entity<verificacion_correo>().HasOne(v => v.usuario)
+                .WithMany().HasForeignKey(v => v.id_usuario).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<usuario_ficha>()
                 .HasOne(uf => uf.ficha)
                 .WithMany(f => f.usuario_fichas)
@@ -205,5 +253,3 @@ namespace WebApplication1
         }
     }
 }
-
-
