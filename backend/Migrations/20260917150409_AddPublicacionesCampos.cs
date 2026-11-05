@@ -12,35 +12,35 @@ namespace WebApplication1.Migrations
         {
             migrationBuilder.AddColumn<int>(
                 name: "comentarios_count",
-                table: "publicaciones",
+                table: "Publicaciones",
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
 
             migrationBuilder.AddColumn<string>(
                 name: "etiqueta",
-                table: "publicaciones",
+                table: "Publicaciones",
                 type: "nvarchar(80)",
                 maxLength: 80,
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "id_comunidad",
-                table: "publicaciones",
+                table: "Publicaciones",
                 type: "nvarchar(100)",
                 maxLength: 100,
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "imagen_url",
-                table: "publicaciones",
+                table: "Publicaciones",
                 type: "nvarchar(500)",
                 maxLength: 500,
                 nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "votos",
-                table: "publicaciones",
+                table: "Publicaciones",
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
@@ -51,23 +51,23 @@ namespace WebApplication1.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "comentarios_count",
-                table: "publicaciones");
+                table: "Publicaciones");
 
             migrationBuilder.DropColumn(
                 name: "etiqueta",
-                table: "publicaciones");
+                table: "Publicaciones");
 
             migrationBuilder.DropColumn(
                 name: "id_comunidad",
-                table: "publicaciones");
+                table: "Publicaciones");
 
             migrationBuilder.DropColumn(
                 name: "imagen_url",
-                table: "publicaciones");
+                table: "Publicaciones");
 
             migrationBuilder.DropColumn(
                 name: "votos",
-                table: "publicaciones");
+                table: "Publicaciones");
         }
     }
 }

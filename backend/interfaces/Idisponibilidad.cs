@@ -2,11 +2,11 @@ using WebApplication1.models;
 
 namespace WebApplication1.interfaces;
 
-public interface Idisponibilidad
+public interface IDisponibilidad
 {
-    Task<List<disponibilidad>> Getdisponibilidad();
-    Task<disponibilidad?> GetdisponibilidadById(int id);
-    Task<disponibilidad> Postdisponibilidad(disponibilidad value);
-    Task<disponibilidad?> Putdisponibilidad(disponibilidad value);
+    Task<List<Disponibilidad>> Getdisponibilidad();
+    Task<Disponibilidad?> GetdisponibilidadById(int id);
+    Task<Disponibilidad> Postdisponibilidad(Disponibilidad value);
+    Task<Disponibilidad?> Putdisponibilidad(Disponibilidad value);
     Task<bool> Deletedisponibilidad(int id);
 }

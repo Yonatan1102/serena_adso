@@ -11,7 +11,7 @@ using WebApplication1;
 
 namespace WebApplication1.Migrations
 {
-    [DbContext(typeof(serena))]
+    [DbContext(typeof(SerenaDbContext))]
     [Migration("20260917132050_EstadoAnimoIntermedia")]
     partial class EstadoAnimoIntermedia
     {
@@ -25,7 +25,7 @@ namespace WebApplication1.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("WebApplication1.models.cita", b =>
+            modelBuilder.Entity("WebApplication1.models.Cita", b =>
                 {
                     b.Property<int>("id_cita")
                         .ValueGeneratedOnAdd()
@@ -73,10 +73,10 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("id_usuario_psicologo_navegacionid_usuario");
 
-                    b.ToTable("cita", (string)null);
+                    b.ToTable("Cita", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.diario", b =>
+            modelBuilder.Entity("WebApplication1.models.Diario", b =>
                 {
                     b.Property<int>("id_diario")
                         .ValueGeneratedOnAdd()
@@ -106,10 +106,10 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("id_usuario");
 
-                    b.ToTable("diario", (string)null);
+                    b.ToTable("Diario", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.emergencia", b =>
+            modelBuilder.Entity("WebApplication1.models.Emergencia", b =>
                 {
                     b.Property<int>("id_emergencia")
                         .ValueGeneratedOnAdd()
@@ -134,10 +134,10 @@ namespace WebApplication1.Migrations
 
                     b.HasKey("id_emergencia");
 
-                    b.ToTable("emergencia", (string)null);
+                    b.ToTable("Emergencia", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.estado_animo_usuario", b =>
+            modelBuilder.Entity("WebApplication1.models.EstadoAnimoUsuario", b =>
                 {
                     b.Property<int>("id_estado_usuario")
                         .ValueGeneratedOnAdd()
@@ -164,10 +164,10 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("id_usuario");
 
-                    b.ToTable("estado_animo_usuario", (string)null);
+                    b.ToTable("EstadoAnimoUsuario", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.estado_de_animo", b =>
+            modelBuilder.Entity("WebApplication1.models.EstadoDeAnimo", b =>
                 {
                     b.Property<int>("id_estado")
                         .ValueGeneratedOnAdd()
@@ -184,10 +184,10 @@ namespace WebApplication1.Migrations
 
                     b.HasKey("id_estado");
 
-                    b.ToTable("estado_de_animo", (string)null);
+                    b.ToTable("EstadoDeAnimo", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.formulario", b =>
+            modelBuilder.Entity("WebApplication1.models.Formulario", b =>
                 {
                     b.Property<int>("id_formulario")
                         .ValueGeneratedOnAdd()
@@ -213,10 +213,10 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("usuarioid_usuario");
 
-                    b.ToTable("formulario", (string)null);
+                    b.ToTable("Formulario", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.historial_cita", b =>
+            modelBuilder.Entity("WebApplication1.models.HistorialCita", b =>
                 {
                     b.Property<int>("id_h_cita")
                         .ValueGeneratedOnAdd()
@@ -242,10 +242,10 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("id_cita");
 
-                    b.ToTable("historial_cita", (string)null);
+                    b.ToTable("HistorialCita", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.historial_clinico", b =>
+            modelBuilder.Entity("WebApplication1.models.HistorialClinico", b =>
                 {
                     b.Property<int>("id_h_clinico")
                         .ValueGeneratedOnAdd()
@@ -282,10 +282,10 @@ namespace WebApplication1.Migrations
                     b.HasIndex("id_usuario")
                         .IsUnique();
 
-                    b.ToTable("historial_clinico", (string)null);
+                    b.ToTable("HistorialClinico", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.menu", b =>
+            modelBuilder.Entity("WebApplication1.models.Menu", b =>
                 {
                     b.Property<int>("id_menu")
                         .ValueGeneratedOnAdd()
@@ -302,10 +302,10 @@ namespace WebApplication1.Migrations
 
                     b.HasKey("id_menu");
 
-                    b.ToTable("menu", (string)null);
+                    b.ToTable("Menu", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.menu_rol", b =>
+            modelBuilder.Entity("WebApplication1.models.MenuRol", b =>
                 {
                     b.Property<int>("id_menu_rol")
                         .ValueGeneratedOnAdd()
@@ -328,10 +328,10 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("id_rol");
 
-                    b.ToTable("menu_rol", (string)null);
+                    b.ToTable("MenuRol", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.publicaciones", b =>
+            modelBuilder.Entity("WebApplication1.models.Publicaciones", b =>
                 {
                     b.Property<int>("id_publicaciones")
                         .ValueGeneratedOnAdd()
@@ -360,10 +360,10 @@ namespace WebApplication1.Migrations
 
                     b.HasKey("id_publicaciones");
 
-                    b.ToTable("publicaciones", (string)null);
+                    b.ToTable("Publicaciones", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.rol", b =>
+            modelBuilder.Entity("WebApplication1.models.Rol", b =>
                 {
                     b.Property<int>("id_rol")
                         .ValueGeneratedOnAdd()
@@ -380,10 +380,10 @@ namespace WebApplication1.Migrations
 
                     b.HasKey("id_rol");
 
-                    b.ToTable("rol", (string)null);
+                    b.ToTable("Rol", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.usuario", b =>
+            modelBuilder.Entity("WebApplication1.models.Usuario", b =>
                 {
                     b.Property<int>("id_usuario")
                         .ValueGeneratedOnAdd()
@@ -419,28 +419,28 @@ namespace WebApplication1.Migrations
 
                     b.HasIndex("id_rol");
 
-                    b.ToTable("usuario", (string)null);
+                    b.ToTable("Usuario", (string)null);
                 });
 
-            modelBuilder.Entity("WebApplication1.models.cita", b =>
+            modelBuilder.Entity("WebApplication1.models.Cita", b =>
                 {
-                    b.HasOne("WebApplication1.models.usuario", null)
+                    b.HasOne("WebApplication1.models.Usuario", null)
                         .WithMany()
                         .HasForeignKey("id_usuario_aprendiz")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("WebApplication1.models.usuario", "id_usuario_aprendiz_navegacion")
+                    b.HasOne("WebApplication1.models.Usuario", "id_usuario_aprendiz_navegacion")
                         .WithMany()
                         .HasForeignKey("id_usuario_aprendiz_navegacionid_usuario");
 
-                    b.HasOne("WebApplication1.models.usuario", null)
+                    b.HasOne("WebApplication1.models.Usuario", null)
                         .WithMany()
                         .HasForeignKey("id_usuario_psicologo")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("WebApplication1.models.usuario", "id_usuario_psicologo_navegacion")
+                    b.HasOne("WebApplication1.models.Usuario", "id_usuario_psicologo_navegacion")
                         .WithMany()
                         .HasForeignKey("id_usuario_psicologo_navegacionid_usuario");
 
@@ -449,118 +449,118 @@ namespace WebApplication1.Migrations
                     b.Navigation("id_usuario_psicologo_navegacion");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.diario", b =>
+            modelBuilder.Entity("WebApplication1.models.Diario", b =>
                 {
-                    b.HasOne("WebApplication1.models.usuario", "usuario")
+                    b.HasOne("WebApplication1.models.Usuario", "Usuario")
                         .WithMany()
                         .HasForeignKey("id_usuario")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("usuario");
+                    b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.estado_animo_usuario", b =>
+            modelBuilder.Entity("WebApplication1.models.EstadoAnimoUsuario", b =>
                 {
-                    b.HasOne("WebApplication1.models.estado_de_animo", "estado_de_animo")
+                    b.HasOne("WebApplication1.models.EstadoDeAnimo", "EstadoDeAnimo")
                         .WithMany("estado_animo_usuarios")
                         .HasForeignKey("id_estado")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("WebApplication1.models.usuario", "usuario")
+                    b.HasOne("WebApplication1.models.Usuario", "Usuario")
                         .WithMany("estado_animo_usuarios")
                         .HasForeignKey("id_usuario")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("estado_de_animo");
+                    b.Navigation("EstadoDeAnimo");
 
-                    b.Navigation("usuario");
+                    b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.formulario", b =>
+            modelBuilder.Entity("WebApplication1.models.Formulario", b =>
                 {
-                    b.HasOne("WebApplication1.models.usuario", null)
+                    b.HasOne("WebApplication1.models.Usuario", null)
                         .WithMany("formularios")
                         .HasForeignKey("usuarioid_usuario");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.historial_cita", b =>
+            modelBuilder.Entity("WebApplication1.models.HistorialCita", b =>
                 {
-                    b.HasOne("WebApplication1.models.cita", "cita")
+                    b.HasOne("WebApplication1.models.Cita", "Cita")
                         .WithMany("historial_citas")
                         .HasForeignKey("id_cita")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("cita");
+                    b.Navigation("Cita");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.historial_clinico", b =>
+            modelBuilder.Entity("WebApplication1.models.HistorialClinico", b =>
                 {
-                    b.HasOne("WebApplication1.models.usuario", "usuario")
+                    b.HasOne("WebApplication1.models.Usuario", "Usuario")
                         .WithOne("historial_Clinico")
-                        .HasForeignKey("WebApplication1.models.historial_clinico", "id_usuario")
+                        .HasForeignKey("WebApplication1.models.HistorialClinico", "id_usuario")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("usuario");
+                    b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.menu_rol", b =>
+            modelBuilder.Entity("WebApplication1.models.MenuRol", b =>
                 {
-                    b.HasOne("WebApplication1.models.menu", "menu")
-                        .WithMany("menu_rol")
+                    b.HasOne("WebApplication1.models.Menu", "Menu")
+                        .WithMany("MenuRol")
                         .HasForeignKey("id_menu")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("WebApplication1.models.rol", "rol")
-                        .WithMany("menu_rol")
+                    b.HasOne("WebApplication1.models.Rol", "Rol")
+                        .WithMany("MenuRol")
                         .HasForeignKey("id_rol")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("menu");
+                    b.Navigation("Menu");
 
-                    b.Navigation("rol");
+                    b.Navigation("Rol");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.usuario", b =>
+            modelBuilder.Entity("WebApplication1.models.Usuario", b =>
                 {
-                    b.HasOne("WebApplication1.models.rol", "rol")
-                        .WithMany("usuario")
+                    b.HasOne("WebApplication1.models.Rol", "Rol")
+                        .WithMany("Usuario")
                         .HasForeignKey("id_rol")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("rol");
+                    b.Navigation("Rol");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.cita", b =>
+            modelBuilder.Entity("WebApplication1.models.Cita", b =>
                 {
                     b.Navigation("historial_citas");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.estado_de_animo", b =>
+            modelBuilder.Entity("WebApplication1.models.EstadoDeAnimo", b =>
                 {
                     b.Navigation("estado_animo_usuarios");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.menu", b =>
+            modelBuilder.Entity("WebApplication1.models.Menu", b =>
                 {
-                    b.Navigation("menu_rol");
+                    b.Navigation("MenuRol");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.rol", b =>
+            modelBuilder.Entity("WebApplication1.models.Rol", b =>
                 {
-                    b.Navigation("menu_rol");
+                    b.Navigation("MenuRol");
 
-                    b.Navigation("usuario");
+                    b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("WebApplication1.models.usuario", b =>
+            modelBuilder.Entity("WebApplication1.models.Usuario", b =>
                 {
                     b.Navigation("estado_animo_usuarios");
 

@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Ihistorial_cita
+    public interface IHistorialCita
     {
-        Task<List<historial_cita>> Gethistorial_cita();
-        Task<historial_cita?> Gethistorial_citaById(int id);
-        Task<historial_cita> Posthistorial_cita(historial_cita historial_cita);
-        Task<historial_cita?> Puthistorial_cita(historial_cita historial_cita);
+        Task<List<HistorialCita>> Gethistorial_cita();
+        Task<HistorialCita?> Gethistorial_citaById(int id);
+        Task<HistorialCita> Posthistorial_cita(HistorialCita HistorialCita);
+        Task<HistorialCita?> Puthistorial_cita(HistorialCita HistorialCita);
         Task<bool> Deletehistorial_cita(int id);
     }
 }

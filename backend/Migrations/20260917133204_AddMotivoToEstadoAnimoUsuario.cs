@@ -12,7 +12,7 @@ namespace WebApplication1.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "motivo",
-                table: "estado_animo_usuario",
+                table: "EstadoAnimoUsuario",
                 type: "nvarchar(300)",
                 maxLength: 300,
                 nullable: false,
@@ -24,7 +24,7 @@ namespace WebApplication1.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "motivo",
-                table: "estado_animo_usuario");
+                table: "EstadoAnimoUsuario");
         }
     }
 }

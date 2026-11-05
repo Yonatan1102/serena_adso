@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Imenu_rol
+    public interface IMenuRol
     {
-        Task<List<menu_rol>> Getmenu_rol();
-        Task<menu_rol?> Getmenu_rolById(int id);
-        Task<menu_rol> Postmenu_rol(menu_rol menu_rol);
-        Task<menu_rol?> Putmenu_rol(menu_rol menu_rol);
+        Task<List<MenuRol>> Getmenu_rol();
+        Task<MenuRol?> Getmenu_rolById(int id);
+        Task<MenuRol> Postmenu_rol(MenuRol MenuRol);
+        Task<MenuRol?> Putmenu_rol(MenuRol MenuRol);
         Task<bool> Deletemenu_rol(int id);
     }
 }

@@ -12,7 +12,7 @@ namespace WebApplication1.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "emergencia",
+                name: "Emergencia",
                 columns: table => new
                 {
                     id_emergencia = table.Column<int>(type: "int", nullable: false)
@@ -27,7 +27,7 @@ namespace WebApplication1.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "menu",
+                name: "Menu",
                 columns: table => new
                 {
                     id_menu = table.Column<int>(type: "int", nullable: false)
@@ -40,7 +40,7 @@ namespace WebApplication1.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "publicaciones",
+                name: "Publicaciones",
                 columns: table => new
                 {
                     id_publicacion = table.Column<int>(type: "int", nullable: false)
@@ -56,7 +56,7 @@ namespace WebApplication1.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "rol",
+                name: "Rol",
                 columns: table => new
                 {
                     id_rol = table.Column<int>(type: "int", nullable: false)
@@ -69,7 +69,7 @@ namespace WebApplication1.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "menu_rol",
+                name: "MenuRol",
                 columns: table => new
                 {
                     id_menu_rol = table.Column<int>(type: "int", nullable: false)
@@ -83,19 +83,19 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_menu_rol_menu_id_menu",
                         column: x => x.id_menu,
-                        principalTable: "menu",
+                        principalTable: "Menu",
                         principalColumn: "id_menu",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_menu_rol_rol_id_rol",
                         column: x => x.id_rol,
-                        principalTable: "rol",
+                        principalTable: "Rol",
                         principalColumn: "id_rol",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "usuario",
+                name: "Usuario",
                 columns: table => new
                 {
                     id_usuario = table.Column<int>(type: "int", nullable: false)
@@ -111,13 +111,13 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_usuario_rol_id_rol",
                         column: x => x.id_rol,
-                        principalTable: "rol",
+                        principalTable: "Rol",
                         principalColumn: "id_rol",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "cita",
+                name: "Cita",
                 columns: table => new
                 {
                     id_cita = table.Column<int>(type: "int", nullable: false)
@@ -136,27 +136,27 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_cita_usuario_id_usuario_aprendiz",
                         column: x => x.id_usuario_aprendiz,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario");
                     table.ForeignKey(
                         name: "FK_cita_usuario_id_usuario_aprendiz_navegacionid_usuario",
                         column: x => x.id_usuario_aprendiz_navegacionid_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario");
                     table.ForeignKey(
                         name: "FK_cita_usuario_id_usuario_psicologo",
                         column: x => x.id_usuario_psicologo,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario");
                     table.ForeignKey(
                         name: "FK_cita_usuario_id_usuario_psicologo_navegacionid_usuario",
                         column: x => x.id_usuario_psicologo_navegacionid_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario");
                 });
 
             migrationBuilder.CreateTable(
-                name: "diario",
+                name: "Diario",
                 columns: table => new
                 {
                     id_diario = table.Column<int>(type: "int", nullable: false)
@@ -172,13 +172,13 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_diario_usuario_id_usuario",
                         column: x => x.id_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "estado_de_animo",
+                name: "EstadoDeAnimo",
                 columns: table => new
                 {
                     id_estado = table.Column<int>(type: "int", nullable: false)
@@ -193,13 +193,13 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_estado_de_animo_usuario_id_usuario",
                         column: x => x.id_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "formulario",
+                name: "Formulario",
                 columns: table => new
                 {
                     id_formulario = table.Column<int>(type: "int", nullable: false)
@@ -214,12 +214,12 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_formulario_usuario_usuarioid_usuario",
                         column: x => x.usuarioid_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario");
                 });
 
             migrationBuilder.CreateTable(
-                name: "historial_clinico",
+                name: "HistorialClinico",
                 columns: table => new
                 {
                     id_h_clinico = table.Column<int>(type: "int", nullable: false)
@@ -236,13 +236,13 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_historial_clinico_usuario_id_usuario",
                         column: x => x.id_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "historial_cita",
+                name: "HistorialCita",
                 columns: table => new
                 {
                     id_h_cita = table.Column<int>(type: "int", nullable: false)
@@ -257,70 +257,70 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_historial_cita_cita_id_cita",
                         column: x => x.id_cita,
-                        principalTable: "cita",
+                        principalTable: "Cita",
                         principalColumn: "id_cita",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_cita_id_usuario_aprendiz",
-                table: "cita",
+                table: "Cita",
                 column: "id_usuario_aprendiz");
 
             migrationBuilder.CreateIndex(
                 name: "IX_cita_id_usuario_aprendiz_navegacionid_usuario",
-                table: "cita",
+                table: "Cita",
                 column: "id_usuario_aprendiz_navegacionid_usuario");
 
             migrationBuilder.CreateIndex(
                 name: "IX_cita_id_usuario_psicologo",
-                table: "cita",
+                table: "Cita",
                 column: "id_usuario_psicologo");
 
             migrationBuilder.CreateIndex(
                 name: "IX_cita_id_usuario_psicologo_navegacionid_usuario",
-                table: "cita",
+                table: "Cita",
                 column: "id_usuario_psicologo_navegacionid_usuario");
 
             migrationBuilder.CreateIndex(
                 name: "IX_diario_id_usuario",
-                table: "diario",
+                table: "Diario",
                 column: "id_usuario");
 
             migrationBuilder.CreateIndex(
                 name: "IX_estado_de_animo_id_usuario",
-                table: "estado_de_animo",
+                table: "EstadoDeAnimo",
                 column: "id_usuario");
 
             migrationBuilder.CreateIndex(
                 name: "IX_formulario_usuarioid_usuario",
-                table: "formulario",
+                table: "Formulario",
                 column: "usuarioid_usuario");
 
             migrationBuilder.CreateIndex(
                 name: "IX_historial_cita_id_cita",
-                table: "historial_cita",
+                table: "HistorialCita",
                 column: "id_cita");
 
             migrationBuilder.CreateIndex(
                 name: "IX_historial_clinico_id_usuario",
-                table: "historial_clinico",
+                table: "HistorialClinico",
                 column: "id_usuario",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_menu_rol_id_menu",
-                table: "menu_rol",
+                table: "MenuRol",
                 column: "id_menu");
 
             migrationBuilder.CreateIndex(
                 name: "IX_menu_rol_id_rol",
-                table: "menu_rol",
+                table: "MenuRol",
                 column: "id_rol");
 
             migrationBuilder.CreateIndex(
                 name: "IX_usuario_id_rol",
-                table: "usuario",
+                table: "Usuario",
                 column: "id_rol");
         }
 
@@ -328,40 +328,40 @@ namespace WebApplication1.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "diario");
+                name: "Diario");
 
             migrationBuilder.DropTable(
-                name: "emergencia");
+                name: "Emergencia");
 
             migrationBuilder.DropTable(
-                name: "estado_de_animo");
+                name: "EstadoDeAnimo");
 
             migrationBuilder.DropTable(
-                name: "formulario");
+                name: "Formulario");
 
             migrationBuilder.DropTable(
-                name: "historial_cita");
+                name: "HistorialCita");
 
             migrationBuilder.DropTable(
-                name: "historial_clinico");
+                name: "HistorialClinico");
 
             migrationBuilder.DropTable(
-                name: "menu_rol");
+                name: "MenuRol");
 
             migrationBuilder.DropTable(
-                name: "publicaciones");
+                name: "Publicaciones");
 
             migrationBuilder.DropTable(
-                name: "cita");
+                name: "Cita");
 
             migrationBuilder.DropTable(
-                name: "menu");
+                name: "Menu");
 
             migrationBuilder.DropTable(
-                name: "usuario");
+                name: "Usuario");
 
             migrationBuilder.DropTable(
-                name: "rol");
+                name: "Rol");
         }
     }
 }

@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-	[Table("diario")]
-	public class diario
+	[Table("Diario")]
+	public class Diario
 	{
 		[Key]
 		[Column("id_diario")]
@@ -25,7 +25,7 @@ namespace WebApplication1.models
 		public string contenido { get; set; } = string.Empty;
 
 		[ForeignKey(nameof(id_usuario))]
-		public virtual usuario? usuario { get; set; }
+		public virtual Usuario? Usuario { get; set; }
 
 	}
 }

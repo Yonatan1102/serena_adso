@@ -9,36 +9,36 @@ using WebApplication1.interfaces;
 namespace WebApplication1.repositories
 {
 
-    public class menu_repositories : Imenu
+    public class MenuRepository : IMenu
     {
-        private readonly serena context;
+        private readonly SerenaDbContext context;
 
-        public menu_repositories(serena context)
+        public MenuRepository(SerenaDbContext context)
         {
             this.context = context;
         }
 
-        public async Task<List<menu>> Getmenu()
+        public async Task<List<Menu>> Getmenu()
         {
-            var data = await context.menu.AsNoTracking().ToListAsync();
+            var data = await context.Menu.AsNoTracking().ToListAsync();
             return data;
         }
 
-        public async Task<menu?> GetmenuById(int id)
+        public async Task<Menu?> GetmenuById(int id)
         {
-            return await context.menu.AsNoTracking().FirstOrDefaultAsync(x => x.id_menu == id);
+            return await context.Menu.AsNoTracking().FirstOrDefaultAsync(x => x.id_menu == id);
         }
 
-        public async Task<menu> Postmenu(menu value)
+        public async Task<Menu> Postmenu(Menu value)
         {
-            context.menu.Add(value);
+            context.Menu.Add(value);
             await context.SaveChangesAsync();
             return value;
         }
 
-        public async Task<menu?> Putmenu(menu value)
+        public async Task<Menu?> Putmenu(Menu value)
         {
-            var item = await context.menu.FindAsync(value.id_menu);
+            var item = await context.Menu.FindAsync(value.id_menu);
             if (item == null) return null;
             item.nombre_menu = value.nombre_menu;
             await context.SaveChangesAsync();
@@ -47,9 +47,9 @@ namespace WebApplication1.repositories
 
         public async Task<bool> Deletemenu(int id)
         {
-            var item = await context.menu.FindAsync(id);
+            var item = await context.Menu.FindAsync(id);
             if (item == null) return false;
-            context.menu.Remove(item);
+            context.Menu.Remove(item);
             await context.SaveChangesAsync();
             return true;
         }

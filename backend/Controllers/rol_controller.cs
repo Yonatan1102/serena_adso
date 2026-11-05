@@ -5,15 +5,15 @@ using WebApplication1.models;
 
 namespace WebApplication1.Controllers
 {
-    [Route("api/rol")]
+    [Route("api/Rol")]
     [ApiController]
-    public class rol_Controller : ControllerBase
+    public class RolController : ControllerBase
     {
-        private readonly Irol rol_repositories;
+        private readonly IRol RolRepository;
 
-        public rol_Controller(Irol rol_repositories)
+        public RolController(IRol RolRepository)
         {
-            this.rol_repositories = rol_repositories;
+            this.RolRepository = RolRepository;
         }
 
         [HttpGet]
@@ -21,7 +21,7 @@ namespace WebApplication1.Controllers
         { 
             try
         {
-            var response = await rol_repositories.Getrol();
+            var response = await RolRepository.Getrol();
             return Ok(response);
         }
             catch (Exception ex)
@@ -35,7 +35,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await rol_repositories.GetrolById(id);
+                var response = await RolRepository.GetrolById(id);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -45,37 +45,37 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("agendar")]
-        public async Task<IActionResult> agendar_rol([FromBody] rol rol)
+        public async Task<IActionResult> agendar_rol([FromBody] Rol Rol)
         {
             try
             {
 
-                if (rol == null)
+                if (Rol == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (string.IsNullOrWhiteSpace(rol.nombre_rol))
+                if (string.IsNullOrWhiteSpace(Rol.nombre_rol))
                 {
-                    return BadRequest(new { mensaje = "La fecha y hora de la cita es obligatoria." });
+                    return BadRequest(new { mensaje = "La fecha y hora de la Cita es obligatoria." });
                 }
 
-                var response = await rol_repositories.Postrol(rol);
+                var response = await RolRepository.Postrol(Rol);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { mensaje = "Error interno al crear la cita.", detalle = ex.Message });
+                return StatusCode(500, new { mensaje = "Error interno al crear la Cita.", detalle = ex.Message });
             }
         }
 
         [HttpPost("registrar")]
-        public async Task<IActionResult> registrar_rol([FromBody] rol rol)
+        public async Task<IActionResult> registrar_rol([FromBody] Rol Rol)
         { 
             try 
         {
 
-            var response = await rol_repositories.Postrol(rol);
+            var response = await RolRepository.Postrol(Rol);
             return Ok(response);
         }
             catch (Exception ex)
@@ -85,21 +85,21 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> actualizar_rol(int id, [FromBody] rol rol  )
+        public async Task<IActionResult> actualizar_rol(int id, [FromBody] Rol Rol  )
         {
             try
             {
-                if (rol == null)
+                if (Rol == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (id != rol.id_rol)
+                if (id != Rol.id_rol)
                 {
                     return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
                 }
 
-                var response = await rol_repositories.Putrol(rol);
+                var response = await RolRepository.Putrol(Rol);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -112,7 +112,7 @@ namespace WebApplication1.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> eliminar_rol(int id)
         {
-            return await rol_repositories.Deleterol(id) ? NoContent() : NotFound();
+            return await RolRepository.Deleterol(id) ? NoContent() : NotFound();
         }
     }
 }

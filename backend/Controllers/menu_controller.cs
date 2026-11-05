@@ -8,8 +8,8 @@ namespace WebApplication1.Controllers;
 [Route("api/[controller]")]
 public class MenuController : ControllerBase
 {
-    private readonly Imenu repository;
-    public MenuController(Imenu repository) => this.repository = repository;
+    private readonly IMenu repository;
+    public MenuController(IMenu repository) => this.repository = repository;
 
     [HttpGet]
     public async Task<IActionResult> Get() => Ok(await repository.Getmenu());
@@ -22,7 +22,7 @@ public class MenuController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] menu value)
+    public async Task<IActionResult> Post([FromBody] Menu value)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         if (value == null) return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
@@ -32,7 +32,7 @@ public class MenuController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] menu value)
+    public async Task<IActionResult> Put(int id, [FromBody] Menu value)
     {
         if (id != value.id_menu) return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
         if (!ModelState.IsValid) return ValidationProblem(ModelState);

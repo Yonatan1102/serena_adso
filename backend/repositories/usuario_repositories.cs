@@ -1,74 +1,77 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 
 namespace WebApplication1.repositories;
 
-public class usuario_repositories : Iusuario, Iloginservice
+public class UsuarioRepository : IUsuario, ILoginService
 {
-    private readonly serena context;
+    private readonly SerenaDbContext context;
+    private readonly IPasswordService passwordService;
 
-    public usuario_repositories(serena context) => this.context = context;
-
-    public Task<List<usuario>> Getusuario() => context.usuario.AsNoTracking().ToListAsync();
-
-    public Task<usuario?> GetusuarioById(int id) =>
-        context.usuario.AsNoTracking().FirstOrDefaultAsync(x => x.id_usuario == id);
-
-    public async Task<usuario> Postusuario(usuario usuario)
+    public UsuarioRepository(SerenaDbContext context, IPasswordService passwordService)
     {
-        usuario.contrasena = new PasswordHasher<usuario>().HashPassword(usuario, usuario.contrasena);
-        context.usuario.Add(usuario);
-        await context.SaveChangesAsync();
-        return usuario;
+        this.context = context;
+        this.passwordService = passwordService;
     }
 
-    public async Task<usuario?> Putusuario(usuario usuario)
+    public Task<List<Usuario>> Getusuario() => context.Usuario.AsNoTracking().ToListAsync();
+
+    public Task<Usuario?> GetusuarioById(int id) =>
+        context.Usuario.AsNoTracking().FirstOrDefaultAsync(x => x.id_usuario == id);
+
+    public async Task<Usuario> Postusuario(Usuario Usuario)
     {
-        var existente = await context.usuario.FirstOrDefaultAsync(x => x.id_usuario == usuario.id_usuario);
+        Usuario.contrasena = passwordService.HashPassword(Usuario.contrasena);
+        context.Usuario.Add(Usuario);
+        await context.SaveChangesAsync();
+        return Usuario;
+    }
+
+    public async Task<Usuario?> Putusuario(Usuario Usuario)
+    {
+        var existente = await context.Usuario.FirstOrDefaultAsync(x => x.id_usuario == Usuario.id_usuario);
         if (existente == null) return null;
-        existente.nombre_usuario = usuario.nombre_usuario;
-        existente.email = usuario.email;
-        existente.id_rol = usuario.id_rol;
-        if (!string.IsNullOrWhiteSpace(usuario.contrasena))
-            existente.contrasena = new PasswordHasher<usuario>().HashPassword(existente, usuario.contrasena);
+        existente.nombre_usuario = Usuario.nombre_usuario;
+        existente.email = Usuario.email;
+        existente.id_rol = Usuario.id_rol;
+        if (!string.IsNullOrWhiteSpace(Usuario.contrasena))
+            existente.contrasena = passwordService.HashPassword(Usuario.contrasena);
         await context.SaveChangesAsync();
         return existente;
     }
 
     public async Task<bool> Deleteusuario(int id)
     {
-        var existente = await context.usuario.FirstOrDefaultAsync(x => x.id_usuario == id);
+        var existente = await context.Usuario.FirstOrDefaultAsync(x => x.id_usuario == id);
         if (existente == null) return false;
-        context.usuario.Remove(existente);
+        context.Usuario.Remove(existente);
         await context.SaveChangesAsync();
         return true;
     }
 
-    public Task<usuario?> BuscarPorCorreo(string email) =>
-        context.usuario.AsNoTracking().FirstOrDefaultAsync(x => x.email == email);
+    public Task<Usuario?> BuscarPorCorreo(string email) =>
+        context.Usuario.AsNoTracking().FirstOrDefaultAsync(x => x.email == email);
 
-    public async Task<usuario?> ValidarCredenciales(string email, string contrasena)
+    public async Task<Usuario?> ValidarCredenciales(string email, string contrasena)
     {
-        var usuario = await context.usuario.FirstOrDefaultAsync(x => x.email == email);
-        if (usuario == null) return null;
-        var resultado = new PasswordHasher<usuario>().VerifyHashedPassword(usuario, usuario.contrasena, contrasena);
-        return resultado == PasswordVerificationResult.Success ? usuario : null;
+        var Usuario = await context.Usuario.FirstOrDefaultAsync(x => x.email == email);
+        if (Usuario == null) return null;
+        var resultado = passwordService.VerifyPassword(contrasena, Usuario.contrasena);
+        return resultado ? Usuario : null;
     }
 
-    public Task<usuario> Registrar(usuario usuario) => Postusuario(usuario);
+    public Task<Usuario> Registrar(Usuario Usuario) => Postusuario(Usuario);
 
     public async Task<bool> CambiarContrasena(string email, string contrasenaActual, string nuevaContrasena)
     {
-        var usuario = await context.usuario.FirstOrDefaultAsync(x => x.email == email);
-        if (usuario == null) return false;
+        var Usuario = await context.Usuario.FirstOrDefaultAsync(x => x.email == email);
+        if (Usuario == null) return false;
 
-        var hasher = new PasswordHasher<usuario>();
-        var resultado = hasher.VerifyHashedPassword(usuario, usuario.contrasena, contrasenaActual);
-        if (resultado == PasswordVerificationResult.Failed) return false;
+        var resultado = passwordService.VerifyPassword(contrasenaActual, Usuario.contrasena);
+        if (!resultado) return false;
 
-        usuario.contrasena = hasher.HashPassword(usuario, nuevaContrasena);
+        Usuario.contrasena = passwordService.HashPassword(nuevaContrasena);
         await context.SaveChangesAsync();
         return true;
     }

@@ -5,15 +5,15 @@ using WebApplication1.models;
 
 namespace WebApplication1.Controllers
 {
-    [Route("api/cita")]
+    [Route("api/Cita")]
     [ApiController]
-    public class cita_Controller : ControllerBase
+    public class CitaController : ControllerBase
     {
-        private readonly Icita cita_repositories;
+        private readonly ICita CitaRepository;
 
-        public cita_Controller(Icita cita_repositories)
+        public CitaController(ICita CitaRepository)
         {
-            this.cita_repositories = cita_repositories;
+            this.CitaRepository = CitaRepository;
         }
 
         [HttpGet]
@@ -21,7 +21,7 @@ namespace WebApplication1.Controllers
         { 
             try
         {
-            var response = await cita_repositories.Getcita();
+            var response = await CitaRepository.Getcita();
             return Ok(response);
         }
             catch (Exception ex)
@@ -35,7 +35,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await cita_repositories.GetcitaById(id);
+                var response = await CitaRepository.GetcitaById(id);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -45,41 +45,41 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("agendar")]
-        public async Task<IActionResult> agendar_cita([FromBody] cita cita)
+        public async Task<IActionResult> agendar_cita([FromBody] Cita Cita)
         {
             try
             {
 
-                if (cita == null)
+                if (Cita == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (cita.fecha_hora == default)
+                if (Cita.fecha_hora == default)
                 {
-                    return BadRequest(new { mensaje = "La fecha y hora de la cita es obligatoria." });
+                    return BadRequest(new { mensaje = "La fecha y hora de la Cita es obligatoria." });
                 }
 
-                var response = await cita_repositories.Postcita(cita);
+                var response = await CitaRepository.Postcita(Cita);
                 return CreatedAtAction(nameof(obtener_cita), new { id = response.id_cita }, response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { mensaje = "Error interno al crear la cita.", detalle = ex.Message });
+                return StatusCode(500, new { mensaje = "Error interno al crear la Cita.", detalle = ex.Message });
             }
         }
 
         [HttpPost("registrar")]
-        public async Task<IActionResult> registrar_cita([FromBody] cita cita)
+        public async Task<IActionResult> registrar_cita([FromBody] Cita Cita)
         { 
             try 
         {
-            if (cita == null || cita.fecha_hora == default || string.IsNullOrWhiteSpace(cita.motivo))
+            if (Cita == null || Cita.fecha_hora == default || string.IsNullOrWhiteSpace(Cita.motivo))
             {
-                return BadRequest(new { mensaje = "La fecha, el motivo y el cuerpo de la cita son obligatorios." });
+                return BadRequest(new { mensaje = "La fecha, el motivo y el cuerpo de la Cita son obligatorios." });
             }
 
-            var response = await cita_repositories.Postcita(cita);
+            var response = await CitaRepository.Postcita(Cita);
             return CreatedAtAction(nameof(obtener_cita), new { id = response.id_cita }, response);
         }
             catch (Exception ex)
@@ -89,21 +89,21 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> actualizar_cita(int id, [FromBody] cita cita)
+        public async Task<IActionResult> actualizar_cita(int id, [FromBody] Cita Cita)
         {
             try
             {
-                if (cita == null)
+                if (Cita == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (id != cita.id_cita)
+                if (id != Cita.id_cita)
                 {
                     return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
                 }
 
-                var response = await cita_repositories.Putcita(cita);
+                var response = await CitaRepository.Putcita(Cita);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -116,29 +116,29 @@ namespace WebApplication1.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> cancelar_cita(int id)
         {
-            return await cita_repositories.Deletecita(id) ? NoContent() : NotFound();
+            return await CitaRepository.Deletecita(id) ? NoContent() : NotFound();
         }
 
      
 
 
     }
-    [Route("api/historial-cita")]
+    [Route("api/historial-Cita")]
        [ApiController]        
-    public class historial_cita_controller : ControllerBase
+    public class HistorialCitaController : ControllerBase
     {
-        private readonly Ihistorial_cita historial_cita_repositories;
+        private readonly IHistorialCita HistorialCitaRepository;
 
-        public historial_cita_controller(Ihistorial_cita historial_cita_repositories)
+        public HistorialCitaController(IHistorialCita HistorialCitaRepository)
         {
-            this.historial_cita_repositories = historial_cita_repositories;
+            this.HistorialCitaRepository = HistorialCitaRepository;
         }
         [HttpGet]
         public async Task<IActionResult> ListarHistorialCitas()
         {
             try
             {
-                var response = await historial_cita_repositories.Gethistorial_cita();
+                var response = await HistorialCitaRepository.Gethistorial_cita();
                 return Ok(response);
             }
             catch (Exception ex)
@@ -152,18 +152,18 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await historial_cita_repositories.Gethistorial_citaById(id);
-                if (response == null) return NotFound(new { mensaje = $"Historial de cita con ID {id} no encontrado" });
+                var response = await HistorialCitaRepository.Gethistorial_citaById(id);
+                if (response == null) return NotFound(new { mensaje = $"Historial de Cita con ID {id} no encontrado" });
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el historial de cita.", detalle = ex.Message });
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener el historial de Cita.", detalle = ex.Message });
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> observaviones_cita([FromBody] historial_cita historialCita)
+        public async Task<IActionResult> observaviones_cita([FromBody] HistorialCita historialCita)
         {
             try
             {
@@ -175,10 +175,10 @@ namespace WebApplication1.Controllers
 
                 if (string.IsNullOrWhiteSpace(historialCita.observaciones_historial))
                 {
-                    return BadRequest(new { mensaje = "Las observaciones del historial de cita son obligatorias." });
+                    return BadRequest(new { mensaje = "Las observaciones del historial de Cita son obligatorias." });
                 }
 
-                var response = await historial_cita_repositories.Posthistorial_cita(historialCita);
+                var response = await HistorialCitaRepository.Posthistorial_cita(historialCita);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -188,16 +188,16 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> ActualizarHistorialCita([FromBody] historial_cita historialCita)
+        public async Task<IActionResult> ActualizarHistorialCita([FromBody] HistorialCita historialCita)
         {
             try
             {
-                var response = await historial_cita_repositories.Puthistorial_cita(historialCita);
+                var response = await HistorialCitaRepository.Puthistorial_cita(historialCita);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el historial de cita.", detalle = ex.Message });
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al actualizar el historial de Cita.", detalle = ex.Message });
             }
         }
 
@@ -206,12 +206,12 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await historial_cita_repositories.Deletehistorial_cita(id);
+                var response = await HistorialCitaRepository.Deletehistorial_cita(id);
                 return response ? NoContent() : NotFound();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al eliminar el historial de cita.", detalle = ex.Message });
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al eliminar el historial de Cita.", detalle = ex.Message });
             }
         }
     }

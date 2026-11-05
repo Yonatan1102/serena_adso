@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-	[Table("disponibilidad")]
-	public class disponibilidad
+	[Table("Disponibilidad")]
+	public class Disponibilidad
 	{
 		[Key]
 		[Column("id_disponibilidad")]
@@ -33,10 +33,10 @@ namespace WebApplication1.models
         public bool estado {get; set;} = true;
 
         [ForeignKey(nameof(id_usuario))]
-        public virtual usuario usuario {get; set;} = null!;
+        public virtual Usuario Usuario {get; set;} = null!;
         
         [ForeignKey (nameof(id_rol))]
-        public virtual rol rol {get; set;} =null!;
+        public virtual Rol Rol {get; set;} =null!;
 
 	}
 }

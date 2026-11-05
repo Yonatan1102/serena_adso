@@ -6,37 +6,37 @@ using WebApplication1.interfaces;
 namespace WebApplication1.repositories
 {
 
-    public class menu_rol_repositories : Imenu_rol
+    public class MenuRolRepository : IMenuRol
     {
-        private readonly serena context;
+        private readonly SerenaDbContext context;
 
-        public menu_rol_repositories(serena context)
+        public MenuRolRepository(SerenaDbContext context)
 
         {
             this.context = context;
         }
 
-        public async Task<List<menu_rol>> Getmenu_rol()
+        public async Task<List<MenuRol>> Getmenu_rol()
         {
-            var data = await context.menu_rol.AsNoTracking().ToListAsync();
+            var data = await context.MenuRol.AsNoTracking().ToListAsync();
             return data;
         }
 
-        public async Task<menu_rol?> Getmenu_rolById(int id)
+        public async Task<MenuRol?> Getmenu_rolById(int id)
         {
-            return await context.menu_rol.AsNoTracking().FirstOrDefaultAsync(x => x.id_menu_rol == id);
+            return await context.MenuRol.AsNoTracking().FirstOrDefaultAsync(x => x.id_menu_rol == id);
         }
 
-        public async Task<menu_rol> Postmenu_rol(menu_rol value)
+        public async Task<MenuRol> Postmenu_rol(MenuRol value)
         {
-            context.menu_rol.Add(value);
+            context.MenuRol.Add(value);
             await context.SaveChangesAsync();
             return value;
         }
 
-        public async Task<menu_rol?> Putmenu_rol(menu_rol value)
+        public async Task<MenuRol?> Putmenu_rol(MenuRol value)
         {
-            var item = await context.menu_rol.FindAsync(value.id_menu_rol);
+            var item = await context.MenuRol.FindAsync(value.id_menu_rol);
             if (item == null) return null;
             item.id_menu = value.id_menu;
             item.id_rol = value.id_rol;
@@ -46,9 +46,9 @@ namespace WebApplication1.repositories
 
         public async Task<bool> Deletemenu_rol(int id)
         {
-            var item = await context.menu_rol.FindAsync(id);
+            var item = await context.MenuRol.FindAsync(id);
             if (item == null) return false;
-            context.menu_rol.Remove(item);
+            context.MenuRol.Remove(item);
             await context.SaveChangesAsync();
             return true;
         }

@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Iformulario
+    public interface IFormulario
     {
-        Task<List<formulario>> Getformulario();
-        Task<formulario?> GetformularioById(int id);
-        Task<formulario> Postformulario(formulario formulario);
-        Task<formulario?> Putformulario(formulario formulario);
+        Task<List<Formulario>> Getformulario();
+        Task<Formulario?> GetformularioById(int id);
+        Task<Formulario> Postformulario(Formulario Formulario);
+        Task<Formulario?> Putformulario(Formulario Formulario);
         Task<bool> Deleteformulario(int id);
     }
 }

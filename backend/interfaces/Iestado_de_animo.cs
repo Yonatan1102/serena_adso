@@ -4,12 +4,12 @@ using WebApplication1.models;
 
 namespace WebApplication1.interfaces
 {
-    public interface Iestado_de_animo
+    public interface IEstadoDeAnimo
     {
-        Task<List<estado_de_animo>> Getestado_de_animo();
-        Task<estado_de_animo> Postestado_de_animo(estado_de_animo estado_de_animo);
-        Task<estado_de_animo?> Getestado_de_animoById(int id);
-        Task<estado_de_animo?> Putestado_de_animo(estado_de_animo estado_de_animo);
+        Task<List<EstadoDeAnimo>> Getestado_de_animo();
+        Task<EstadoDeAnimo> Postestado_de_animo(EstadoDeAnimo EstadoDeAnimo);
+        Task<EstadoDeAnimo?> Getestado_de_animoById(int id);
+        Task<EstadoDeAnimo?> Putestado_de_animo(EstadoDeAnimo EstadoDeAnimo);
         Task<bool> Deleteestado_de_animo(int id);
     }
 }

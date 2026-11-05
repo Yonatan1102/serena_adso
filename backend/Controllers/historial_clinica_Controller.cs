@@ -9,20 +9,20 @@ namespace WebApplication1.Controllers
 
     [Route("api/historial-clinico")]
     [ApiController]
-    public class historial_clinico_controller : ControllerBase
+    public class HistorialClinicoController : ControllerBase
     {
-        private readonly Ihistorial_clinico historial_clinico_repositories;
+        private readonly IHistorialClinico HistorialClinicoRepository;
 
-        public historial_clinico_controller(Ihistorial_clinico historial_clinico_repositories)
+        public HistorialClinicoController(IHistorialClinico HistorialClinicoRepository)
         {
-            this.historial_clinico_repositories = historial_clinico_repositories;
+            this.HistorialClinicoRepository = HistorialClinicoRepository;
         }
         [HttpGet]
         public async Task<IActionResult> ListarHistorialClinicos()
         {
             try
             {
-                var response = await historial_clinico_repositories.Gethistorial_clinico();
+                var response = await HistorialClinicoRepository.Gethistorial_clinico();
                 return Ok(response);
             }
 
@@ -37,7 +37,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await historial_clinico_repositories.Gethistorial_clinicoById(id);
+                var response = await HistorialClinicoRepository.Gethistorial_clinicoById(id);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -47,22 +47,22 @@ namespace WebApplication1.Controllers
 
         }
         [HttpPost("crear")]
-        public async Task<IActionResult> crear_historial_clinico([FromBody] historial_clinico historial_clinico)
+        public async Task<IActionResult> crear_historial_clinico([FromBody] HistorialClinico HistorialClinico)
         {
             try
             {
 
-                if (historial_clinico == null)
+                if (HistorialClinico == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (historial_clinico.id_usuario == 0)
+                if (HistorialClinico.id_usuario == 0)
                 {
-                    return BadRequest(new { mensaje = "El usuario del historial clínico es obligatorio." });
+                    return BadRequest(new { mensaje = "El Usuario del historial clínico es obligatorio." });
                 }
 
-                var response = await historial_clinico_repositories.Posthistorial_clinico(historial_clinico);
+                var response = await HistorialClinicoRepository.Posthistorial_clinico(HistorialClinico);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -73,11 +73,11 @@ namespace WebApplication1.Controllers
 
 
         [HttpPost("registrar")]
-        public async Task<IActionResult> CrearHistorialClinico([FromBody] historial_clinico historialClinico)
+        public async Task<IActionResult> CrearHistorialClinico([FromBody] HistorialClinico historialClinico)
         {
             try
             {
-                var response = await historial_clinico_repositories.Posthistorial_clinico(historialClinico);
+                var response = await HistorialClinicoRepository.Posthistorial_clinico(historialClinico);
                 return CreatedAtAction(nameof(ObtenerHistorialClinico), new { id = response.id_h_clinico }, response);
             }
             catch (Exception ex)
@@ -87,7 +87,7 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> ActualizarHistorialClinico(int id, [FromBody] historial_clinico historialClinico)
+        public async Task<IActionResult> ActualizarHistorialClinico(int id, [FromBody] HistorialClinico historialClinico)
         {
             try
 
@@ -102,7 +102,7 @@ namespace WebApplication1.Controllers
                     return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
                 }
 
-                var response = await historial_clinico_repositories.Puthistorial_clinico(historialClinico);
+                var response = await HistorialClinicoRepository.Puthistorial_clinico(historialClinico);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -116,7 +116,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await historial_clinico_repositories.Deletehistorial_clinico(id);
+                var response = await HistorialClinicoRepository.Deletehistorial_clinico(id);
                 return response ? NoContent() : NotFound();
             }
             catch (Exception ex)

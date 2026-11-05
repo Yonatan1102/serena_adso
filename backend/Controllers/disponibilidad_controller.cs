@@ -6,11 +6,11 @@ namespace WebApplication1.Controllers;
 [ApiController]
 [Tags("Disponibilidad")]
 [ApiExplorerSettings(GroupName = "Disponibilidad")]
-[Route("api/disponibilidad")]
-public class disponibilidad_Controller : ControllerBase
+[Route("api/Disponibilidad")]
+public class DisponibilidadController : ControllerBase
 {
-    private readonly Idisponibilidad repository;
-    public disponibilidad_Controller(Idisponibilidad repository)=>this.repository=repository;
+    private readonly IDisponibilidad repository;
+    public DisponibilidadController(IDisponibilidad repository)=>this.repository=repository;
 
     [HttpGet]
     public async Task<IActionResult> Get() => Ok(await repository.Getdisponibilidad());
@@ -23,7 +23,7 @@ public class disponibilidad_Controller : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] disponibilidad value)
+    public async Task<IActionResult> Post([FromBody] Disponibilidad value)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         if (value == null) return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
@@ -33,7 +33,7 @@ public class disponibilidad_Controller : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] disponibilidad value)
+    public async Task<IActionResult> Put(int id, [FromBody] Disponibilidad value)
     {
         if (id != value.id_disponibilidad) return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
         if (!ModelState.IsValid) return ValidationProblem(ModelState);

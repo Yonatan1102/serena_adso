@@ -4,15 +4,15 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Iusuario
+    public interface IUsuario
     {
-        Task<List<usuario>> Getusuario();
-        Task<usuario?> GetusuarioById(int id);
-        Task<usuario> Postusuario(usuario usuario);
-        Task<usuario?> Putusuario(usuario usuario);
+        Task<List<Usuario>> Getusuario();
+        Task<Usuario?> GetusuarioById(int id);
+        Task<Usuario> Postusuario(Usuario Usuario);
+        Task<Usuario?> Putusuario(Usuario Usuario);
         Task<bool> Deleteusuario(int id);
-        Task<usuario?> BuscarPorCorreo(string email);
-        Task<usuario?> ValidarCredenciales(string email, string contrasena);
+        Task<Usuario?> BuscarPorCorreo(string email);
+        Task<Usuario?> ValidarCredenciales(string email, string contrasena);
 
     }
 }        

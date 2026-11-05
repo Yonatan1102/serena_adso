@@ -14,25 +14,25 @@ namespace WebApplication1.Controllers;
 [Route("api/[controller]")]
 public class LoginController : ControllerBase
 {
-    private readonly Iloginservice _loginService;
+    private readonly ILoginService _loginService;
     private readonly IConfiguration _config;
 
-    public LoginController(Iloginservice loginService, IConfiguration config)
+    public LoginController(ILoginService loginService, IConfiguration config)
     {
         _loginService = loginService;
         _config = config;
     }
 
     [HttpPost("registrar")]
-    public async Task<IActionResult> Registrar([FromBody] usuario usuario)
+    public async Task<IActionResult> Registrar([FromBody] Usuario Usuario)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        if (await _loginService.BuscarPorCorreo(usuario.email) != null)
+        if (await _loginService.BuscarPorCorreo(Usuario.email) != null)
             return Conflict(new { mensaje = "El correo ya está registrado." });
             
-        var creado = await _loginService.Registrar(usuario);
+        var creado = await _loginService.Registrar(Usuario);
         creado.contrasena = "[protegida]";
-        return Created("api/usuario/" + creado.id_usuario, creado);
+        return Created("api/Usuario/" + creado.id_usuario, creado);
     }
 
     [HttpPost]
@@ -40,17 +40,17 @@ public class LoginController : ControllerBase
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         
-        var usuario = await _loginService.ValidarCredenciales(request.correo, request.contrasena);
-        if (usuario == null) return Unauthorized(new { mensaje = "Credenciales incorrectas." });
+        var Usuario = await _loginService.ValidarCredenciales(request.correo, request.contrasena);
+        if (Usuario == null) return Unauthorized(new { mensaje = "Credenciales incorrectas." });
 
         
-        var token = GenerarJwtToken(usuario);
+        var token = GenerarJwtToken(Usuario);
 
-        usuario.contrasena = "[protegida]";
+        Usuario.contrasena = "[protegida]";
         return Ok(new 
         { 
             token, 
-            usuario, 
+            Usuario, 
             mensaje = "Autenticación correcta" 
         });
     }
@@ -72,7 +72,7 @@ public class LoginController : ControllerBase
             : Unauthorized(new { mensaje = "El correo o la contraseña actual no son correctos." });
     }
 
-    private string GenerarJwtToken(usuario usuario)
+    private string GenerarJwtToken(Usuario Usuario)
     {
         var secretKey = _config["Jwt:Key"];
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
@@ -80,9 +80,9 @@ public class LoginController : ControllerBase
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, usuario.email),
+            new Claim(JwtRegisteredClaimNames.Sub, Usuario.email),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim("id_usuario", usuario.id_usuario.ToString())
+            new Claim("id_usuario", Usuario.id_usuario.ToString())
         };
 
         var token = new JwtSecurityToken(

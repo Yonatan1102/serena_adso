@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Ipublicaciones
+    public interface IPublicaciones
     {
-        Task<List<publicaciones>> Getpublicaciones();
-        Task<publicaciones> Postpublicaciones(publicaciones publicaiones);
-        Task<publicaciones?> GetpublicacionesById(int id);
-        Task<publicaciones?> Putpublicaciones(publicaciones publicaiones);
+        Task<List<Publicaciones>> Getpublicaciones();
+        Task<Publicaciones> Postpublicaciones(Publicaciones publicaiones);
+        Task<Publicaciones?> GetpublicacionesById(int id);
+        Task<Publicaciones?> Putpublicaciones(Publicaciones publicaiones);
         Task<bool> Deletepublicaciones(int id);
     }
 }

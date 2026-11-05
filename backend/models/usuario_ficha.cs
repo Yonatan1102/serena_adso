@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("usuario_ficha")]
-    public class usuario_ficha
+    [Table("UsuarioFicha")]
+    public class UsuarioFicha
     {
         [Key]
         [Column("id_usuario_ficha")]
@@ -25,9 +25,9 @@ namespace WebApplication1.models
         public bool estado { get; set; } = true;
 
         [ForeignKey(nameof(id_usuario))]
-        public virtual usuario usuario { get; set; } = null!;
+        public virtual Usuario Usuario { get; set; } = null!;
 
         [ForeignKey(nameof(id_ficha))]
-        public virtual ficha ficha { get; set; } = null!;
+        public virtual Ficha Ficha { get; set; } = null!;
     }
 }

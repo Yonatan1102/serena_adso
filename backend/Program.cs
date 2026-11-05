@@ -1,41 +1,47 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 using WebApplication1.repositories;
+using WebApplication1.services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddEnvironmentVariables();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? Environment.GetEnvironmentVariable("SERENA_CONNECTION_STRING");
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Configure ConnectionStrings:DefaultConnection o SERENA_CONNECTION_STRING antes de iniciar la API.");
 
-// 1. Configuración de la Base de Datos (DbContext)
-builder.Services.AddDbContext<serena>(options =>
+builder.Services.AddDbContext<SerenaDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 2. Registro de Inyección de Dependencias
-builder.Services.AddScoped<Icita, cita_repositories>();
-builder.Services.AddScoped<Idiario, diario_repositories>();
-builder.Services.AddScoped<Iemergencia, emergencia_repositories>();
-builder.Services.AddScoped<Iestado_de_animo, estado_de_animo_repositories>();
-builder.Services.AddScoped<Iestado_animo_usuario, estado_animo_usuario_repositories>();
-builder.Services.AddScoped<Iformulario, formulario_repositories>();
-builder.Services.AddScoped<Ihistorial_cita, historial_cita_repositories>();
-builder.Services.AddScoped<Ihistorial_clinico, historial_clinico_repositories>();
-builder.Services.AddScoped<Imenu, menu_repositories>();
-builder.Services.AddScoped<Imenu_rol, menu_rol_repositories>();
-builder.Services.AddScoped<Idisponibilidad, disponibilidad_Repositories>();
-builder.Services.AddScoped<Ificha, ficha_repositories>();
-builder.Services.AddScoped<Iusuario_ficha, usuario_ficha_repositories>();
-builder.Services.AddScoped<Ipublicaciones, publicaciones_repositories>();
-builder.Services.AddScoped<Irol, rol_repositories>();
-builder.Services.AddScoped<Iusuario, usuario_repositories>();
-builder.Services.AddScoped<Iloginservice, usuario_repositories>();
+builder.Services.AddHsts(options =>
+{
+    options.Preload = true;
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365);
+});
 
-// 3. Controladores y Swagger
+builder.Services.AddScoped<ICita, CitaRepository>();
+builder.Services.AddScoped<IDiario, DiarioRepository>();
+builder.Services.AddScoped<IEmergencia, EmergenciaRepository>();
+builder.Services.AddScoped<IEstadoDeAnimo, EstadoDeAnimoRepository>();
+builder.Services.AddScoped<IEstadoAnimoUsuario, EstadoAnimoUsuarioRepository>();
+builder.Services.AddScoped<IFormulario, FormularioRepository>();
+builder.Services.AddScoped<IHistorialCita, HistorialCitaRepository>();
+builder.Services.AddScoped<IHistorialClinico, HistorialClinicoRepository>();
+builder.Services.AddScoped<IMenu, MenuRepository>();
+builder.Services.AddScoped<IMenuRol, MenuRolRepository>();
+builder.Services.AddScoped<IDisponibilidad, DisponibilidadRepository>();
+builder.Services.AddScoped<IFicha, FichaRepository>();
+builder.Services.AddScoped<IUsuarioFicha, UsuarioFichaRepository>();
+builder.Services.AddScoped<IPublicaciones, PublicacionesRepository>();
+builder.Services.AddScoped<IRol, RolRepository>();
+builder.Services.AddScoped<IUsuario, UsuarioRepository>();
+builder.Services.AddScoped<ILoginService, UsuarioRepository>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = null);
 builder.Services.AddEndpointsApiExplorer();
@@ -59,127 +65,85 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<serena>();
+    var db = scope.ServiceProvider.GetRequiredService<SerenaDbContext>();
     db.Database.EnsureCreated();
     db.Database.Migrate();
 
-    if (!db.rol.Any())
+    if (!db.Rol.Any())
     {
-        db.rol.AddRange(
-            new rol { nombre_rol = "Aprendiz" },
-            new rol { nombre_rol = "Psicólogo" },
-            new rol { nombre_rol = "Administrador" }
+        db.Rol.AddRange(
+            new Rol { nombre_rol = "Aprendiz" },
+            new Rol { nombre_rol = "Psicólogo" },
+            new Rol { nombre_rol = "Administrador" }
         );
         db.SaveChanges();
     }
 
-    if (!db.estado_de_animo.Any())
+    if (!db.EstadoDeAnimo.Any())
     {
-        db.estado_de_animo.AddRange(
-            new estado_de_animo { nombre_estado = "Feliz" },
-            new estado_de_animo { nombre_estado = "Calmado" },
-            new estado_de_animo { nombre_estado = "Ansioso" },
-            new estado_de_animo { nombre_estado = "Triste" },
-            new estado_de_animo { nombre_estado = "Motivado" }
+        db.EstadoDeAnimo.AddRange(
+            new EstadoDeAnimo { nombre_estado = "Feliz" },
+            new EstadoDeAnimo { nombre_estado = "Calmado" },
+            new EstadoDeAnimo { nombre_estado = "Ansioso" },
+            new EstadoDeAnimo { nombre_estado = "Triste" },
+            new EstadoDeAnimo { nombre_estado = "Motivado" }
         );
         db.SaveChanges();
     }
 
-    if (!db.usuario.Any())
+    if (!db.Usuario.Any())
     {
-        var passwordHasher = new PasswordHasher<usuario>();
+        var passwordService = app.Services.GetRequiredService<IPasswordService>();
+        var seedPassword = builder.Configuration["Auth:Password"]
+            ?? Environment.GetEnvironmentVariable("SERENA_SEED_PASSWORD")
+            ?? "ChangeMe!123";
 
-        var rolAprendiz = db.rol.First(r => r.nombre_rol == "Aprendiz");
-        var rolPsicologo = db.rol.First(r => r.nombre_rol == "Psicólogo");
+        var rolAprendiz = db.Rol.First(r => r.nombre_rol == "Aprendiz");
+        var rolPsicologo = db.Rol.First(r => r.nombre_rol == "Psicólogo");
 
         var usuarios = new[]
         {
-            new usuario
-            {
-                nombre_usuario = "Yonatan Acuña",
-                email = "yacuna@soy.sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolAprendiz.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "ADSO",
-            },
-            new usuario
-            {
-                nombre_usuario = "Josué Tovar",
-                email = "jtovar@soy.sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolAprendiz.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Textil",
-            },
-            new usuario
-            {
-                nombre_usuario = "Camila Restrepo",
-                email = "crestrepo@soy.sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolAprendiz.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Patronaje",
-            },
-            new usuario
-            {
-                nombre_usuario = "Dra. Laura Martínez",
-                email = "lmartinez@sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolPsicologo.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Psicología",
-            },
-            new usuario
-            {
-                nombre_usuario = "Dr. Carlos Pardo",
-                email = "cpardo@sena.edu.co",
-                contrasena = "Aa12345*",
-                id_rol = rolPsicologo.id_rol,
-                num_ficha = "3288046",
-                sede = "CMTC",
-                centro = "CMTC",
-                programa_formacion = "Orientación Vocacional",
-            }
+            new Usuario { nombre_usuario = "Yonatan Acuña", email = "yacuna@soy.sena.edu.co", contrasena = seedPassword, id_rol = rolAprendiz.id_rol, num_ficha = "3288046", sede = "CMTC", centro = "CMTC", programa_formacion = "ADSO" },
+            new Usuario { nombre_usuario = "Josué Tovar", email = "jtovar@soy.sena.edu.co", contrasena = seedPassword, id_rol = rolAprendiz.id_rol, num_ficha = "3288046", sede = "CMTC", centro = "CMTC", programa_formacion = "Textil" },
+            new Usuario { nombre_usuario = "Camila Restrepo", email = "crestrepo@soy.sena.edu.co", contrasena = seedPassword, id_rol = rolAprendiz.id_rol, num_ficha = "3288046", sede = "CMTC", centro = "CMTC", programa_formacion = "Patronaje" },
+            new Usuario { nombre_usuario = "Dra. Laura Martínez", email = "lmartinez@sena.edu.co", contrasena = seedPassword, id_rol = rolPsicologo.id_rol, num_ficha = "3288046", sede = "CMTC", centro = "CMTC", programa_formacion = "Psicología" },
+            new Usuario { nombre_usuario = "Dr. Carlos Pardo", email = "cpardo@sena.edu.co", contrasena = seedPassword, id_rol = rolPsicologo.id_rol, num_ficha = "3288046", sede = "CMTC", centro = "CMTC", programa_formacion = "Orientación Vocacional" }
         };
 
-        foreach (var usuario in usuarios)
+        foreach (var Usuario in usuarios)
         {
-            usuario.contrasena = passwordHasher.HashPassword(usuario, usuario.contrasena);
+            Usuario.contrasena = passwordService.HashPassword(Usuario.contrasena);
         }
 
-        db.usuario.AddRange(usuarios);
+        db.Usuario.AddRange(usuarios);
         db.SaveChanges();
     }
 
-    if (!db.ficha.Any())
+    if (!db.Ficha.Any())
     {
-        db.ficha.AddRange(
-            new ficha { codigo_ficha = "3288046", programa = "ADSO", centro = "CMTC", jornada = "Diurna", estado = true },
-            new ficha { codigo_ficha = "2025001", programa = "Textil", centro = "CMTC", jornada = "Diurna", estado = true }
+        db.Ficha.AddRange(
+            new Ficha { codigo_ficha = "3288046", programa = "ADSO", centro = "CMTC", jornada = "Diurna", estado = true },
+            new Ficha { codigo_ficha = "2025001", programa = "Textil", centro = "CMTC", jornada = "Diurna", estado = true }
         );
         db.SaveChanges();
     }
 
-    if (!db.usuario_ficha.Any())
+    if (!db.UsuarioFicha.Any())
     {
-        var fichaActual = db.ficha.First(f => f.codigo_ficha == "3288046");
-        var aprendices = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Aprendiz").id_rol).ToList();
-        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
+        var fichaActual = db.Ficha.First(f => f.codigo_ficha == "3288046");
+        var aprendices = db.Usuario.Where(u => u.id_rol == db.Rol.First(r => r.nombre_rol == "Aprendiz").id_rol).ToList();
+        var psicologos = db.Usuario.Where(u => u.id_rol == db.Rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
 
         foreach (var aprendiz in aprendices)
         {
-            db.usuario_ficha.Add(new usuario_ficha
+            db.UsuarioFicha.Add(new UsuarioFicha
             {
                 id_usuario = aprendiz.id_usuario,
                 id_ficha = fichaActual.id_ficha,
@@ -190,7 +154,7 @@ using (var scope = app.Services.CreateScope())
 
         foreach (var psicologo in psicologos)
         {
-            db.usuario_ficha.Add(new usuario_ficha
+            db.UsuarioFicha.Add(new UsuarioFicha
             {
                 id_usuario = psicologo.id_usuario,
                 id_ficha = fichaActual.id_ficha,
@@ -202,13 +166,13 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 
-    if (!db.disponibilidad.Any())
+    if (!db.Disponibilidad.Any())
     {
-        var psicologos = db.usuario.Where(u => u.id_rol == db.rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
+        var psicologos = db.Usuario.Where(u => u.id_rol == db.Rol.First(r => r.nombre_rol == "Psicólogo").id_rol).ToList();
         foreach (var psicologo in psicologos)
         {
-            db.disponibilidad.AddRange(
-                new disponibilidad
+            db.Disponibilidad.AddRange(
+                new Disponibilidad
                 {
                     id_usuario = psicologo.id_usuario,
                     id_rol = psicologo.id_rol,
@@ -217,7 +181,7 @@ using (var scope = app.Services.CreateScope())
                     hora_fin = new TimeSpan(11, 0, 0),
                     estado = true
                 },
-                new disponibilidad
+                new Disponibilidad
                 {
                     id_usuario = psicologo.id_usuario,
                     id_rol = psicologo.id_rol,

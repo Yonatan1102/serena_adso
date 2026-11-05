@@ -7,12 +7,12 @@ namespace WebApplication1.Controllers;
 [ApiController]
 [Tags("Ficha")]
 [ApiExplorerSettings(GroupName = "Ficha")]
-[Route("api/ficha")]
-public class ficha_Controller : ControllerBase
+[Route("api/Ficha")]
+public class FichaController : ControllerBase
 {
-    private readonly Ificha repository;
+    private readonly IFicha repository;
 
-    public ficha_Controller(Ificha repository) => this.repository = repository;
+    public FichaController(IFicha repository) => this.repository = repository;
 
     [HttpGet]
     public async Task<IActionResult> Get() => Ok(await repository.Getficha());
@@ -25,7 +25,7 @@ public class ficha_Controller : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] ficha value)
+    public async Task<IActionResult> Post([FromBody] Ficha value)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         if (value == null) return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
@@ -35,7 +35,7 @@ public class ficha_Controller : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] ficha value)
+    public async Task<IActionResult> Put(int id, [FromBody] Ficha value)
     {
         if (id != value.id_ficha) return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
         if (!ModelState.IsValid) return ValidationProblem(ModelState);

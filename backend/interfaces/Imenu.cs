@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Imenu
+    public interface IMenu
     {
-        Task<List<menu>> Getmenu();
-        Task<menu?> GetmenuById(int id);
-        Task<menu> Postmenu(menu menu);
-        Task<menu?> Putmenu(menu menu);
+        Task<List<Menu>> Getmenu();
+        Task<Menu?> GetmenuById(int id);
+        Task<Menu> Postmenu(Menu Menu);
+        Task<Menu?> Putmenu(Menu Menu);
         Task<bool> Deletemenu(int id);
     }
 }

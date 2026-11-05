@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    public class menu_rol
+    public class MenuRol
     {
         [Key]
         [Column("id_menu_rol")]
@@ -18,9 +18,9 @@ namespace WebApplication1.models
 
 
         [ForeignKey(nameof(id_rol))]
-        public virtual rol rol { get; set; } = null!;
+        public virtual Rol Rol { get; set; } = null!;
 
         [ForeignKeyAttribute(nameof(id_menu))]
-        public virtual menu menu { get; set; } = null!;
+        public virtual Menu Menu { get; set; } = null!;
     }
 }

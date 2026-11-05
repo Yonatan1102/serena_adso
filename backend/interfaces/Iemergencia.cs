@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Iemergencia
+    public interface IEmergencia
     {
-        Task<List<emergencia>> Getemergencia();
-        Task<emergencia?> GetemergenciaById(int id);
-        Task<emergencia> Postemergencia(emergencia emergencia);
-        Task<emergencia?> Putemergencia(emergencia emergencia);
+        Task<List<Emergencia>> Getemergencia();
+        Task<Emergencia?> GetemergenciaById(int id);
+        Task<Emergencia> Postemergencia(Emergencia Emergencia);
+        Task<Emergencia?> Putemergencia(Emergencia Emergencia);
         Task<bool> Deleteemergencia(int id);
     }
 }

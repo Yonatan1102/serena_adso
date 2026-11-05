@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("estado_animo_usuario")]
-    public class estado_animo_usuario
+    [Table("EstadoAnimoUsuario")]
+    public class EstadoAnimoUsuario
     {
         [Key]
         [Column("id_estado_usuario")]
@@ -28,9 +28,9 @@ namespace WebApplication1.models
         public string motivo { get; set; } = string.Empty;
 
         [ForeignKey(nameof(id_estado))]
-        public virtual estado_de_animo? estado_de_animo { get; set; }
+        public virtual EstadoDeAnimo? EstadoDeAnimo { get; set; }
 
         [ForeignKey(nameof(id_usuario))]
-        public virtual usuario? usuario { get; set; }
+        public virtual Usuario? Usuario { get; set; }
     }
 }

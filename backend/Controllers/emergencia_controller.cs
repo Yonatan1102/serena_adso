@@ -3,12 +3,12 @@ using WebApplication1.interfaces;
 using WebApplication1.models;
 namespace WebApplication1.Controllers;
 
-[Route("api/emergencia")]
+[Route("api/Emergencia")]
 [ApiController]
 public class EmergenciaController : ControllerBase
 {
-    private readonly Iemergencia repository;
-    public EmergenciaController(Iemergencia repository)=>this.repository=repository;
+    private readonly IEmergencia repository;
+    public EmergenciaController(IEmergencia repository)=>this.repository=repository;
 
     [HttpGet]
     public async Task<IActionResult> Get() => Ok(await repository.Getemergencia());
@@ -21,7 +21,7 @@ public class EmergenciaController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post([FromBody] emergencia value)
+    public async Task<IActionResult> Post([FromBody] Emergencia value)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         if (value == null) return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
@@ -31,7 +31,7 @@ public class EmergenciaController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Put(int id, [FromBody] emergencia value)
+    public async Task<IActionResult> Put(int id, [FromBody] Emergencia value)
     {
         if (id != value.id_emergencia) return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
         if (!ModelState.IsValid) return ValidationProblem(ModelState);

@@ -6,8 +6,8 @@ using System.Text.Json.Serialization;
 namespace WebApplication1.models
 {
 
-    [Table("cita")]
-    public class cita
+    [Table("Cita")]
+    public class Cita
     {
 
         [Key]
@@ -35,12 +35,12 @@ namespace WebApplication1.models
 
         [ForeignKey(nameof(id_usuario_aprendiz))]
         [JsonIgnore]
-        public virtual usuario? id_usuario_aprendiz_navegacion { get; set; }
+        public virtual Usuario? id_usuario_aprendiz_navegacion { get; set; }
 
         [ForeignKey(nameof(id_usuario_psicologo))]
         [JsonIgnore]
-        public virtual usuario? id_usuario_psicologo_navegacion { get; set; }
+        public virtual Usuario? id_usuario_psicologo_navegacion { get; set; }
 
-        public virtual ICollection<historial_cita> historial_citas { get; set; } = new List<historial_cita>();
+        public virtual ICollection<HistorialCita> historial_citas { get; set; } = new List<HistorialCita>();
     }
 }

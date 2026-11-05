@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    public class historial_clinico
+    public class HistorialClinico
     {
         [Key]
         [Column("id_h_clinico")]
@@ -27,6 +27,6 @@ namespace WebApplication1.models
         public string? antecedentes { get; set; }
 
         [ForeignKey(nameof(id_usuario))]
-        public virtual usuario? usuario { get; set; }
+        public virtual Usuario? Usuario { get; set; }
     }
 }

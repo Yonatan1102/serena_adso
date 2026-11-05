@@ -4,43 +4,43 @@ using WebApplication1.models;
 
 namespace WebApplication1.repositories;
 
-public class usuario_ficha_repositories : Iusuario_ficha
+public class UsuarioFichaRepository : IUsuarioFicha
 {
-    private readonly serena _context;
+    private readonly SerenaDbContext _context;
 
-    public usuario_ficha_repositories(serena context)
+    public UsuarioFichaRepository(SerenaDbContext context)
     {
         _context = context;
     }
 
-    public async Task<List<usuario_ficha>> Getusuario_ficha()
+    public async Task<List<UsuarioFicha>> Getusuario_ficha()
     {
-        return await _context.usuario_ficha
+        return await _context.UsuarioFicha
             .AsNoTracking()
-            .Include(x => x.usuario)
-            .Include(x => x.ficha)
+            .Include(x => x.Usuario)
+            .Include(x => x.Ficha)
             .ToListAsync();
     }
 
-    public async Task<usuario_ficha?> Getusuario_fichaById(int id)
+    public async Task<UsuarioFicha?> Getusuario_fichaById(int id)
     {
-        return await _context.usuario_ficha
+        return await _context.UsuarioFicha
             .AsNoTracking()
-            .Include(x => x.usuario)
-            .Include(x => x.ficha)
+            .Include(x => x.Usuario)
+            .Include(x => x.Ficha)
             .FirstOrDefaultAsync(x => x.id_usuario_ficha == id);
     }
 
-    public async Task<usuario_ficha> Postusuario_ficha(usuario_ficha value)
+    public async Task<UsuarioFicha> Postusuario_ficha(UsuarioFicha value)
     {
-        _context.usuario_ficha.Add(value);
+        _context.UsuarioFicha.Add(value);
         await _context.SaveChangesAsync();
         return value;
     }
 
-    public async Task<usuario_ficha?> Putusuario_ficha(usuario_ficha value)
+    public async Task<UsuarioFicha?> Putusuario_ficha(UsuarioFicha value)
     {
-        var item = await _context.usuario_ficha.FindAsync(value.id_usuario_ficha);
+        var item = await _context.UsuarioFicha.FindAsync(value.id_usuario_ficha);
         if (item is null) return null;
 
         item.id_usuario = value.id_usuario;
@@ -54,10 +54,10 @@ public class usuario_ficha_repositories : Iusuario_ficha
 
     public async Task<bool> Deleteusuario_ficha(int id)
     {
-        var item = await _context.usuario_ficha.FindAsync(id);
+        var item = await _context.UsuarioFicha.FindAsync(id);
         if (item is null) return false;
 
-        _context.usuario_ficha.Remove(item);
+        _context.UsuarioFicha.Remove(item);
         await _context.SaveChangesAsync();
         return true;
     }

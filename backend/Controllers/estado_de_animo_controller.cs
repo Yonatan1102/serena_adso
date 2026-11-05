@@ -10,13 +10,13 @@ namespace WebApplication1.Controllers
 
     [Route("api/estado-animo")]
     [ApiController]
-    public class estado_de_animo_controller : ControllerBase
+    public class EstadoDeAnimoController : ControllerBase
     {
-        private readonly Iestado_de_animo  estado_de_animo_repositories;
+        private readonly IEstadoDeAnimo  EstadoDeAnimoRepository;
 
-        public estado_de_animo_controller(Iestado_de_animo estado_de_animorepositories)
+        public EstadoDeAnimoController(IEstadoDeAnimo estado_de_animorepositories)
         {
-            this.estado_de_animo_repositories = estado_de_animorepositories;
+            this.EstadoDeAnimoRepository = estado_de_animorepositories;
         }
         
         [HttpGet]
@@ -25,7 +25,7 @@ namespace WebApplication1.Controllers
             try
             { 
 
-            var response = await estado_de_animo_repositories.Getestado_de_animo();
+            var response = await EstadoDeAnimoRepository.Getestado_de_animo();
             return Ok(response);
             }
             catch (Exception ex)
@@ -39,7 +39,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await estado_de_animo_repositories.Getestado_de_animoById(id);
+                var response = await EstadoDeAnimoRepository.Getestado_de_animoById(id);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -49,22 +49,22 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Iestado_de_animo([FromBody] estado_de_animo estado_de_animo)
+        public async Task<IActionResult> IEstadoDeAnimo([FromBody] EstadoDeAnimo EstadoDeAnimo)
         {
             try
             {
 
-                if (estado_de_animo == null)
+                if (EstadoDeAnimo == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (string.IsNullOrWhiteSpace(estado_de_animo.nombre_estado))
+                if (string.IsNullOrWhiteSpace(EstadoDeAnimo.nombre_estado))
                 {
                     return BadRequest(new { mensaje = "El nombre del estado es obligatorio." });
                 }
 
-                var response = await estado_de_animo_repositories.Postestado_de_animo(estado_de_animo);
+                var response = await EstadoDeAnimoRepository.Postestado_de_animo(EstadoDeAnimo);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -74,21 +74,21 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> ActualizarCita(int id, [FromBody] estado_de_animo estado_de_animo)
+        public async Task<IActionResult> ActualizarCita(int id, [FromBody] EstadoDeAnimo EstadoDeAnimo)
         {
             try
             {
-                if (estado_de_animo == null)
+                if (EstadoDeAnimo == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (id != estado_de_animo.id_estado)
+                if (id != EstadoDeAnimo.id_estado)
                 {
                     return BadRequest(new { mensaje = "El ID de la ruta no coincide con el cuerpo." });
                 }
 
-                var response = await estado_de_animo_repositories.Putestado_de_animo(estado_de_animo);
+                var response = await EstadoDeAnimoRepository.Putestado_de_animo(EstadoDeAnimo);
                 return response == null ? NotFound() : Ok(response);
             }
             catch (Exception ex)
@@ -102,7 +102,7 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                var response = await estado_de_animo_repositories.Deleteestado_de_animo(id);
+                var response = await EstadoDeAnimoRepository.Deleteestado_de_animo(id);
                 return response ? NoContent() : NotFound();
             }
             catch (Exception ex)

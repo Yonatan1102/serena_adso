@@ -3,14 +3,14 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Idiario
+    public interface IDiario
     {
-        Task<List<diario>> Getdiario();
-        Task<diario> Postdiario(diario diario);
-        Task<diario?> GetdiarioById(int id);
-        Task<diario?> GetdiarioByUsuario(int id_usuario);
-        Task<diario> UpsertDiario(diario diario);
-        Task<diario?> Putdiario(diario diario);
+        Task<List<Diario>> Getdiario();
+        Task<Diario> Postdiario(Diario Diario);
+        Task<Diario?> GetdiarioById(int id);
+        Task<Diario?> GetdiarioByUsuario(int id_usuario);
+        Task<Diario> UpsertDiario(Diario Diario);
+        Task<Diario?> Putdiario(Diario Diario);
         Task<bool> Deletediario(int id);
     }
 }

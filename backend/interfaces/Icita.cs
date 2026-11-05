@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Icita
+    public interface ICita
     {
-        Task<List<cita>> Getcita();
-        Task<cita> Postcita(cita cita);
-        Task<cita?> GetcitaById(int id);
-        Task<cita?> Putcita(cita cita);
+        Task<List<Cita>> Getcita();
+        Task<Cita> Postcita(Cita Cita);
+        Task<Cita?> GetcitaById(int id);
+        Task<Cita?> Putcita(Cita Cita);
         Task<bool> Deletecita(int id);
     }
 }

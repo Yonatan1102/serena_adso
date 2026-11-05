@@ -5,8 +5,8 @@ using System.Collections.Generic;
 
 namespace WebApplication1.models
 {
-	[Table("emergencia")]
-	public class emergencia
+	[Table("Emergencia")]
+	public class Emergencia
 	{
 		[Key]
 		[Column("id_emergencia")]

@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("ficha")]
-    public class ficha
+    [Table("Ficha")]
+    public class Ficha
     {
         [Key]
         [Column("id_ficha")]
@@ -32,6 +32,6 @@ namespace WebApplication1.models
         [Column("estado")]
         public bool estado { get; set; } = true;
 
-        public virtual ICollection<usuario_ficha> usuario_fichas { get; set; } = new List<usuario_ficha>();
+        public virtual ICollection<UsuarioFicha> usuario_fichas { get; set; } = new List<UsuarioFicha>();
     }
 }

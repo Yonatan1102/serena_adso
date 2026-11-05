@@ -4,13 +4,13 @@ using WebApplication1.models;
 
 namespace WebApplication1.Controllers
 {
-    [Route("api/publicaciones")]
+    [Route("api/Publicaciones")]
     [ApiController]
-    public class publicaciones_controller : ControllerBase
+    public class PublicacionesController : ControllerBase
     {
-        private readonly Ipublicaciones _publicacionesrepositories;
+        private readonly IPublicaciones _publicacionesrepositories;
 
-        public publicaciones_controller(Ipublicaciones publicacionesRepositories)
+        public PublicacionesController(IPublicaciones publicacionesRepositories)
         {
             _publicacionesrepositories = publicacionesRepositories;
         }
@@ -26,7 +26,7 @@ namespace WebApplication1.Controllers
             catch (Exception ex)
             {
 
-                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener las publicaciones.", detalle = ex.Message });
+                return StatusCode(500, new { mensaje = "Ocurrió un error interno al obtener las Publicaciones.", detalle = ex.Message });
             }
         }
 
@@ -60,22 +60,22 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost("crear")]
-        public async Task<IActionResult> crear_publicaicon([FromBody] publicaciones publicaciones)
+        public async Task<IActionResult> crear_publicaicon([FromBody] Publicaciones Publicaciones)
         {
             try
             {
 
-                if (publicaciones == null)
+                if (Publicaciones == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (string.IsNullOrWhiteSpace(publicaciones.titulo))
+                if (string.IsNullOrWhiteSpace(Publicaciones.titulo))
                 {
                     return BadRequest(new { mensaje = "El título de la publicación es obligatorio." });
                 }
 
-                var response = await _publicacionesrepositories.Postpublicaciones(publicaciones);
+                var response = await _publicacionesrepositories.Postpublicaciones(Publicaciones);
                 return CreatedAtAction(nameof(Publicaciones), new { id = response.id_publicaciones }, ToResponse(response));
             }
             catch (Exception ex)
@@ -84,22 +84,22 @@ namespace WebApplication1.Controllers
             }
         }
         [HttpPost("registrar")]
-        public async Task<IActionResult> crear_publicacion([FromBody] publicaciones publicaciones)
+        public async Task<IActionResult> crear_publicacion([FromBody] Publicaciones Publicaciones)
         {
             try
             {
 
-                if (publicaciones == null)
+                if (Publicaciones == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                if (string.IsNullOrWhiteSpace(publicaciones.titulo))
+                if (string.IsNullOrWhiteSpace(Publicaciones.titulo))
                 {
                     return BadRequest(new { mensaje = "El título de la publicación es obligatorio." });
                 }
 
-                var response = await _publicacionesrepositories.Postpublicaciones(publicaciones);
+                var response = await _publicacionesrepositories.Postpublicaciones(Publicaciones);
                 return Ok(ToResponse(response));
             }
             catch (Exception ex)
@@ -109,16 +109,16 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> actualizacion_publicacion([FromBody] publicaciones publicaciones)
+        public async Task<IActionResult> actualizacion_publicacion([FromBody] Publicaciones Publicaciones)
         {
             try
             {
-                if (publicaciones == null)
+                if (Publicaciones == null)
                 {
                     return BadRequest(new { mensaje = "El cuerpo de la solicitud no puede estar vacío." });
                 }
 
-                var response = await _publicacionesrepositories.Putpublicaciones(publicaciones);
+                var response = await _publicacionesrepositories.Putpublicaciones(Publicaciones);
 
                 if (response == null)
                 {
@@ -143,7 +143,7 @@ namespace WebApplication1.Controllers
             return await _publicacionesrepositories.Deletepublicaciones(id) ? NoContent() : NotFound();
         }
 
-        private static PublicacionResponse ToResponse(publicaciones value) =>
+        private static PublicacionResponse ToResponse(Publicaciones value) =>
             new(
                 value.id_publicaciones,
                 value.titulo,

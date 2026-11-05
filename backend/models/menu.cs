@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    public class menu
+    public class Menu
     {
         [Key]
         [Column("id_menu")]
@@ -15,7 +15,7 @@ namespace WebApplication1.models
         public string nombre_menu { get; set; } = string.Empty;
 
 
-        public virtual ICollection<menu_rol> menu_rol { get; set; } = new List<menu_rol>();
+        public virtual ICollection<MenuRol> MenuRol { get; set; } = new List<MenuRol>();
 
     }
 }

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-	public class formulario
+	public class Formulario
 	{
 		[Key]
 		public int id_formulario { get; set; }

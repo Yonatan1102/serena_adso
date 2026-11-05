@@ -3,12 +3,12 @@
 
 namespace WebApplication1.interfaces
 {
-    public interface Ihistorial_clinico
+    public interface IHistorialClinico
     {
-        Task<List<historial_clinico>> Gethistorial_clinico();
-        Task<historial_clinico?> Gethistorial_clinicoById(int id);
-        Task<historial_clinico> Posthistorial_clinico(historial_clinico historial_clinico);
-        Task<historial_clinico?> Puthistorial_clinico(historial_clinico historial_clinico);
+        Task<List<HistorialClinico>> Gethistorial_clinico();
+        Task<HistorialClinico?> Gethistorial_clinicoById(int id);
+        Task<HistorialClinico> Posthistorial_clinico(HistorialClinico HistorialClinico);
+        Task<HistorialClinico?> Puthistorial_clinico(HistorialClinico HistorialClinico);
         Task<bool> Deletehistorial_clinico(int id);
     }
 }

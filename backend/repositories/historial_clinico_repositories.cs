@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication1.interfaces;
 using WebApplication1.models;
 namespace WebApplication1.repositories;
-public class historial_clinico_repositories : Ihistorial_clinico
+public class HistorialClinicoRepository : IHistorialClinico
 {
-    private readonly serena context;
-    public historial_clinico_repositories(serena context)=>this.context=context;
-    public Task<List<historial_clinico>> Gethistorial_clinico()=>context.historial_clinico.AsNoTracking().ToListAsync();
-    public Task<historial_clinico?> Gethistorial_clinicoById(int id)=>context.historial_clinico.FindAsync(id).AsTask();
-    public async Task<historial_clinico> Posthistorial_clinico(historial_clinico value){context.historial_clinico.Add(value);await context.SaveChangesAsync();return value;}
-    public async Task<historial_clinico?> Puthistorial_clinico(historial_clinico value){var item=await context.historial_clinico.FindAsync(value.id_h_clinico);if(item==null)return null;item.condiciones=value.condiciones;item.antecedentes=value.antecedentes;item.num_ficha=value.num_ficha;item.fecha_apertura=value.fecha_apertura;item.id_usuario=value.id_usuario;await context.SaveChangesAsync();return item;}
-    public async Task<bool> Deletehistorial_clinico(int id){var item=await context.historial_clinico.FindAsync(id);if(item==null)return false;context.historial_clinico.Remove(item);await context.SaveChangesAsync();return true;}
+    private readonly SerenaDbContext context;
+    public HistorialClinicoRepository(SerenaDbContext context)=>this.context=context;
+    public Task<List<HistorialClinico>> Gethistorial_clinico()=>context.HistorialClinico.AsNoTracking().ToListAsync();
+    public Task<HistorialClinico?> Gethistorial_clinicoById(int id)=>context.HistorialClinico.FindAsync(id).AsTask();
+    public async Task<HistorialClinico> Posthistorial_clinico(HistorialClinico value){context.HistorialClinico.Add(value);await context.SaveChangesAsync();return value;}
+    public async Task<HistorialClinico?> Puthistorial_clinico(HistorialClinico value){var item=await context.HistorialClinico.FindAsync(value.id_h_clinico);if(item==null)return null;item.condiciones=value.condiciones;item.antecedentes=value.antecedentes;item.num_ficha=value.num_ficha;item.fecha_apertura=value.fecha_apertura;item.id_usuario=value.id_usuario;await context.SaveChangesAsync();return item;}
+    public async Task<bool> Deletehistorial_clinico(int id){var item=await context.HistorialClinico.FindAsync(id);if(item==null)return false;context.HistorialClinico.Remove(item);await context.SaveChangesAsync();return true;}
 }

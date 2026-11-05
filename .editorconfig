@@ -2,3 +2,7 @@
 
 # IDE0005: El uso de la directiva no es necesario.
 dotnet_diagnostic.IDE0005.severity = none
+
+# Reglas de estilo de ingeniería para evitar ruido de validación no funcional.
+dotnet_diagnostic.CS8981.severity = none
+

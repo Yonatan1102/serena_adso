@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("rol")]
-    public class rol
+    [Table("Rol")]
+    public class Rol
     {
         [Key]
         [Column("id_rol")]
@@ -16,9 +16,9 @@ namespace WebApplication1.models
         [Column("nombre_rol")]
         public string nombre_rol { get; set; } = string.Empty;
 
-        public virtual ICollection<usuario> usuario { get; set; } = new List<usuario>();
-        public virtual ICollection<menu_rol> menu_rol { get; set; } = new List<menu_rol>();
-        public virtual ICollection<disponibilidad> disponibilidades { get; set; } = new List<disponibilidad>();
+        public virtual ICollection<Usuario> Usuario { get; set; } = new List<Usuario>();
+        public virtual ICollection<MenuRol> MenuRol { get; set; } = new List<MenuRol>();
+        public virtual ICollection<Disponibilidad> disponibilidades { get; set; } = new List<Disponibilidad>();
 
     }
 }

@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("publicaciones")]
-    public class publicaciones
+    [Table("Publicaciones")]
+    public class Publicaciones
     {
         [Key]
         [Column("id_publicaciones")]

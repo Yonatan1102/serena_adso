@@ -186,7 +186,13 @@ export const FormulariosView: React.FC<FormulariosViewProps> = ({
                   </button>
                 ) : (
                   <span className="text-xs text-slate-500 font-normal">
-                    {Math.floor(Math.random() * 25) + 14} respuestas
+                    {typeof crypto !== 'undefined' && 'getRandomValues' in crypto
+                      ? (() => {
+                          const value = new Uint32Array(1);
+                          crypto.getRandomValues(value);
+                          return 14 + (value[0] % 25);
+                        })()
+                      : 18} respuestas
                   </span>
                 )}
               </div>

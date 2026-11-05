@@ -13,22 +13,22 @@ namespace WebApplication1.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_estado_de_animo_usuario_id_usuario",
-                table: "estado_de_animo");
+                table: "EstadoDeAnimo");
 
             migrationBuilder.DropIndex(
                 name: "IX_estado_de_animo_id_usuario",
-                table: "estado_de_animo");
+                table: "EstadoDeAnimo");
 
             migrationBuilder.DropColumn(
                 name: "fecha_estado",
-                table: "estado_de_animo");
+                table: "EstadoDeAnimo");
 
             migrationBuilder.DropColumn(
                 name: "id_usuario",
-                table: "estado_de_animo");
+                table: "EstadoDeAnimo");
 
             migrationBuilder.CreateTable(
-                name: "estado_animo_usuario",
+                name: "EstadoAnimoUsuario",
                 columns: table => new
                 {
                     id_estado_usuario = table.Column<int>(type: "int", nullable: false)
@@ -43,25 +43,25 @@ namespace WebApplication1.Migrations
                     table.ForeignKey(
                         name: "FK_estado_animo_usuario_estado_de_animo_id_estado",
                         column: x => x.id_estado,
-                        principalTable: "estado_de_animo",
+                        principalTable: "EstadoDeAnimo",
                         principalColumn: "id_estado",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_estado_animo_usuario_usuario_id_usuario",
                         column: x => x.id_usuario,
-                        principalTable: "usuario",
+                        principalTable: "Usuario",
                         principalColumn: "id_usuario",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_estado_animo_usuario_id_estado",
-                table: "estado_animo_usuario",
+                table: "EstadoAnimoUsuario",
                 column: "id_estado");
 
             migrationBuilder.CreateIndex(
                 name: "IX_estado_animo_usuario_id_usuario",
-                table: "estado_animo_usuario",
+                table: "EstadoAnimoUsuario",
                 column: "id_usuario");
         }
 
@@ -69,32 +69,32 @@ namespace WebApplication1.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "estado_animo_usuario");
+                name: "EstadoAnimoUsuario");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "fecha_estado",
-                table: "estado_de_animo",
+                table: "EstadoDeAnimo",
                 type: "datetime2",
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
             migrationBuilder.AddColumn<int>(
                 name: "id_usuario",
-                table: "estado_de_animo",
+                table: "EstadoDeAnimo",
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
 
             migrationBuilder.CreateIndex(
                 name: "IX_estado_de_animo_id_usuario",
-                table: "estado_de_animo",
+                table: "EstadoDeAnimo",
                 column: "id_usuario");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_estado_de_animo_usuario_id_usuario",
-                table: "estado_de_animo",
+                table: "EstadoDeAnimo",
                 column: "id_usuario",
-                principalTable: "usuario",
+                principalTable: "Usuario",
                 principalColumn: "id_usuario",
                 onDelete: ReferentialAction.Cascade);
         }

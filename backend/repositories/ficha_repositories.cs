@@ -4,41 +4,41 @@ using WebApplication1.models;
 
 namespace WebApplication1.repositories;
 
-public class ficha_repositories : Ificha
+public class FichaRepository : IFicha
 {
-    private readonly serena _context;
+    private readonly SerenaDbContext _context;
 
-    public ficha_repositories(serena context)
+    public FichaRepository(SerenaDbContext context)
     {
         _context = context;
     }
 
-    public async Task<List<ficha>> Getficha()
+    public async Task<List<Ficha>> Getficha()
     {
-        return await _context.ficha
+        return await _context.Ficha
             .AsNoTracking()
             .Include(x => x.usuario_fichas)
             .ToListAsync();
     }
 
-    public async Task<ficha?> GetfichaById(int id)
+    public async Task<Ficha?> GetfichaById(int id)
     {
-        return await _context.ficha
+        return await _context.Ficha
             .AsNoTracking()
             .Include(x => x.usuario_fichas)
             .FirstOrDefaultAsync(x => x.id_ficha == id);
     }
 
-    public async Task<ficha> Postficha(ficha value)
+    public async Task<Ficha> Postficha(Ficha value)
     {
-        _context.ficha.Add(value);
+        _context.Ficha.Add(value);
         await _context.SaveChangesAsync();
         return value;
     }
 
-    public async Task<ficha?> Putficha(ficha value)
+    public async Task<Ficha?> Putficha(Ficha value)
     {
-        var item = await _context.ficha.FindAsync(value.id_ficha);
+        var item = await _context.Ficha.FindAsync(value.id_ficha);
         if (item is null) return null;
 
         item.codigo_ficha = value.codigo_ficha;
@@ -53,10 +53,10 @@ public class ficha_repositories : Ificha
 
     public async Task<bool> Deleteficha(int id)
     {
-        var item = await _context.ficha.FindAsync(id);
+        var item = await _context.Ficha.FindAsync(id);
         if (item is null) return false;
 
-        _context.ficha.Remove(item);
+        _context.Ficha.Remove(item);
         await _context.SaveChangesAsync();
         return true;
     }

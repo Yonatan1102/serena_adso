@@ -5,12 +5,12 @@ using WebApplication1.models;
 namespace WebApplication1.Controllers;
 
 [ApiController]
-[Route("api/estado-animo-usuario")]
-public class estado_animo_usuario_controller : ControllerBase
+[Route("api/estado-animo-Usuario")]
+public class EstadoAnimoUsuarioController : ControllerBase
 {
-    private readonly Iestado_animo_usuario _repository;
+    private readonly IEstadoAnimoUsuario _repository;
 
-    public estado_animo_usuario_controller(Iestado_animo_usuario repository)
+    public EstadoAnimoUsuarioController(IEstadoAnimoUsuario repository)
     {
         _repository = repository;
     }
@@ -29,7 +29,7 @@ public class estado_animo_usuario_controller : ControllerBase
         }
     }
 
-    [HttpGet("usuario/{idUsuario:int}")]
+    [HttpGet("Usuario/{idUsuario:int}")]
     public async Task<IActionResult> GetByUsuario(int idUsuario)
     {
         try
@@ -39,7 +39,7 @@ public class estado_animo_usuario_controller : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { mensaje = "No se pudo consultar el historial del usuario.", detalle = ex.Message });
+            return StatusCode(500, new { mensaje = "No se pudo consultar el historial del Usuario.", detalle = ex.Message });
         }
     }
 
@@ -58,7 +58,7 @@ public class estado_animo_usuario_controller : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] estado_animo_usuario value)
+    public async Task<IActionResult> Create([FromBody] EstadoAnimoUsuario value)
     {
         try
         {
@@ -66,7 +66,7 @@ public class estado_animo_usuario_controller : ControllerBase
                 return BadRequest(new { mensaje = "El cuerpo de la solicitud es obligatorio." });
 
             if (value.id_usuario <= 0)
-                return BadRequest(new { mensaje = "El usuario es obligatorio." });
+                return BadRequest(new { mensaje = "El Usuario es obligatorio." });
 
             if (value.id_estado <= 0)
                 return BadRequest(new { mensaje = "El estado de ánimo es obligatorio." });
@@ -84,7 +84,7 @@ public class estado_animo_usuario_controller : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(int id, [FromBody] estado_animo_usuario value)
+    public async Task<IActionResult> Update(int id, [FromBody] EstadoAnimoUsuario value)
     {
         try
         {
@@ -117,14 +117,14 @@ public class estado_animo_usuario_controller : ControllerBase
         }
     }
 
-    private static EstadoAnimoUsuarioResponse ToResponse(estado_animo_usuario value) =>
+    private static EstadoAnimoUsuarioResponse ToResponse(EstadoAnimoUsuario value) =>
         new(
             value.id_estado_usuario,
             value.id_estado,
             value.id_usuario,
             value.fecha_estado,
             value.motivo,
-            value.estado_de_animo?.nombre_estado
+            value.EstadoDeAnimo?.nombre_estado
         );
 }
 

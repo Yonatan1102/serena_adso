@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    public class usuario
+    public class Usuario
     {
         [Key]
         [Column("id_usuario")]
@@ -29,7 +29,7 @@ namespace WebApplication1.models
 
         // 1. Clave foránea explícita
         [Column("id_rol")]
-        [ForeignKey("rol")] 
+        [ForeignKey("Rol")] 
         public int id_rol { get; set; }
 
         [StringLength(120)]
@@ -44,12 +44,12 @@ namespace WebApplication1.models
         [StringLength(30)]
         public string? num_ficha { get; set; }
 
-        public virtual rol? rol { get; set; }
+        public virtual Rol? Rol { get; set; }
 
-        public virtual historial_clinico? historial_Clinico { get; set; }
-        public virtual ICollection<formulario> formularios { get; set; } = new List<formulario>();
-        public virtual ICollection<estado_animo_usuario> estado_animo_usuarios { get; set; } = new List<estado_animo_usuario>();
-        public virtual ICollection<disponibilidad> disponibilidades { get; set; } = new List<disponibilidad>();
-        public virtual ICollection<usuario_ficha> usuario_fichas { get; set; } = new List<usuario_ficha>();
+        public virtual HistorialClinico? historial_Clinico { get; set; }
+        public virtual ICollection<Formulario> formularios { get; set; } = new List<Formulario>();
+        public virtual ICollection<EstadoAnimoUsuario> estado_animo_usuarios { get; set; } = new List<EstadoAnimoUsuario>();
+        public virtual ICollection<Disponibilidad> disponibilidades { get; set; } = new List<Disponibilidad>();
+        public virtual ICollection<UsuarioFicha> usuario_fichas { get; set; } = new List<UsuarioFicha>();
     }
 }

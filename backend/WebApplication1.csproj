@@ -21,4 +21,11 @@
     <Folder Include="NewFolder\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="SerenaApi.Tests/**/*.cs" />
+    <Content Remove="SerenaApi.Tests/**/*" />
+    <EmbeddedResource Remove="SerenaApi.Tests/**/*" />
+    <None Remove="SerenaApi.Tests/**/*" />
+  </ItemGroup>
+
 </Project>

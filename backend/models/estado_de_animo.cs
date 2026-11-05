@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApplication1.models
 {
-    [Table("estado_de_animo")]
-    public class estado_de_animo
+    [Table("EstadoDeAnimo")]
+    public class EstadoDeAnimo
     {
         [Key]
         [Column("id_estado")]
@@ -17,6 +17,6 @@ namespace WebApplication1.models
         [Column("nombre_estado")]
         public string nombre_estado { get; set; } = string.Empty;
 
-        public virtual ICollection<estado_animo_usuario> estado_animo_usuarios { get; set; } = new List<estado_animo_usuario>();
+        public virtual ICollection<EstadoAnimoUsuario> estado_animo_usuarios { get; set; } = new List<EstadoAnimoUsuario>();
     }
 }
