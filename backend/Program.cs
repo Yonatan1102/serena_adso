@@ -70,6 +70,7 @@ builder.Services.AddScoped<Idiario, diario_repositories>();
 builder.Services.AddScoped<Idisponibilidad, disponibilidad_Repositories>();
 builder.Services.AddScoped<Iemergencia, emergencia_repositories>();
 builder.Services.AddScoped<Iestado_de_animo, estado_de_animo_repositories>();
+builder.Services.AddScoped<lestado_animo_usuario, estado_animo_usuario_repositories>(); // <-- Registrado con la 'l' minúscula exacta del archivo
 builder.Services.AddScoped<Iformulario, formulario_repositories>();
 builder.Services.AddScoped<Ihistorial_cita, historial_cita_repositories>();
 builder.Services.AddScoped<Ihistorial_clinico, historial_clinico_repositories>();
